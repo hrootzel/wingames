@@ -256,6 +256,12 @@ select {
   gap: 6px;
 }
 
+.card-grid .card {
+  position: relative;
+  top: auto;
+  left: auto;
+}
+
 .tableau-col {
   position: relative;
   min-height: 180px;
