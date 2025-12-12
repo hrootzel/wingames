@@ -1,4 +1,4 @@
-// Dr. Blackjack - Unicode cards, multiple options, and basic-strategy hints.
+// Blackjack, M.D. - Unicode cards, options, and basic-strategy hints.
 
 const SUITS = ['clubs', 'diamonds', 'hearts', 'spades'];
 const SUIT_SYMBOLS = {
@@ -145,10 +145,10 @@ function initialState() {
 function updateOptionsFromUI() {
   state.options.decks = Number(decksSelect.value) || 1;
   state.options.europeanNoHoleCard = !!(optEuropean && optEuropean.checked);
-  state.options.allowSurrender = optSurrender.checked;
-  state.options.allowDAS = optDAS.checked;
-  state.options.doubleAny = optDoubleAny.checked;
-  state.options.dealerHitsSoft17 = optHitSoft17.checked;
+  state.options.allowSurrender = !!(optSurrender && optSurrender.checked);
+  state.options.allowDAS = !!(optDAS && optDAS.checked);
+  state.options.doubleAny = !!(optDoubleAny && optDoubleAny.checked);
+  state.options.dealerHitsSoft17 = !!(optHitSoft17 && optHitSoft17.checked);
 }
 
 function updateBankAndBet() {
@@ -444,10 +444,10 @@ function outcomeLineForHand(hand, dealerTotal) {
   if (!hand.cards.length) return '';
   const hv = handValue(hand.cards);
   const soft = softSuffix(hv);
-  if (hand.surrendered) return `Surrendered — Total: ${hv.total}${soft}`;
+  if (hand.surrendered) return `Surrendered - Total: ${hv.total}${soft}`;
   if (hand.busted) return `Busted with ${hv.total}`;
   if (state.roundOver && typeof dealerTotal === 'number') {
-    const result = hand.result ? ` — ${hand.result}` : '';
+    const result = hand.result ? ` - ${hand.result}` : '';
     return `Final: ${hv.total}${soft} vs Dealer: ${dealerTotal}${result}`;
   }
   if (hand.finished) {
@@ -805,9 +805,9 @@ function attachEvents() {
   hintBtn.addEventListener('click', hint);
   newRoundBtn.addEventListener('click', newRound);
   betInput.addEventListener('change', updateBankAndBet);
-  [decksSelect, optEuropean, optSurrender, optDAS, optDoubleAny, optHitSoft17].forEach((el) =>
-    el.addEventListener('change', updateOptionsFromUI),
-  );
+  [decksSelect, optEuropean, optSurrender, optDAS, optDoubleAny, optHitSoft17]
+    .filter(Boolean)
+    .forEach((el) => el.addEventListener('change', updateOptionsFromUI));
 }
 
 state = initialState();
