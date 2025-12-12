@@ -505,7 +505,7 @@ function renderHands() {
     wrap.appendChild(header);
 
     const cardsWrap = document.createElement('div');
-    cardsWrap.className = 'tableau card-grid';
+    cardsWrap.className = 'hand-cards card-grid';
     hand.cards.forEach((card) => {
       cardsWrap.appendChild(buildCardElement(card));
     });

@@ -271,6 +271,24 @@ select {
   gap: 6px;
 }
 
+.hand-cards {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 120px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.hand-cards .card {
+  flex: 0 0 auto;
+}
+
 .card-grid .card {
   position: relative;
   top: auto;
