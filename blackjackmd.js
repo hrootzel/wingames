@@ -1,4 +1,4 @@
-// Dr. Blackjack - Unicode cards, multiple options, and basic-strategy hints.
+// Blackjack, M.D. - Unicode cards, options, and basic-strategy hints.
 
 const SUITS = ['clubs', 'diamonds', 'hearts', 'spades'];
 const SUIT_SYMBOLS = {
@@ -28,6 +28,7 @@ const hintBtn = document.getElementById('hint');
 const newRoundBtn = document.getElementById('new-round');
 
 const decksSelect = document.getElementById('decks');
+const optEuropean = document.getElementById('opt-european');
 const optSurrender = document.getElementById('opt-surrender');
 const optDAS = document.getElementById('opt-das');
 const optDoubleAny = document.getElementById('opt-double-any');
@@ -132,6 +133,7 @@ function initialState() {
     roundOver: false,
     options: {
       decks: 8,
+      europeanNoHoleCard: false,
       allowSurrender: false,
       allowDAS: true,
       doubleAny: true,
@@ -142,10 +144,11 @@ function initialState() {
 
 function updateOptionsFromUI() {
   state.options.decks = Number(decksSelect.value) || 1;
-  state.options.allowSurrender = optSurrender.checked;
-  state.options.allowDAS = optDAS.checked;
-  state.options.doubleAny = optDoubleAny.checked;
-  state.options.dealerHitsSoft17 = optHitSoft17.checked;
+  state.options.europeanNoHoleCard = !!(optEuropean && optEuropean.checked);
+  state.options.allowSurrender = !!(optSurrender && optSurrender.checked);
+  state.options.allowDAS = !!(optDAS && optDAS.checked);
+  state.options.doubleAny = !!(optDoubleAny && optDoubleAny.checked);
+  state.options.dealerHitsSoft17 = !!(optHitSoft17 && optHitSoft17.checked);
 }
 
 function updateBankAndBet() {
@@ -194,7 +197,7 @@ function startRound() {
     return;
   }
 
-  state.dealer = [drawCard(true), drawCard(false)];
+  state.dealer = state.options.europeanNoHoleCard ? [drawCard(true)] : [drawCard(true), drawCard(false)];
   state.hands = [
     {
       cards: [drawCard(true), drawCard(true)],
@@ -225,6 +228,16 @@ function startRound() {
 
 function checkNaturals() {
   const playerNatural = state.hands.length === 1 && state.hands[0].natural;
+  if (state.options.europeanNoHoleCard) {
+    if (!playerNatural) return;
+    statusEl.textContent = 'Blackjack! Waiting for dealer...';
+    state.hands[0].finished = true;
+    state.hands[0].hasActed = true;
+    renderHands();
+    advanceTurn();
+    return;
+  }
+
   const dealerNatural = handValue([state.dealer[0], state.dealer[1]]).total === 21;
   if (!playerNatural && !dealerNatural) return;
 
@@ -349,11 +362,19 @@ function advanceTurn() {
 
 function dealerPlayAndSettle() {
   state.inRound = false;
-  revealDealerHole();
+  const needsDealerResolve = state.hands.some((hand) => !hand.busted && !hand.surrendered);
+  const needsDealerHit = state.hands.some((hand) => !hand.busted && !hand.surrendered && !hand.natural);
+
+  if (state.options.europeanNoHoleCard) {
+    if (needsDealerResolve && state.dealer.length === 1) {
+      state.dealer.push(drawCard(true));
+    }
+  } else {
+    revealDealerHole();
+  }
 
   let dv = handValue(state.dealer);
-  const needsDealerPlay = state.hands.some((hand) => !hand.busted && !hand.surrendered);
-  if (needsDealerPlay) {
+  if (needsDealerHit) {
     while (dv.total < 17 || (dv.total === 17 && dv.soft && state.options.dealerHitsSoft17)) {
       state.dealer.push(drawCard(true));
       dv = handValue(state.dealer);
@@ -423,10 +444,10 @@ function outcomeLineForHand(hand, dealerTotal) {
   if (!hand.cards.length) return '';
   const hv = handValue(hand.cards);
   const soft = softSuffix(hv);
-  if (hand.surrendered) return `Surrendered — Total: ${hv.total}${soft}`;
+  if (hand.surrendered) return `Surrendered - Total: ${hv.total}${soft}`;
   if (hand.busted) return `Busted with ${hv.total}`;
   if (state.roundOver && typeof dealerTotal === 'number') {
-    const result = hand.result ? ` — ${hand.result}` : '';
+    const result = hand.result ? ` - ${hand.result}` : '';
     return `Final: ${hv.total}${soft} vs Dealer: ${dealerTotal}${result}`;
   }
   if (hand.finished) {
@@ -443,6 +464,7 @@ function renderHands() {
     dealerStatusEl.textContent = '';
     dealerOutcomeEl.textContent = '';
   } else {
+    const europeanNoHole = !!state.options.europeanNoHoleCard;
     const holeHidden = state.inRound && !state.roundOver && state.dealer[1] && !state.dealer[1].faceUp;
     if (holeHidden) {
       const visibleCards = state.dealer.filter((c) => c.faceUp);
@@ -451,8 +473,14 @@ function renderHands() {
       dealerOutcomeEl.textContent = `Upcard: ${formatCardLabel(state.dealer[0])}`;
     } else {
       const dv = handValue(state.dealer);
-      dealerStatusEl.textContent = `Total: ${dv.total}`;
-      dealerOutcomeEl.textContent = dv.total > 21 ? `Busted with ${dv.total}` : `Final total: ${dv.total}`;
+      dealerStatusEl.textContent = state.roundOver ? `Total: ${dv.total}` : europeanNoHole && state.dealer.length === 1 ? `Showing: ${dv.total}` : `Total: ${dv.total}`;
+      if (state.roundOver) {
+        dealerOutcomeEl.textContent = dv.total > 21 ? `Busted with ${dv.total}` : `Final total: ${dv.total}`;
+      } else if (europeanNoHole && state.dealer.length === 1) {
+        dealerOutcomeEl.textContent = 'No hole card (European).';
+      } else {
+        dealerOutcomeEl.textContent = `Current total: ${dv.total}`;
+      }
     }
   }
 
@@ -477,7 +505,7 @@ function renderHands() {
     wrap.appendChild(header);
 
     const cardsWrap = document.createElement('div');
-    cardsWrap.className = 'tableau card-grid';
+    cardsWrap.className = 'hand-cards card-grid';
     hand.cards.forEach((card) => {
       cardsWrap.appendChild(buildCardElement(card));
     });
@@ -777,9 +805,9 @@ function attachEvents() {
   hintBtn.addEventListener('click', hint);
   newRoundBtn.addEventListener('click', newRound);
   betInput.addEventListener('change', updateBankAndBet);
-  [decksSelect, optSurrender, optDAS, optDoubleAny, optHitSoft17].forEach((el) =>
-    el.addEventListener('change', updateOptionsFromUI),
-  );
+  [decksSelect, optEuropean, optSurrender, optDAS, optDoubleAny, optHitSoft17]
+    .filter(Boolean)
+    .forEach((el) => el.addEventListener('change', updateOptionsFromUI));
 }
 
 state = initialState();
