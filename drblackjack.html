@@ -51,8 +51,15 @@
     </div>
 
     <div class="board">
-      <div class="label">Dealer</div>
-      <div id="dealer-hand" class="tableau card-grid" style="grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap:8px; min-height:160px;"></div>
+      <div id="dealer-box" class="hand">
+        <div class="hand-header">
+          <span>Dealer</span>
+          <span class="hand-status" id="dealer-status"></span>
+        </div>
+        <div id="dealer-hand" class="tableau card-grid"></div>
+        <div class="hand-outcome" id="dealer-outcome"></div>
+      </div>
+
       <div class="label" style="margin-top:12px;">Player</div>
       <div id="player-hands" class="hands"></div>
     </div>

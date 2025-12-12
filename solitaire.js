@@ -196,7 +196,7 @@ function pipLayout(value) {
     4: [0, 2, 18, 20],
     5: [0, 2, 10, 18, 20],
     6: [0, 2, 9, 11, 18, 20],
-    7: [0, 2, 3, 5, 6, 8, 4], // compact 3x4 grid indices
+    7: [0, 2, 3, 5, 6, 8, 4], // compact 3x4 grid indices (shifted via CSS)
     8: [0, 2, 3, 5, 6, 8, 9, 11], // compact 3x4 grid indices
   };
   if (value === 9) {
@@ -551,6 +551,9 @@ function buildCardElement(card, pileType, cardIndex, pileIndex) {
     }
     if (card.value >= 7) {
       pips.classList.add('pips-compact-4');
+    }
+    if (card.value === 7) {
+      pips.classList.add('pips-seven');
     }
     pipLayout(card.value).forEach((cell) => {
       const pip = document.createElement('div');

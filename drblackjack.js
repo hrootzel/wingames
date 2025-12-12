@@ -11,6 +11,8 @@ const VALUE_LABELS = { 1: 'A', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8
 const ACTIONS = { STAND: 'stand', HIT: 'hit', DOUBLE: 'double', SPLIT: 'split', SURRENDER: 'surrender' };
 
 const dealerEl = document.getElementById('dealer-hand');
+const dealerStatusEl = document.getElementById('dealer-status');
+const dealerOutcomeEl = document.getElementById('dealer-outcome');
 const playerHandsEl = document.getElementById('player-hands');
 const statusEl = document.getElementById('status');
 const bankEl = document.getElementById('bank');
@@ -350,9 +352,12 @@ function dealerPlayAndSettle() {
   revealDealerHole();
 
   let dv = handValue(state.dealer);
-  while (dv.total < 17 || (dv.total === 17 && dv.soft && state.options.dealerHitsSoft17)) {
-    state.dealer.push(drawCard(true));
-    dv = handValue(state.dealer);
+  const needsDealerPlay = state.hands.some((hand) => !hand.busted && !hand.surrendered);
+  if (needsDealerPlay) {
+    while (dv.total < 17 || (dv.total === 17 && dv.soft && state.options.dealerHitsSoft17)) {
+      state.dealer.push(drawCard(true));
+      dv = handValue(state.dealer);
+    }
   }
 
   settleHands(dv);
@@ -410,8 +415,48 @@ function settleHands(dealerValue) {
   statusEl.textContent = summaries.join(' | ');
 }
 
+function softSuffix(hv) {
+  return hv.soft ? ' (soft)' : '';
+}
+
+function outcomeLineForHand(hand, dealerTotal) {
+  if (!hand.cards.length) return '';
+  const hv = handValue(hand.cards);
+  const soft = softSuffix(hv);
+  if (hand.surrendered) return `Surrendered — Total: ${hv.total}${soft}`;
+  if (hand.busted) return `Busted with ${hv.total}`;
+  if (state.roundOver && typeof dealerTotal === 'number') {
+    const result = hand.result ? ` — ${hand.result}` : '';
+    return `Final: ${hv.total}${soft} vs Dealer: ${dealerTotal}${result}`;
+  }
+  if (hand.finished) {
+    if (hand.stood) return `Stood on ${hv.total}${soft}`;
+    if (hand.doubled) return `Doubled to ${hv.total}${soft}`;
+  }
+  return `Total: ${hv.total}${soft}`;
+}
+
 function renderHands() {
   renderHand(dealerEl, state.dealer, state.inRound && !state.roundOver);
+
+  if (!state.dealer.length) {
+    dealerStatusEl.textContent = '';
+    dealerOutcomeEl.textContent = '';
+  } else {
+    const holeHidden = state.inRound && !state.roundOver && state.dealer[1] && !state.dealer[1].faceUp;
+    if (holeHidden) {
+      const visibleCards = state.dealer.filter((c) => c.faceUp);
+      const showing = visibleCards.length ? handValue(visibleCards).total : 0;
+      dealerStatusEl.textContent = `Showing: ${showing}`;
+      dealerOutcomeEl.textContent = `Upcard: ${formatCardLabel(state.dealer[0])}`;
+    } else {
+      const dv = handValue(state.dealer);
+      dealerStatusEl.textContent = `Total: ${dv.total}`;
+      dealerOutcomeEl.textContent = dv.total > 21 ? `Busted with ${dv.total}` : `Final total: ${dv.total}`;
+    }
+  }
+
+  const dealerTotal = state.roundOver && state.dealer.length ? handValue(state.dealer).total : null;
 
   playerHandsEl.innerHTML = '';
   state.hands.forEach((hand, idx) => {
@@ -421,8 +466,13 @@ function renderHands() {
 
     const header = document.createElement('div');
     header.className = 'hand-header';
-    const total = handValue(hand.cards).total;
-    const status = hand.result || (hand.busted ? 'BUST' : hand.surrendered ? 'SURRENDER' : `Total: ${total}`);
+    let status = hand.result;
+    if (!status) {
+      if (hand.busted) status = 'BUST';
+      else if (hand.surrendered) status = 'SURRENDER';
+      else if (state.inRound && idx === state.activeHand && !hand.finished) status = 'Playing';
+      else status = '';
+    }
     header.innerHTML = `<span>Hand ${idx + 1} - Bet $${hand.bet}</span><span class="hand-status">${status}</span>`;
     wrap.appendChild(header);
 
@@ -432,6 +482,11 @@ function renderHands() {
       cardsWrap.appendChild(buildCardElement(card));
     });
     wrap.appendChild(cardsWrap);
+
+    const outcome = document.createElement('div');
+    outcome.className = 'hand-outcome';
+    outcome.textContent = outcomeLineForHand(hand, dealerTotal);
+    wrap.appendChild(outcome);
 
     playerHandsEl.appendChild(wrap);
   });
@@ -483,6 +538,9 @@ function buildCardElement(card, displayCard = card) {
     pips.className = 'pips';
     if (displayCard.value >= 7) {
       pips.classList.add('pips-tight', 'pips-compact-4');
+    }
+    if (displayCard.value === 7) {
+      pips.classList.add('pips-seven');
     }
     pipLayout(displayCard.value).forEach((cell) => {
       const pip = document.createElement('div');
