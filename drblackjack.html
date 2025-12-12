@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dr. Blackjack</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div>
+        <h1>Blackjack, M.D.</h1>
+        <p class="subtitle">Blackjack trainer.</p>
+      </div>
+      <div class="quick-stats">
+        <div>Bank: $<span id="bank">1000</span></div>
+        <div>Bet: $<input id="bet" type="number" value="10" min="1" step="1" style="width:80px;"></div>
+      </div>
+    </header>
+
+    <div class="options-row">
+      <label>Decks
+        <select id="decks">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="4">4</option>
+          <option value="6">6</option>
+          <option value="8" selected>8</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="opt-surrender"> Allow surrender</label>
+      <label><input type="checkbox" id="opt-das" checked> Double after split (DAS)</label>
+      <label><input type="checkbox" id="opt-double-any" checked> Double on any two</label>
+      <label><input type="checkbox" id="opt-hit-soft17"> Dealer hits soft 17</label>
+    </div>
+
+    <div class="hud">
+      <div class="control-group">
+        <button id="deal">Deal</button>
+        <button id="hit" disabled>Hit</button>
+        <button id="stand" disabled>Stand</button>
+        <button id="double" disabled>Double</button>
+        <button id="split" disabled>Split</button>
+        <button id="surrender" disabled>Surrender</button>
+        <button id="hint" disabled>Hint</button>
+        <button id="new-round" disabled>New Round</button>
+      </div>
+      <div class="status-row">
+        <span id="status">Place your bet and deal.</span>
+      </div>
+    </div>
+
+    <div class="board">
+      <div id="dealer-box" class="hand">
+        <div class="hand-header">
+          <span>Dealer</span>
+          <span class="hand-status" id="dealer-status"></span>
+        </div>
+        <div id="dealer-hand" class="tableau card-grid"></div>
+        <div class="hand-outcome" id="dealer-outcome"></div>
+      </div>
+
+      <div class="label" style="margin-top:12px;">Player</div>
+      <div id="player-hands" class="hands"></div>
+    </div>
+  </div>
+
+  <script type="module" src="blackjackmd.js"></script>
+</body>
+</html>

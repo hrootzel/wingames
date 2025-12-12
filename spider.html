@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spider Solitaire</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div>
+        <h1>Spider Solitaire</h1>
+        <p class="subtitle">Drag or click to move suited runs.</p>
+      </div>
+      <div class="quick-stats">
+        <div>Completed: <span id="completed">0</span> / 8</div>
+        <div>Deals left: <span id="deals">5</span></div>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="control-group">
+        <button id="new-game">New Game</button>
+        <button id="deal">Deal Row</button>
+      </div>
+      <div class="control-group">
+        <label>Difficulty
+          <select id="difficulty">
+            <option value="1">1 suit (easy)</option>
+            <option value="2">2 suits (normal)</option>
+            <option value="4">4 suits (hard)</option>
+          </select>
+        </label>
+      </div>
+      <div class="status-row">
+        <span id="status">Ready</span>
+      </div>
+    </div>
+
+    <div class="board">
+      <div class="top-row" style="align-items:center;">
+        <div class="pile-wrap">
+          <div class="label">Stock</div>
+          <div id="stock" class="pile stock"></div>
+        </div>
+      </div>
+      <div class="tableau-wrap">
+        <div class="label">Tableau (10 columns)</div>
+        <div id="tableau" class="tableau"></div>
+      </div>
+    </div>
+
+    <p class="tips">
+      Click a face-up run to select, then click another column (or drag) to move it. You can drop on any card that is one higher, or any empty column. Deal adds one face-up card to each column (only when no column is empty). Complete a suited King to Ace run to remove it; finish 8 runs to win.
+    </p>
+  </div>
+
+  <script type="module" src="spider.js"></script>
+</body>
+</html>
