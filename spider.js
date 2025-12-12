@@ -1,4 +1,4 @@
-// Spider Solitaire in plain JS, reusing the card rendering styles from solitaire.
+﻿// Spider Solitaire in plain JS, reusing the card rendering styles from solitaire.
 // Click or drag suited descending runs; deal adds one card to each column.
 
 const SUITS = ['clubs', 'diamonds', 'hearts', 'spades'];
@@ -244,9 +244,14 @@ function moveSelectionTo(colIdx) {
   if (newTop) newTop.faceUp = true;
 
   selection = null;
-  checkCompletedRuns(colIdx);
+  const removed = checkCompletedRuns(colIdx);
+  if (removed) {
+    updateStatus(state.completed === 8 ? 'You win!' : 'Completed a run!');
+  }
   render();
-  checkCompletedRuns(colIdx);
+  if (!removed) {
+    updateStatus('Moved');
+  }
   return true;
 }
 
@@ -264,17 +269,13 @@ function checkCompletedRuns(colIdx) {
         state.completed += 1;
         const newTop = state.tableau[colIdx][state.tableau[colIdx].length - 1];
         if (newTop) newTop.faceUp = true;
-        updateStatus('Completed a run!');
-        render();
-        if (state.completed === 8) {
-          updateStatus('You win!');
-        }
-        return;
+        return true;
       }
     } else {
       run = 1;
     }
   }
+  return false;
 }
 
 function dealFromStock() {
@@ -429,3 +430,4 @@ function attachEvents() {
 
 attachEvents();
 newGame();
+

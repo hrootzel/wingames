@@ -196,8 +196,8 @@ function pipLayout(value) {
     4: [0, 2, 18, 20],
     5: [0, 2, 10, 18, 20],
     6: [0, 2, 9, 11, 18, 20],
-    7: [0, 2, 6, 8, 12, 14, 10], // 6 on sides + center
-    8: [0, 2, 7, 9, 11, 13, 18, 20],
+    7: [0, 2, 3, 5, 6, 8, 4], // compact 3x4 grid indices
+    8: [0, 2, 3, 5, 6, 8, 9, 11], // compact 3x4 grid indices
   };
   if (value === 9) {
     // 3x4 grid (indices 0..11): 8 on sides + 1 center
@@ -587,27 +587,6 @@ function buildCardElement(card, pileType, cardIndex, pileIndex) {
   return el;
 }
 
-function getSelectionFromCardEl(cardEl) {
-  const pileType = cardEl.dataset.pile;
-  const pileIndex = Number(cardEl.dataset.pileindex ?? 0);
-  const cardIndex = Number(cardEl.dataset.index ?? 0);
-  if (pileType === 'tableau') {
-    const stack = state.tableau[pileIndex];
-    if (!stack || !stack[cardIndex] || !stack[cardIndex].faceUp) return null;
-    return { source: 'tableau', pileIndex, cardIndex };
-  }
-  if (pileType === 'waste') {
-    if (state.waste.length === 0) return null;
-    return { source: 'waste', pileIndex: 0, cardIndex: state.waste.length - 1 };
-  }
-  if (pileType === 'foundation') {
-    const stack = state.foundations[pileIndex];
-    if (!stack || stack.length === 0) return null;
-    return { source: 'foundation', pileIndex, cardIndex: stack.length - 1 };
-  }
-  return null;
-}
-
 function buildDragPreview(cards, source, startIndex, pileIndex) {
   const wrap = document.createElement('div');
   wrap.className = 'drag-preview';
@@ -664,7 +643,7 @@ function attemptDrop(clientX, clientY) {
 function handlePointerDown(ev) {
   const cardEl = ev.target instanceof HTMLElement ? ev.target.closest('.card') : null;
   if (!cardEl) return;
-  const sel = getSelectionFromCardEl(cardEl);
+  const sel = selectionFromCardEl(cardEl);
   if (!sel) return;
   const rect = cardEl.getBoundingClientRect();
   selection = sel;
@@ -721,7 +700,21 @@ function selectionFromCardEl(cardEl) {
     return null;
   const pileIndex = Number(cardEl.dataset.pileindex ?? cardEl.dataset.col ?? 0);
   const cardIndex = Number(cardEl.dataset.index ?? 0);
-  return { source: pileType, pileIndex, cardIndex };
+  if (pileType === 'tableau') {
+    const stack = state.tableau[pileIndex];
+    if (!stack || !stack[cardIndex] || !stack[cardIndex].faceUp) return null;
+    return { source: 'tableau', pileIndex, cardIndex };
+  }
+  if (pileType === 'waste') {
+    if (state.waste.length === 0) return null;
+    return { source: 'waste', pileIndex: 0, cardIndex: state.waste.length - 1 };
+  }
+  if (pileType === 'foundation') {
+    const stack = state.foundations[pileIndex];
+    if (!stack || stack.length === 0) return null;
+    return { source: 'foundation', pileIndex, cardIndex: stack.length - 1 };
+  }
+  return null;
 }
 
 function isTopFaceUp(sel) {
