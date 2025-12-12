@@ -276,9 +276,14 @@ select {
 }
 
 .pips-tight {
-  inset: 16px 10px;
-  row-gap: 2px;
-  column-gap: 2px;
+  inset: 14px 10px;
+  row-gap: 1px;
+  column-gap: 1px;
+}
+
+.pips-compact-4 {
+  grid-template-rows: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .face-label {

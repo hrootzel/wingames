@@ -188,19 +188,26 @@ function formatCardLabel(card) {
 }
 
 function pipLayout(value) {
-  const layouts = {
+  // Default positions mapped to a 3x7 grid (indices 0..20)
+  const defaults = {
     1: [10],
     2: [1, 19],
     3: [1, 10, 19],
     4: [0, 2, 18, 20],
     5: [0, 2, 10, 18, 20],
     6: [0, 2, 9, 11, 18, 20],
-    7: [0, 2, 7, 9, 11, 18, 20],
+    7: [0, 2, 6, 8, 12, 14, 10], // 6 on sides + center
     8: [0, 2, 7, 9, 11, 13, 18, 20],
-    9: [0, 2, 4, 7, 9, 11, 13, 18, 20],
-    10: [0, 2, 4, 7, 9, 11, 13, 16, 18, 20],
   };
-  return layouts[value] || [];
+  if (value === 9) {
+    // 3x4 grid (indices 0..11): 8 on sides + 1 center
+    return [0, 2, 3, 5, 6, 8, 9, 11, 4];
+  }
+  if (value === 10) {
+    // 3x4 grid: 8 on sides + 2 centers
+    return [0, 2, 3, 5, 6, 8, 9, 11, 4, 7];
+  }
+  return defaults[value] || [];
 }
 
 function formatTime(seconds) {
@@ -539,8 +546,11 @@ function buildCardElement(card, pileType, cardIndex, pileIndex) {
   } else {
     const pips = document.createElement('div');
     pips.className = 'pips';
-    if (card.value >= 9) {
+    if (card.value >= 7) {
       pips.classList.add('pips-tight');
+    }
+    if (card.value >= 7) {
+      pips.classList.add('pips-compact-4');
     }
     pipLayout(card.value).forEach((cell) => {
       const pip = document.createElement('div');
@@ -895,7 +905,3 @@ function attachEvents() {
 attachEvents();
 newGame();
 startTimer();
-
-
-
-
