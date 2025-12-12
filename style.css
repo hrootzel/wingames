@@ -215,6 +215,16 @@ select {
   gap: 12px;
 }
 
+#completed-aces {
+  flex-wrap: wrap;
+  row-gap: 12px;
+  min-height: 120px;
+}
+
+#completed-aces .ace-marker {
+  pointer-events: none;
+}
+
 .tableau-wrap {
   margin-top: 16px;
 }

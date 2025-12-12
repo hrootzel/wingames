@@ -11,21 +11,50 @@ const VALUE_LABELS = {
 const TABLEAU_SPACING = 22;
 
 const stockEl = document.getElementById('stock');
+const completedAcesEl = document.getElementById('completed-aces');
 const tableauEl = document.getElementById('tableau');
 const completedEl = document.getElementById('completed');
 const dealsEl = document.getElementById('deals');
 const statusEl = document.getElementById('status');
 const newBtn = document.getElementById('new-game');
 const dealBtn = document.getElementById('deal');
+const undoBtn = document.getElementById('undo');
 const difficultySelect = document.getElementById('difficulty');
 
 let state;
 let selection = null;
 let dragState = null;
 let ignoreClicksUntil = 0;
+let undoSnapshot = null;
 
 function cardColor(suit) {
   return suit === 'diamonds' || suit === 'hearts' ? 'red' : 'black';
+}
+
+function cloneState(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function updateUndoButton() {
+  if (!undoBtn) return;
+  undoBtn.disabled = !undoSnapshot;
+}
+
+function pushUndo() {
+  undoSnapshot = cloneState(state);
+  updateUndoButton();
+}
+
+function undo() {
+  if (!undoSnapshot) return;
+  clearDragPreview();
+  dragState = null;
+  selection = null;
+  state = undoSnapshot;
+  undoSnapshot = null;
+  render();
+  updateStatus('Undid.');
+  updateUndoButton();
 }
 
 function createDeck(difficulty) {
@@ -92,6 +121,8 @@ function dealInitial(difficulty) {
 function newGame() {
   selection = null;
   dragState = null;
+  undoSnapshot = null;
+  updateUndoButton();
   const difficulty = Number(difficultySelect.value);
   const { tableau, stock } = dealInitial(difficulty);
   state = {
@@ -99,6 +130,7 @@ function newGame() {
     stock,
     difficulty,
     completed: 0,
+    completedRuns: [],
   };
   updateStatus('Ready');
   render();
@@ -127,11 +159,21 @@ function formatPipElement(card, cell) {
 }
 
 function buildCardElement(card, colIndex, cardIndex) {
-  const el = document.createElement('div');
-  el.className = 'card';
+  const el = buildCardVisual(card);
   el.dataset.pile = 'tableau';
   el.dataset.pileindex = String(colIndex);
   el.dataset.index = String(cardIndex);
+
+  if (card.faceUp && selection && selection.col === colIndex && cardIndex >= selection.index) {
+    el.classList.add('selected');
+  }
+
+  return el;
+}
+
+function buildCardVisual(card) {
+  const el = document.createElement('div');
+  el.className = 'card';
 
   if (!card.faceUp) {
     el.classList.add('face-down');
@@ -176,11 +218,6 @@ function buildCardElement(card, colIndex, cardIndex) {
   }
 
   el.appendChild(content);
-
-  if (selection && selection.col === colIndex && cardIndex >= selection.index) {
-    el.classList.add('selected');
-  }
-
   return el;
 }
 
@@ -191,6 +228,16 @@ function render() {
   back.className = 'card-back';
   if (state.stock.length === 0) back.classList.add('empty');
   stockEl.appendChild(back);
+
+  // completed runs (ace markers)
+  if (completedAcesEl) {
+    completedAcesEl.innerHTML = '';
+    (state.completedRuns || []).forEach((suit) => {
+      const ace = buildCardVisual({ suit, value: 1, faceUp: true });
+      ace.classList.add('ace-marker');
+      completedAcesEl.appendChild(ace);
+    });
+  }
 
   // tableau
   tableauEl.innerHTML = '';
@@ -240,6 +287,7 @@ function moveSelectionTo(colIdx) {
   if (moving.length === 0) return false;
   if (!canDropOn(state.tableau[colIdx], moving[0])) return false;
 
+  pushUndo();
   state.tableau[col] = fromStack.slice(0, index);
   state.tableau[colIdx] = state.tableau[colIdx].concat(moving);
 
@@ -247,12 +295,17 @@ function moveSelectionTo(colIdx) {
   if (newTop) newTop.faceUp = true;
 
   selection = null;
-  const removed = checkCompletedRuns(colIdx);
-  if (removed) {
-    updateStatus(state.completed === 8 ? 'You win!' : 'Completed a run!');
+  const removedSuits = [];
+  let removedSuit = checkCompletedRuns(colIdx);
+  while (removedSuit) {
+    removedSuits.push(removedSuit);
+    removedSuit = checkCompletedRuns(colIdx);
   }
+
   render();
-  if (!removed) {
+  if (removedSuits.length) {
+    updateStatus(state.completed === 8 ? 'You win!' : `Completed ${removedSuits.length} run${removedSuits.length === 1 ? '' : 's'}!`);
+  } else {
     updateStatus('Moved');
   }
   return true;
@@ -267,18 +320,21 @@ function checkCompletedRuns(colIdx) {
     if (prev.value === cur.value + 1 && prev.suit === cur.suit) {
       run += 1;
       if (run === 13) {
+        const suit = prev.suit;
         // remove run
         state.tableau[colIdx] = stack.slice(0, i - 1);
         state.completed += 1;
+        if (!state.completedRuns) state.completedRuns = [];
+        state.completedRuns.push(suit);
         const newTop = state.tableau[colIdx][state.tableau[colIdx].length - 1];
         if (newTop) newTop.faceUp = true;
-        return true;
+        return suit;
       }
     } else {
       run = 1;
     }
   }
-  return false;
+  return null;
 }
 
 function dealFromStock() {
@@ -290,19 +346,34 @@ function dealFromStock() {
     updateStatus('Cannot deal: empty column present.');
     return;
   }
+  pushUndo();
   for (let i = 0; i < 10; i++) {
     const card = state.stock.pop();
     if (!card) break;
     card.faceUp = true;
     state.tableau[i].push(card);
   }
-  updateStatus('Dealt one card to each column.');
+
+  const removedSuits = [];
+  for (let colIdx = 0; colIdx < 10; colIdx++) {
+    let removedSuit = checkCompletedRuns(colIdx);
+    while (removedSuit) {
+      removedSuits.push(removedSuit);
+      removedSuit = checkCompletedRuns(colIdx);
+    }
+  }
+
+  if (removedSuits.length) {
+    updateStatus(state.completed === 8 ? 'You win!' : `Dealt and completed ${removedSuits.length} run${removedSuits.length === 1 ? '' : 's'}!`);
+  } else {
+    updateStatus('Dealt one card to each column.');
+  }
   render();
 }
 
 function handlePointerDown(ev) {
   const cardEl = ev.target instanceof HTMLElement ? ev.target.closest('.card') : null;
-  if (!cardEl) return;
+  if (!cardEl || !tableauEl.contains(cardEl)) return;
   const col = Number(cardEl.dataset.pileindex || cardEl.dataset.col);
   const idx = Number(cardEl.dataset.index);
   if (!canDragFrom(col, idx)) return;
@@ -424,6 +495,14 @@ function attachEvents() {
 
   stockEl.addEventListener('click', () => {
     dealFromStock();
+  });
+
+  if (undoBtn) undoBtn.addEventListener('click', undo);
+  document.addEventListener('keydown', (ev) => {
+    if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'z' || ev.key === 'Z')) {
+      ev.preventDefault();
+      undo();
+    }
   });
 
   newBtn.addEventListener('click', () => newGame());
