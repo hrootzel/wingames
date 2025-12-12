@@ -187,6 +187,22 @@ function formatCardLabel(card) {
   return `${VALUE_LABELS[card.value]}${SUIT_SYMBOLS[card.suit]}`;
 }
 
+function pipLayout(value) {
+  const layouts = {
+    1: [10],
+    2: [1, 19],
+    3: [1, 10, 19],
+    4: [0, 2, 18, 20],
+    5: [0, 2, 10, 18, 20],
+    6: [0, 2, 9, 11, 18, 20],
+    7: [0, 2, 7, 9, 11, 18, 20],
+    8: [0, 2, 7, 9, 11, 13, 18, 20],
+    9: [0, 2, 4, 7, 9, 11, 13, 18, 20],
+    10: [0, 2, 4, 7, 9, 11, 13, 16, 18, 20],
+  };
+  return layouts[value] || [];
+}
+
 function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
@@ -498,10 +514,53 @@ function buildCardElement(card, pileType, cardIndex, pileIndex) {
     return el;
   }
 
-  el.textContent = formatCardLabel(card);
   if (cardColor(card.suit) === 'red') {
     el.classList.add('red');
   }
+
+  const content = document.createElement('div');
+  content.className = 'card-content';
+
+  const cornerTop = document.createElement('div');
+  cornerTop.className = 'corner top';
+  cornerTop.textContent = formatCardLabel(card);
+  content.appendChild(cornerTop);
+
+  const cornerBottom = document.createElement('div');
+  cornerBottom.className = 'corner bottom';
+  cornerBottom.textContent = formatCardLabel(card);
+  content.appendChild(cornerBottom);
+
+  if (card.value >= 11) {
+    const face = document.createElement('div');
+    face.className = 'face-label';
+    face.textContent = VALUE_LABELS[card.value];
+    content.appendChild(face);
+  } else {
+    const pips = document.createElement('div');
+    pips.className = 'pips';
+    if (card.value >= 9) {
+      pips.classList.add('pips-tight');
+    }
+    pipLayout(card.value).forEach((cell) => {
+      const pip = document.createElement('div');
+      pip.className = 'pip';
+      if (card.value >= 9 && card.value <= 10) {
+        pip.classList.add('pip-xsmall');
+      } else if (card.value >= 5 && card.value <= 8) {
+        pip.classList.add('pip-small');
+      }
+      const row = Math.floor(cell / 3) + 1;
+      const col = (cell % 3) + 1;
+      pip.style.gridRow = String(row);
+      pip.style.gridColumn = String(col);
+      pip.textContent = SUIT_SYMBOLS[card.suit];
+      pips.appendChild(pip);
+    });
+    content.appendChild(pips);
+  }
+
+  el.appendChild(content);
 
   if (selection) {
     const selectedPileMatches = selection.source === pileType && selection.pileIndex === (pileIndex ?? 0);
@@ -836,10 +895,6 @@ function attachEvents() {
 attachEvents();
 newGame();
 startTimer();
-
-
-
-
 
 
 
