@@ -51,6 +51,12 @@ h1 {
   color: rgba(255, 255, 255, 0.7);
 }
 
+.subtitle a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .quick-stats {
   text-align: right;
   font-weight: 600;

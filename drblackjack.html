@@ -10,7 +10,10 @@
     <header class="app-header">
       <div>
         <h1>Blackjack, M.D.</h1>
-        <p class="subtitle">Blackjack trainer.</p>
+        <p class="subtitle">
+          Blackjack trainer.
+          <a href="https://wizardofodds.com/games/blackjack/strategy/calculator/" target="_blank" rel="noopener noreferrer">Odds Calculator.</a>
+        </p>
       </div>
       <div class="quick-stats">
         <div>Bank: $<span id="bank">1000</span></div>
@@ -28,6 +31,7 @@
           <option value="8" selected>8</option>
         </select>
       </label>
+      <label><input type="checkbox" id="opt-european"> European (no hole card)</label>
       <label><input type="checkbox" id="opt-surrender"> Allow surrender</label>
       <label><input type="checkbox" id="opt-das" checked> Double after split (DAS)</label>
       <label><input type="checkbox" id="opt-double-any" checked> Double on any two</label>
