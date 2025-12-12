@@ -1,7 +1,12 @@
-﻿#!/usr/bin/env sh
+#!/usr/bin/env sh
 PORT=8000
-URL="http://localhost:/"
-open_cmd="xdg-open"
-command -v open >/dev/null 2>&1 && open_cmd="open"
- "" 2>/dev/null &
-python3 -m http.server ""
+URL="http://localhost:${PORT}/"
+
+# Try to open browser if available
+if command -v xdg-open >/dev/null 2>&1; then
+  xdg-open "$URL" >/dev/null 2>&1 &
+elif command -v open >/dev/null 2>&1; then
+  open "$URL" >/dev/null 2>&1 &
+fi
+
+exec python3 -m http.server "$PORT"
