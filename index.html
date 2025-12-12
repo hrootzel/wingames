@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Solitaire - Unicode</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div>
+        <h1>Solitaire</h1>
+        <p class="subtitle">Classic Klondike, Unicode suits, TypeScript logic.</p>
+      </div>
+      <div class="quick-stats">
+        <div>Score: <span id="score">0</span></div>
+        <div>Time: <span id="time">0:00</span></div>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="control-group">
+        <button id="new-game">New Game</button>
+        <button id="undo" disabled>Undo</button>
+        <button id="auto-move">Auto move</button>
+      </div>
+      <div class="control-group">
+        <label>Draw
+          <select id="draw-mode">
+            <option value="1">1</option>
+            <option value="3" selected>3</option>
+          </select>
+        </label>
+        <label>Scoring
+          <select id="score-mode">
+            <option value="standard" selected>Standard</option>
+            <option value="vegas">Vegas</option>
+            <option value="none">No score</option>
+          </select>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="keep-vegas"> Keep Vegas bank
+        </label>
+      </div>
+      <div class="status-row">
+        <span id="status">Ready</span>
+      </div>
+    </div>
+
+    <div class="board">
+      <div class="top-row">
+        <div class="pile-wrap">
+          <div class="label">Stock</div>
+          <div id="stock" class="pile stock"></div>
+        </div>
+        <div class="pile-wrap">
+          <div class="label">Waste</div>
+          <div id="waste" class="pile waste"></div>
+        </div>
+        <div class="pile-wrap foundations-wrap">
+          <div class="label">Foundations</div>
+          <div class="foundation-row">
+            <div class="pile foundation" data-index="0"></div>
+            <div class="pile foundation" data-index="1"></div>
+            <div class="pile foundation" data-index="2"></div>
+            <div class="pile foundation" data-index="3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tableau-wrap">
+        <div class="label">Tableau</div>
+        <div id="tableau" class="tableau"></div>
+      </div>
+    </div>
+
+    <p class="tips">
+      Click the stock to draw. Click a face-up card to select a stack, then click another stack or empty spot to move.
+      Double-click a top face-up card to send it to a foundation. Auto move pushes obvious cards to the foundations.
+      Undo reverts the last action (including draws).
+    </p>
+  </div>
+
+  <script type="module" src="solitaire.js"></script>
+</body>
+</html>
