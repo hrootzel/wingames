@@ -147,6 +147,7 @@ function newGame() {
     difficulty,
     completed: 0,
     completedRuns: [],
+    won: false,
   };
   updateStatus('Ready');
   render();
@@ -156,6 +157,17 @@ function updateStatus(text) {
   statusEl.textContent = text;
   completedEl.textContent = String(state.completed);
   dealsEl.textContent = String(Math.floor(state.stock.length / 10));
+  checkForWin();
+}
+
+function checkForWin() {
+  if (!state || state.won) return;
+  if (state.completed !== 8) return;
+  state.won = true;
+  statusEl.textContent = 'You win!';
+  setTimeout(() => {
+    alert('You win!');
+  }, 50);
 }
 
 function formatPipElement(card, cell) {
@@ -323,7 +335,7 @@ function moveSelectionTo(colIdx) {
 
   render();
   if (removedSuits.length) {
-    updateStatus(state.completed === 8 ? 'You win!' : `Completed ${removedSuits.length} run${removedSuits.length === 1 ? '' : 's'}!`);
+    updateStatus(`Completed ${removedSuits.length} run${removedSuits.length === 1 ? '' : 's'}!`);
   } else {
     updateStatus('Moved');
   }
@@ -383,7 +395,7 @@ function dealFromStock() {
   }
 
   if (removedSuits.length) {
-    updateStatus(state.completed === 8 ? 'You win!' : `Dealt and completed ${removedSuits.length} run${removedSuits.length === 1 ? '' : 's'}!`);
+    updateStatus(`Dealt and completed ${removedSuits.length} run${removedSuits.length === 1 ? '' : 's'}!`);
   } else {
     updateStatus('Dealt one card to each column.');
   }
