@@ -447,3 +447,32 @@ select {
 .drag-preview .card {
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
 }
+
+.win-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10050;
+}
+
+.win-overlay .card {
+  position: fixed;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.win-message {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
