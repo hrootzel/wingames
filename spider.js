@@ -371,12 +371,26 @@ function render() {
 
   // completed runs (ace markers)
   if (completedAcesEl) {
-    completedAcesEl.innerHTML = '';
-    (state.completedRuns || []).forEach((suit) => {
-      const ace = buildCardVisual({ suit, value: 1, faceUp: true });
-      ace.classList.add('ace-marker');
-      completedAcesEl.appendChild(ace);
-    });
+    const slots = Array.from(completedAcesEl.querySelectorAll('.run-slot'));
+    const runs = state.completedRuns || [];
+    if (slots.length) {
+      slots.forEach((slot, idx) => {
+        slot.innerHTML = '';
+        slot.classList.toggle('empty', !runs[idx]);
+      });
+      runs.slice(0, slots.length).forEach((suit, idx) => {
+        const ace = buildCardVisual({ suit, value: 1, faceUp: true });
+        ace.classList.add('ace-marker');
+        slots[idx].appendChild(ace);
+      });
+    } else {
+      completedAcesEl.innerHTML = '';
+      runs.forEach((suit) => {
+        const ace = buildCardVisual({ suit, value: 1, faceUp: true });
+        ace.classList.add('ace-marker');
+        completedAcesEl.appendChild(ace);
+      });
+    }
   }
 
   // tableau
