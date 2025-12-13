@@ -86,6 +86,23 @@ h1 {
   flex-wrap: wrap;
 }
 
+.app-header.compact-header {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.header-options {
+  margin-top: 0;
+}
+
+.bottom-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  width: 100%;
+  align-items: center;
+}
+
 button {
   background: #0ea568;
   color: #0b1b12;

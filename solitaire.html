@@ -8,24 +8,12 @@
 </head>
 <body>
   <div id="app">
-    <header class="app-header">
+    <header class="app-header compact-header">
       <div>
         <h1>Solitaire</h1>
         <p class="subtitle">Classic Klondike</p>
       </div>
-      <div class="quick-stats">
-        <div>Score: <span id="score">0</span></div>
-        <div>Time: <span id="time">0:00</span></div>
-      </div>
-    </header>
-
-    <div class="hud">
-      <div class="control-group">
-        <button id="new-game">New Game</button>
-        <button id="undo" disabled>Undo</button>
-        <button id="auto-move">Auto move</button>
-      </div>
-      <div class="control-group">
+      <div class="options-row header-options">
         <label>Draw
           <select id="draw-mode">
             <option value="1">1</option>
@@ -43,6 +31,13 @@
           <input type="checkbox" id="keep-vegas"> Keep Vegas bank
         </label>
       </div>
+      <div class="quick-stats">
+        <div>Score: <span id="score">0</span></div>
+        <div>Time: <span id="time">0:00</span></div>
+      </div>
+    </header>
+
+    <div class="hud">
       <div class="status-row">
         <span id="status">Ready</span>
       </div>
@@ -73,6 +68,12 @@
         <div class="label">Tableau</div>
         <div id="tableau" class="tableau"></div>
       </div>
+    </div>
+
+    <div class="control-group bottom-controls">
+      <button id="new-game">New Game</button>
+      <button id="undo" disabled>Undo</button>
+      <button id="auto-move">Auto move</button>
     </div>
 
     <p class="tips">
