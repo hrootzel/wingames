@@ -23,6 +23,22 @@ const VALUE_LABELS = {
 
 const TABLEAU_SPACING = 26;
 const WASTE_SPACING = 16;
+const CARD_HEIGHT = 120;
+const VIEWPORT_BOTTOM_MARGIN = 28;
+const MIN_TABLEAU_SPACING = 12;
+const TIGHTEN_START = 10;
+const TIGHTEN_END = 24;
+
+function tableauSpacingForStack(stackLength, tableauTop) {
+  if (stackLength <= 1) return TABLEAU_SPACING;
+  const availableHeight = Math.max(0, window.innerHeight - tableauTop - VIEWPORT_BOTTOM_MARGIN);
+  const fitSpacing = (availableHeight - CARD_HEIGHT) / (stackLength - 1);
+
+  const t = stackLength <= TIGHTEN_START ? 0 : Math.min(1, (stackLength - TIGHTEN_START) / (TIGHTEN_END - TIGHTEN_START));
+  const desiredSpacing = TABLEAU_SPACING - t * (TABLEAU_SPACING - MIN_TABLEAU_SPACING);
+
+  return Math.max(0, Math.min(TABLEAU_SPACING, desiredSpacing, fitSpacing));
+}
 
 let options = { drawCount: 3, scoreMode: 'standard', keepVegas: false };
 let state;
@@ -593,10 +609,11 @@ function buildCardElement(card, pileType, cardIndex, pileIndex) {
 function buildDragPreview(cards, source, startIndex, pileIndex) {
   const wrap = document.createElement('div');
   wrap.className = 'drag-preview';
+  const spacing = dragState && typeof dragState.stackSpacing === 'number' ? dragState.stackSpacing : TABLEAU_SPACING;
   cards.forEach((card, idx) => {
     const el = buildCardElement(card, source, startIndex + idx, pileIndex);
     el.style.position = 'absolute';
-    el.style.top = `${idx * TABLEAU_SPACING}px`;
+    el.style.top = `${idx * spacing}px`;
     wrap.appendChild(el);
   });
   document.body.appendChild(wrap);
@@ -658,6 +675,11 @@ function handlePointerDown(ev) {
     startY: ev.clientY,
     dragging: false,
   };
+  if (selection.source === 'tableau') {
+    dragState.stackSpacing = tableauSpacingForStack(state.tableau[selection.pileIndex].length, tableauEl.getBoundingClientRect().top);
+  } else {
+    dragState.stackSpacing = TABLEAU_SPACING;
+  }
 }
 
 function handlePointerMove(ev) {
@@ -784,7 +806,9 @@ function renderFoundations() {
 
 function renderTableau() {
   tableauEl.innerHTML = '';
+  const tableauTop = tableauEl.getBoundingClientRect().top;
   state.tableau.forEach((stack, colIdx) => {
+    const spacing = tableauSpacingForStack(stack.length, tableauTop);
     const col = document.createElement('div');
     col.className = 'tableau-col';
     col.dataset.col = colIdx.toString();
@@ -792,7 +816,7 @@ function renderTableau() {
 
     stack.forEach((card, idx) => {
       const el = buildCardElement(card, 'tableau', idx, colIdx);
-      el.style.top = `${idx * TABLEAU_SPACING}px`;
+      el.style.top = `${idx * spacing}px`;
       col.appendChild(el);
     });
 
@@ -814,6 +838,11 @@ function attachEvents() {
   document.addEventListener('pointermove', handlePointerMove);
   document.addEventListener('pointerup', handlePointerUp);
   document.addEventListener('pointercancel', handlePointerCancel);
+
+  window.addEventListener('resize', () => {
+    if (!state) return;
+    render();
+  });
 
   stockEl.addEventListener('click', () => {
     handleStockClick();

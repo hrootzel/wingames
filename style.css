@@ -7,6 +7,7 @@
   --border: rgba(255, 255, 255, 0.08);
   --accent: #f59e0b;
   --muted: #d1d5db;
+  color-scheme: dark;
 }
 
 * {
@@ -215,6 +216,16 @@ select {
   gap: 12px;
 }
 
+#completed-aces {
+  flex-wrap: wrap;
+  row-gap: 12px;
+  min-height: 120px;
+}
+
+#completed-aces .ace-marker {
+  pointer-events: none;
+}
+
 .tableau-wrap {
   margin-top: 16px;
 }
@@ -308,7 +319,7 @@ select {
   height: 120px;
   border-radius: 10px;
   border: 2px solid #e5e7eb;
-  background: var(--card);
+  background-color: var(--card);
   color: var(--ink);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
   display: flex;

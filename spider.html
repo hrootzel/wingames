@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
   <title>Spider Solitaire</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -22,6 +23,7 @@
       <div class="control-group">
         <button id="new-game">New Game</button>
         <button id="deal">Deal Row</button>
+        <button id="undo" disabled>Undo</button>
       </div>
       <div class="control-group">
         <label>Difficulty
@@ -42,6 +44,10 @@
         <div class="pile-wrap">
           <div class="label">Stock</div>
           <div id="stock" class="pile stock"></div>
+        </div>
+        <div class="pile-wrap">
+          <div class="label">Runs</div>
+          <div id="completed-aces" class="foundation-row card-grid"></div>
         </div>
       </div>
       <div class="tableau-wrap">
