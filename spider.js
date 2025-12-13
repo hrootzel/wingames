@@ -9,6 +9,22 @@ const VALUE_LABELS = {
 };
 
 const TABLEAU_SPACING = 22;
+const MIN_TABLEAU_SPACING = 10;
+const TIGHTEN_START = 10;
+const TIGHTEN_END = 30;
+const CARD_HEIGHT = 120;
+const VIEWPORT_BOTTOM_MARGIN = 28;
+
+function tableauSpacingForStack(stackLength, tableauTop) {
+  if (stackLength <= 1) return TABLEAU_SPACING;
+  const availableHeight = Math.max(0, window.innerHeight - tableauTop - VIEWPORT_BOTTOM_MARGIN);
+  const fitSpacing = (availableHeight - CARD_HEIGHT) / (stackLength - 1);
+
+  const t = stackLength <= TIGHTEN_START ? 0 : Math.min(1, (stackLength - TIGHTEN_START) / (TIGHTEN_END - TIGHTEN_START));
+  const desiredSpacing = TABLEAU_SPACING - t * (TABLEAU_SPACING - MIN_TABLEAU_SPACING);
+
+  return Math.max(0, Math.min(TABLEAU_SPACING, desiredSpacing, fitSpacing));
+}
 
 const stockEl = document.getElementById('stock');
 const completedAcesEl = document.getElementById('completed-aces');
@@ -222,6 +238,8 @@ function buildCardVisual(card) {
 }
 
 function render() {
+  const tableauTop = tableauEl.getBoundingClientRect().top;
+
   // stock
   stockEl.innerHTML = '';
   const back = document.createElement('div');
@@ -242,12 +260,13 @@ function render() {
   // tableau
   tableauEl.innerHTML = '';
   state.tableau.forEach((stack, colIdx) => {
+    const spacing = tableauSpacingForStack(stack.length, tableauTop);
     const col = document.createElement('div');
     col.className = 'tableau-col';
     col.dataset.col = String(colIdx);
     stack.forEach((card, idx) => {
       const el = buildCardElement(card, colIdx, idx);
-      el.style.top = `${idx * TABLEAU_SPACING}px`;
+      el.style.top = `${idx * spacing}px`;
       col.appendChild(el);
     });
     tableauEl.appendChild(col);
@@ -386,17 +405,18 @@ function handlePointerDown(ev) {
     startX: ev.clientX,
     startY: ev.clientY,
     dragging: false,
+    stackSpacing: tableauSpacingForStack(state.tableau[col].length, tableauEl.getBoundingClientRect().top),
   };
   render();
 }
 
-function buildDragPreview(cards, colIdx, startIndex) {
+function buildDragPreview(cards, colIdx, startIndex, spacing) {
   const wrap = document.createElement('div');
   wrap.className = 'drag-preview';
   cards.forEach((card, idx) => {
     const el = buildCardElement(card, colIdx, startIndex + idx);
     el.style.position = 'absolute';
-    el.style.top = `${idx * TABLEAU_SPACING}px`;
+    el.style.top = `${idx * spacing}px`;
     wrap.appendChild(el);
   });
   document.body.appendChild(wrap);
@@ -440,7 +460,7 @@ function handlePointerMove(ev) {
   if (!dragState.dragging) {
     const fromStack = state.tableau[selection.col];
     const cards = fromStack.slice(selection.index);
-    dragState.preview = buildDragPreview(cards, selection.col, selection.index);
+    dragState.preview = buildDragPreview(cards, selection.col, selection.index, dragState.stackSpacing ?? TABLEAU_SPACING);
     dragState.dragging = true;
   }
   ev.preventDefault();
@@ -503,6 +523,11 @@ function attachEvents() {
       ev.preventDefault();
       undo();
     }
+  });
+
+  window.addEventListener('resize', () => {
+    if (!state) return;
+    render();
   });
 
   newBtn.addEventListener('click', () => newGame());
