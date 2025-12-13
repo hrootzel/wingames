@@ -16,7 +16,7 @@ Local, dependency-free implementations of Klondike (`solitaire.html`), Spider (`
    - `http://localhost:8000/solitaire.html` (Klondike)
    - `http://localhost:8000/spider.html` (Spider)
    - `http://localhost:8000/videopoker.html` (Video Poker)
-   - `http://localhost:8000/drblackjack.html` (Dr. Blackjack)
+   - `http://localhost:8000/blackjackmd.html` (Dr. Blackjack)
 
 ## Controls
 - Click to select a card/run, click another stack to move; drag also works.
