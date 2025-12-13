@@ -564,7 +564,7 @@ function startWinCelebration() {
     const rot = (Math.random() * 2 - 1) * 35;
     const vr = (Math.random() * 2 - 1) * 420;
 
-    particles.push({ el, x: startX, y: startY, vx, vy, rot, vr });
+    particles.push({ el, x: startX, y: startY, vx, vy, rot, vr, resting: false });
     el.style.transform = `translate(${startX}px, ${startY}px) rotate(${rot}deg)`;
 
     fx.spawnTimer = setTimeout(spawnOne, 55);
@@ -578,21 +578,44 @@ function startWinCelebration() {
     const gravity = 2600;
     const wallBounce = 0.86;
     const floorBounce = 0.78;
-    const maxX = window.innerWidth - CARD_WIDTH;
     const maxY = window.innerHeight - CARD_HEIGHT;
+    const airDrag = 0.18;
+    const groundDrag = 2.4;
+    const groundFriction = 0.9;
+    const restVy = 110;
+    const restVx = 6;
+    const airFactor = Math.exp(-airDrag * dt);
+    const groundFactor = Math.exp(-groundDrag * dt);
 
-    for (const p of particles) {
-      p.vy += gravity * dt;
+    let anyMoving = fx.pending.length > 0;
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+
+      if (!p.resting) {
+        p.vy += gravity * dt;
+      } else {
+        p.vy = 0;
+        p.y = maxY;
+        p.vx *= groundFactor;
+        p.vr *= groundFactor;
+        if (Math.abs(p.vx) < restVx) p.vx = 0;
+        if (Math.abs(p.vr) < 3) p.vr = 0;
+      }
+
+      p.vx *= airFactor;
+      p.vr *= airFactor;
+
       p.x += p.vx * dt;
-      p.y += p.vy * dt;
+      if (!p.resting) {
+        p.y += p.vy * dt;
+      }
       p.rot += p.vr * dt;
 
-      if (p.x < 0) {
-        p.x = 0;
-        p.vx = -p.vx * wallBounce;
-      } else if (p.x > maxX) {
-        p.x = maxX;
-        p.vx = -p.vx * wallBounce;
+      if (p.x + CARD_WIDTH < 0 || p.x > window.innerWidth) {
+        p.el.remove();
+        particles.splice(i, 1);
+        continue;
       }
 
       if (p.y < 0) {
@@ -601,16 +624,25 @@ function startWinCelebration() {
       } else if (p.y > maxY) {
         p.y = maxY;
         p.vy = -p.vy * floorBounce;
-        p.vx *= 0.985;
-        p.vr *= 0.985;
-        if (Math.abs(p.vy) < 140) {
-          p.vy = -(460 + Math.random() * 520);
+        p.vx *= groundFriction;
+        p.vr *= groundFriction;
+        if (Math.abs(p.vy) < restVy) {
+          p.vy = 0;
+          p.resting = true;
         }
+      }
+
+      if (!p.resting || Math.abs(p.vx) > 0.5 || Math.abs(p.vy) > 0.5 || Math.abs(p.vr) > 0.5) {
+        anyMoving = true;
       }
 
       p.el.style.transform = `translate(${p.x}px, ${p.y}px) rotate(${p.rot}deg)`;
     }
 
+    if (!anyMoving) {
+      fx.rafId = 0;
+      return;
+    }
     fx.rafId = requestAnimationFrame(step);
   }
 
