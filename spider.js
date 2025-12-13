@@ -400,6 +400,12 @@ function render() {
   back.className = 'card-back';
   if (state.stock.length === 0) back.classList.add('empty');
   stockEl.appendChild(back);
+  const dealsLeft = Math.floor(state.stock.length / 10);
+  const stockCount = document.createElement('div');
+  stockCount.className = 'stock-count';
+  stockCount.textContent = String(dealsLeft);
+  if (dealsLeft === 0) stockCount.classList.add('empty');
+  stockEl.appendChild(stockCount);
 
   // completed runs (ace markers)
   if (completedAcesEl) {
@@ -441,7 +447,7 @@ function render() {
   });
 
   completedEl.textContent = String(state.completed);
-  dealsEl.textContent = String(Math.floor(state.stock.length / 10));
+  dealsEl.textContent = String(dealsLeft);
 }
 
 function canDragFrom(colIdx, cardIdx) {
