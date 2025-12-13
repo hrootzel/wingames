@@ -103,6 +103,37 @@ h1 {
   align-items: center;
 }
 
+.blackjack-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.blackjack-stats {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-weight: 600;
+}
+
+.blackjack-stats input[type="number"] {
+  width: 86px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.25);
+  color: #f9fafb;
+}
+
+.blackjack-actions {
+  justify-content: flex-end;
+  flex: 1 1 420px;
+}
+
 button {
   background: #0ea568;
   color: #0b1b12;
