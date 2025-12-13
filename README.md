@@ -5,6 +5,7 @@ Local, dependency-free implementations of Klondike (`solitaire.html`), Spider (`
 ## Games
 - **Klondike**: Draw 1/3 toggle, standard/Vegas/none scoring, undo, auto-move to foundations.
 - **Spider**: 1/2/4-suit difficulty, 10 columns, suited descending moves, deal one card per column, auto-removal of completed K?A runs.
+- **Video Poker**: 9-6 Jacks or Better, hold/draw, pay table highlighting (fixed bet 5).
 - **Blackjack, M.D.**: Configurable deck count/rules (surrender, DAS, double restrictions, soft-17), split/double/surrender buttons, and a built-in basic-strategy hint.
 
 ## Run locally
@@ -14,6 +15,7 @@ Local, dependency-free implementations of Klondike (`solitaire.html`), Spider (`
    - `http://localhost:8000/` (Landing)
    - `http://localhost:8000/solitaire.html` (Klondike)
    - `http://localhost:8000/spider.html` (Spider)
+   - `http://localhost:8000/videopoker.html` (Video Poker)
    - `http://localhost:8000/drblackjack.html` (Dr. Blackjack)
 
 ## Controls

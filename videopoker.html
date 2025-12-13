@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Video Poker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div>
+        <h1>Video Poker</h1>
+        <p class="subtitle">9-6 Jacks or Better</p>
+      </div>
+      <div class="quick-stats">
+        <div>Credits: <span id="credits">50</span></div>
+        <div>Bet: <span id="bet">5</span></div>
+        <div>Win: <span id="win">0</span></div>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Click Deal to start.</span>
+      </div>
+    </div>
+
+    <div class="board">
+      <div class="hands videopoker-layout">
+        <div class="hand">
+          <div class="hand-header">
+            <span>Pay Table</span>
+            <span class="hand-status">Bet 5</span>
+          </div>
+          <div class="paytable-wrap">
+            <table id="paytable" class="paytable"></table>
+          </div>
+        </div>
+
+        <div class="hand vp-hand">
+          <div class="hand-header">
+            <span>Hand</span>
+            <span class="hand-status" id="hand-name"></span>
+          </div>
+          <div id="cards" class="hand-cards card-grid videopoker-cards"></div>
+          <div class="hand-outcome" id="hand-outcome"></div>
+          <div class="control-group vp-controls">
+            <button id="deal">Deal</button>
+            <button id="new-game">New Game</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="tips">
+      Click Deal to receive 5 cards. Tap cards to hold, then click Draw to replace the rest.
+      Payouts use the 9-6 Jacks or Better pay table for a fixed 5-coin bet.
+    </p>
+  </div>
+
+  <script type="module" src="videopoker.js"></script>
+</body>
+</html>
