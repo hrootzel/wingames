@@ -23,6 +23,7 @@ const VALUE_LABELS = {
 
 const TABLEAU_SPACING = 26;
 const WASTE_SPACING = 16;
+const CARD_WIDTH = 88;
 const CARD_HEIGHT = 120;
 const VIEWPORT_BOTTOM_MARGIN = 28;
 const MIN_TABLEAU_SPACING = 12;
@@ -49,6 +50,7 @@ let vegasBank = -52;
 let lastMode = 'standard';
 let clickTracker = { cardKey: null, time: 0 };
 let ignoreClicksUntil = 0;
+let winFx = null;
 
 const stockEl = document.getElementById('stock');
 const wasteEl = document.getElementById('waste');
@@ -122,6 +124,7 @@ function cloneState(current) {
     started: current.started,
     timeSeconds: current.timeSeconds,
     lastMoveSource: current.lastMoveSource,
+    won: !!current.won,
   };
 }
 
@@ -162,6 +165,7 @@ function updateVegasBank() {
 }
 
 function newGame() {
+  stopWinCelebration();
   cleanupDanglingPreviews();
   dragState = null;
   const deck = createDeck();
@@ -186,6 +190,7 @@ function newGame() {
     started: false,
     timeSeconds: 0,
     lastMoveSource: undefined,
+    won: false,
   };
   lastMode = options.scoreMode;
   selection = null;
@@ -470,6 +475,7 @@ function autoMoveAll() {
 
 function undo() {
   if (!undoSnapshot) return;
+  stopWinCelebration();
   state = cloneState(undoSnapshot.state);
   selection = null;
   undoSnapshot = null;
@@ -488,21 +494,168 @@ function resetSelection() {
 
 function checkForWin() {
   const complete = state.foundations.every((stack) => stack.length === 13);
-  if (complete) {
+  if (complete && !state.won) {
+    state.won = true;
+    clearUndo();
     state.started = false;
     stopTimer();
-    setTimeout(() => {
-      alert(`You win! Score: ${state.score} Time: ${formatTime(state.timeSeconds)}`);
-    }, 50);
+    selection = null;
+    render();
+    startWinCelebration();
   }
 }
 
+function stopWinCelebration() {
+  if (!winFx) return;
+  winFx.running = false;
+  if (winFx.rafId) cancelAnimationFrame(winFx.rafId);
+  if (winFx.spawnTimer) clearTimeout(winFx.spawnTimer);
+  if (winFx.overlay && winFx.overlay.parentElement) {
+    winFx.overlay.parentElement.removeChild(winFx.overlay);
+  }
+  winFx = null;
+}
+
+function startWinCelebration() {
+  stopWinCelebration();
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'win-overlay';
+  const msg = document.createElement('div');
+  msg.className = 'win-message';
+  msg.textContent = `You win! Score: ${state.score} Time: ${formatTime(state.timeSeconds)} (New Game to restart)`;
+  overlay.appendChild(msg);
+  document.body.appendChild(overlay);
+
+  const piles = state.foundations.map((stack, idx) => ({ idx, cards: stack.slice() }));
+  const pending = [];
+  let remaining = true;
+  while (remaining) {
+    remaining = false;
+    for (const pile of piles) {
+      if (!pile.cards.length) continue;
+      remaining = true;
+      const card = pile.cards.pop();
+      pending.push({ card, origin: foundationEls[pile.idx].getBoundingClientRect() });
+    }
+  }
+
+  const particles = [];
+  const fx = { overlay, particles, pending, running: true, rafId: 0, spawnTimer: 0, lastTime: performance.now() };
+  winFx = fx;
+
+  function spawnOne() {
+    if (!fx.running) return;
+    const next = fx.pending.pop();
+    if (!next) return;
+    const card = { suit: next.card.suit, value: next.card.value, faceUp: true };
+
+    const el = buildCardElement(card, 'foundation', 0, 0);
+    el.style.position = 'fixed';
+    el.style.left = '0px';
+    el.style.top = '0px';
+    overlay.appendChild(el);
+
+    const startX = next.origin.left + Math.random() * Math.max(0, next.origin.width - CARD_WIDTH);
+    const startY = next.origin.top + Math.random() * Math.max(0, next.origin.height - CARD_HEIGHT);
+    const vx = (Math.random() * 2 - 1) * 760;
+    const vy = -(720 + Math.random() * 980);
+    const rot = (Math.random() * 2 - 1) * 35;
+    const vr = (Math.random() * 2 - 1) * 420;
+
+    particles.push({ el, x: startX, y: startY, vx, vy, rot, vr, resting: false });
+    el.style.transform = `translate(${startX}px, ${startY}px) rotate(${rot}deg)`;
+
+    fx.spawnTimer = setTimeout(spawnOne, 55);
+  }
+
+  function step(now) {
+    if (!fx.running) return;
+    const dt = Math.min(0.05, (now - fx.lastTime) / 1000);
+    fx.lastTime = now;
+
+    const gravity = 2600;
+    const wallBounce = 0.86;
+    const floorBounce = 0.78;
+    const maxY = window.innerHeight - CARD_HEIGHT;
+    const airDrag = 0.18;
+    const groundDrag = 2.4;
+    const groundFriction = 0.9;
+    const restVy = 110;
+    const restVx = 6;
+    const airFactor = Math.exp(-airDrag * dt);
+    const groundFactor = Math.exp(-groundDrag * dt);
+
+    let anyMoving = fx.pending.length > 0;
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+
+      if (!p.resting) {
+        p.vy += gravity * dt;
+      } else {
+        p.vy = 0;
+        p.y = maxY;
+        p.vx *= groundFactor;
+        p.vr *= groundFactor;
+        if (Math.abs(p.vx) < restVx) p.vx = 0;
+        if (Math.abs(p.vr) < 3) p.vr = 0;
+      }
+
+      p.vx *= airFactor;
+      p.vr *= airFactor;
+
+      p.x += p.vx * dt;
+      if (!p.resting) {
+        p.y += p.vy * dt;
+      }
+      p.rot += p.vr * dt;
+
+      if (p.x + CARD_WIDTH < 0 || p.x > window.innerWidth) {
+        p.el.remove();
+        particles.splice(i, 1);
+        continue;
+      }
+
+      if (p.y < 0) {
+        p.y = 0;
+        p.vy = -p.vy * wallBounce;
+      } else if (p.y > maxY) {
+        p.y = maxY;
+        p.vy = -p.vy * floorBounce;
+        p.vx *= groundFriction;
+        p.vr *= groundFriction;
+        if (Math.abs(p.vy) < restVy) {
+          p.vy = 0;
+          p.resting = true;
+        }
+      }
+
+      if (!p.resting || Math.abs(p.vx) > 0.5 || Math.abs(p.vy) > 0.5 || Math.abs(p.vr) > 0.5) {
+        anyMoving = true;
+      }
+
+      p.el.style.transform = `translate(${p.x}px, ${p.y}px) rotate(${p.rot}deg)`;
+    }
+
+    if (!anyMoving) {
+      fx.rafId = 0;
+      return;
+    }
+    fx.rafId = requestAnimationFrame(step);
+  }
+
+  spawnOne();
+  fx.rafId = requestAnimationFrame(step);
+}
+
 function updateStatus() {
-  scoreEl.textContent = options.scoreMode === 'none' ? '—' : state.score.toString();
+  scoreEl.textContent = options.scoreMode === 'none' ? '-' : state.score.toString();
   timeEl.textContent = formatTime(state.timeSeconds);
   const drawLabel = options.drawCount === 1 ? 'Draw 1' : 'Draw 3';
   const modeLabel = options.scoreMode === 'none' ? 'No score' : options.scoreMode === 'standard' ? 'Standard score' : 'Vegas score';
-  statusEl.textContent = `${drawLabel} · ${modeLabel}`;
+  statusEl.textContent = state.won ? 'You win! Click New Game to play again.' : `${drawLabel} | ${modeLabel}`;
   undoBtn.disabled = undoSnapshot === null;
 }
 

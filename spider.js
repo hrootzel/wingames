@@ -12,6 +12,7 @@ const TABLEAU_SPACING = 22;
 const MIN_TABLEAU_SPACING = 10;
 const TIGHTEN_START = 10;
 const TIGHTEN_END = 30;
+const CARD_WIDTH = 88;
 const CARD_HEIGHT = 120;
 const VIEWPORT_BOTTOM_MARGIN = 28;
 
@@ -42,6 +43,7 @@ let selection = null;
 let dragState = null;
 let ignoreClicksUntil = 0;
 let undoSnapshot = null;
+let winFx = null;
 
 function cardColor(suit) {
   return suit === 'diamonds' || suit === 'hearts' ? 'red' : 'black';
@@ -63,6 +65,7 @@ function pushUndo() {
 
 function undo() {
   if (!undoSnapshot) return;
+  stopWinCelebration();
   clearDragPreview();
   dragState = null;
   selection = null;
@@ -135,6 +138,7 @@ function dealInitial(difficulty) {
 }
 
 function newGame() {
+  stopWinCelebration();
   selection = null;
   dragState = null;
   undoSnapshot = null;
@@ -147,6 +151,8 @@ function newGame() {
     difficulty,
     completed: 0,
     completedRuns: [],
+    completedCards: [],
+    won: false,
   };
   updateStatus('Ready');
   render();
@@ -156,6 +162,154 @@ function updateStatus(text) {
   statusEl.textContent = text;
   completedEl.textContent = String(state.completed);
   dealsEl.textContent = String(Math.floor(state.stock.length / 10));
+  checkForWin();
+}
+
+function checkForWin() {
+  if (!state || state.won) return;
+  if (state.completed !== 8) return;
+  state.won = true;
+  undoSnapshot = null;
+  updateUndoButton();
+  statusEl.textContent = 'You win!';
+  startWinCelebration();
+}
+
+function stopWinCelebration() {
+  if (!winFx) return;
+  winFx.running = false;
+  if (winFx.rafId) cancelAnimationFrame(winFx.rafId);
+  if (winFx.spawnTimer) clearTimeout(winFx.spawnTimer);
+  if (winFx.overlay && winFx.overlay.parentElement) {
+    winFx.overlay.parentElement.removeChild(winFx.overlay);
+  }
+  winFx = null;
+}
+
+function startWinCelebration() {
+  stopWinCelebration();
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'win-overlay';
+  const msg = document.createElement('div');
+  msg.className = 'win-message';
+  msg.textContent = 'You win! (Click New Game to restart)';
+  overlay.appendChild(msg);
+  document.body.appendChild(overlay);
+
+  const originEl = completedAcesEl || stockEl;
+  const originRect = originEl ? originEl.getBoundingClientRect() : { left: window.innerWidth / 2, top: 20, width: 0, height: 0 };
+
+  const pending = (state.completedCards && state.completedCards.length ? state.completedCards : state.completedRuns || []).slice();
+  const particles = [];
+
+  const fx = { overlay, particles, pending, running: true, rafId: 0, spawnTimer: 0, lastTime: performance.now() };
+  winFx = fx;
+
+  function spawnOne() {
+    if (!fx.running) return;
+    const next = fx.pending.pop();
+    if (!next) return;
+    const card = typeof next === 'string' ? { suit: next, value: 1, faceUp: true } : { suit: next.suit, value: next.value, faceUp: true };
+
+    const el = buildCardVisual(card);
+    el.style.position = 'fixed';
+    el.style.left = '0px';
+    el.style.top = '0px';
+    overlay.appendChild(el);
+
+    const startX = originRect.left + Math.random() * Math.max(0, originRect.width - CARD_WIDTH);
+    const startY = originRect.top + Math.random() * Math.max(0, originRect.height - CARD_HEIGHT);
+    const vx = (Math.random() * 2 - 1) * 720;
+    const vy = -(650 + Math.random() * 900);
+    const rot = (Math.random() * 2 - 1) * 35;
+    const vr = (Math.random() * 2 - 1) * 420;
+
+    particles.push({ el, x: startX, y: startY, vx, vy, rot, vr, resting: false });
+    el.style.transform = `translate(${startX}px, ${startY}px) rotate(${rot}deg)`;
+
+    fx.spawnTimer = setTimeout(spawnOne, 35);
+  }
+
+  function step(now) {
+    if (!fx.running) return;
+    const dt = Math.min(0.05, (now - fx.lastTime) / 1000);
+    fx.lastTime = now;
+
+    const gravity = 2600;
+    const wallBounce = 0.86;
+    const floorBounce = 0.78;
+    const maxY = window.innerHeight - CARD_HEIGHT;
+    const airDrag = 0.18;
+    const groundDrag = 2.4;
+    const groundFriction = 0.9;
+    const restVy = 110;
+    const restVx = 6;
+    const airFactor = Math.exp(-airDrag * dt);
+    const groundFactor = Math.exp(-groundDrag * dt);
+
+    let anyMoving = fx.pending.length > 0;
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+
+      if (!p.resting) {
+        p.vy += gravity * dt;
+      } else {
+        p.vy = 0;
+        p.y = maxY;
+        p.vx *= groundFactor;
+        p.vr *= groundFactor;
+        if (Math.abs(p.vx) < restVx) p.vx = 0;
+        if (Math.abs(p.vr) < 3) p.vr = 0;
+      }
+
+      p.vx *= airFactor;
+      p.vr *= airFactor;
+
+      p.x += p.vx * dt;
+      if (!p.resting) {
+        p.y += p.vy * dt;
+      }
+      p.rot += p.vr * dt;
+
+      if (p.x + CARD_WIDTH < 0 || p.x > window.innerWidth) {
+        p.el.remove();
+        particles.splice(i, 1);
+        continue;
+      }
+
+      if (p.y < 0) {
+        p.y = 0;
+        p.vy = -p.vy * wallBounce;
+      } else if (p.y > maxY) {
+        p.y = maxY;
+        p.vy = -p.vy * floorBounce;
+        p.vx *= groundFriction;
+        p.vr *= groundFriction;
+        if (Math.abs(p.vy) < restVy) {
+          p.vy = 0;
+          p.resting = true;
+        }
+      }
+
+      if (!p.resting || Math.abs(p.vx) > 0.5 || Math.abs(p.vy) > 0.5 || Math.abs(p.vr) > 0.5) {
+        anyMoving = true;
+      }
+
+      p.el.style.transform = `translate(${p.x}px, ${p.y}px) rotate(${p.rot}deg)`;
+    }
+
+    if (!anyMoving) {
+      fx.rafId = 0;
+      return;
+    }
+    fx.rafId = requestAnimationFrame(step);
+  }
+
+  spawnOne();
+  fx.rafId = requestAnimationFrame(step);
 }
 
 function formatPipElement(card, cell) {
@@ -249,12 +403,26 @@ function render() {
 
   // completed runs (ace markers)
   if (completedAcesEl) {
-    completedAcesEl.innerHTML = '';
-    (state.completedRuns || []).forEach((suit) => {
-      const ace = buildCardVisual({ suit, value: 1, faceUp: true });
-      ace.classList.add('ace-marker');
-      completedAcesEl.appendChild(ace);
-    });
+    const slots = Array.from(completedAcesEl.querySelectorAll('.run-slot'));
+    const runs = state.completedRuns || [];
+    if (slots.length) {
+      slots.forEach((slot, idx) => {
+        slot.innerHTML = '';
+        slot.classList.toggle('empty', !runs[idx]);
+      });
+      runs.slice(0, slots.length).forEach((suit, idx) => {
+        const ace = buildCardVisual({ suit, value: 1, faceUp: true });
+        ace.classList.add('ace-marker');
+        slots[idx].appendChild(ace);
+      });
+    } else {
+      completedAcesEl.innerHTML = '';
+      runs.forEach((suit) => {
+        const ace = buildCardVisual({ suit, value: 1, faceUp: true });
+        ace.classList.add('ace-marker');
+        completedAcesEl.appendChild(ace);
+      });
+    }
   }
 
   // tableau
@@ -323,7 +491,7 @@ function moveSelectionTo(colIdx) {
 
   render();
   if (removedSuits.length) {
-    updateStatus(state.completed === 8 ? 'You win!' : `Completed ${removedSuits.length} run${removedSuits.length === 1 ? '' : 's'}!`);
+    updateStatus(`Completed ${removedSuits.length} run${removedSuits.length === 1 ? '' : 's'}!`);
   } else {
     updateStatus('Moved');
   }
@@ -340,11 +508,14 @@ function checkCompletedRuns(colIdx) {
       run += 1;
       if (run === 13) {
         const suit = prev.suit;
+        const runCards = stack.slice(i - 1);
         // remove run
         state.tableau[colIdx] = stack.slice(0, i - 1);
         state.completed += 1;
         if (!state.completedRuns) state.completedRuns = [];
         state.completedRuns.push(suit);
+        if (!state.completedCards) state.completedCards = [];
+        state.completedCards.push(...runCards);
         const newTop = state.tableau[colIdx][state.tableau[colIdx].length - 1];
         if (newTop) newTop.faceUp = true;
         return suit;
@@ -383,7 +554,7 @@ function dealFromStock() {
   }
 
   if (removedSuits.length) {
-    updateStatus(state.completed === 8 ? 'You win!' : `Dealt and completed ${removedSuits.length} run${removedSuits.length === 1 ? '' : 's'}!`);
+    updateStatus(`Dealt and completed ${removedSuits.length} run${removedSuits.length === 1 ? '' : 's'}!`);
   } else {
     updateStatus('Dealt one card to each column.');
   }
