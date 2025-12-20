@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Puzzle Puncher</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="puzzle_puncher.css">
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div>
+        <h1>Puzzle Puncher</h1>
+        <p class="subtitle">Build power blocks, detonate crash gems, chase chains.</p>
+      </div>
+      <div class="quick-stats">
+        <div>Score: <span id="score">0</span></div>
+        <div>Chain: <span id="chain">-</span></div>
+        <div>Level: <span id="level">1</span></div>
+        <div>Pieces: <span id="pieces">0</span></div>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Ready.</span>
+      </div>
+    </div>
+
+    <div class="board puzzle-board">
+      <div class="puzzle-wrap">
+        <div class="puzzle-stage">
+          <canvas id="game-canvas" width="320" height="600" aria-label="Puzzle Puncher playfield"></canvas>
+        </div>
+
+        <div class="puzzle-panel">
+          <div class="panel-box">
+            <h3>Next Pair</h3>
+            <canvas id="next-canvas" class="preview-canvas" width="120" height="120" aria-label="Next piece preview"></canvas>
+          </div>
+
+          <div class="panel-box">
+            <h3>Controls</h3>
+            <div class="key-hints">
+              <div><span class="key">Left/Right</span> Move</div>
+              <div><span class="key">Down</span> Soft drop</div>
+              <div><span class="key">Up/X</span> Rotate CW</div>
+              <div><span class="key">Z</span> Rotate CCW</div>
+              <div><span class="key">Space</span> Hard drop</div>
+              <div><span class="key">P</span> Pause</div>
+              <div><span class="key">R</span> Restart</div>
+            </div>
+            <div class="control-group puzzle-controls">
+              <button id="new-game">New Game</button>
+              <button id="pause">Pause</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="tips">
+      Match crash gems against same-color neighbors to clear connected groups. Fill 2x2 or larger rectangles
+      to form power gems that score more. Diamonds appear every 25 pieces and clear a full color when they
+      land on a gem.
+    </p>
+  </div>
+
+  <script type="module" src="puzzle_puncher.js"></script>
+</body>
+</html>
