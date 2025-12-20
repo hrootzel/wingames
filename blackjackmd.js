@@ -1,5 +1,8 @@
 // Blackjack, M.D. - Unicode cards, multiple options, and basic-strategy hints.
 
+import { SfxEngine } from './sfx_engine.js';
+import { BANK_BLACKJACK } from './card_sfx_banks.js';
+
 const SUITS = ['clubs', 'diamonds', 'hearts', 'spades'];
 const SUIT_SYMBOLS = {
   clubs: '\u2663\uFE0F',
@@ -33,6 +36,9 @@ const optSurrender = document.getElementById('opt-surrender');
 const optDAS = document.getElementById('opt-das');
 const optDoubleAny = document.getElementById('opt-double-any');
 const optHitSoft17 = document.getElementById('opt-hit-soft17');
+
+const sfx = new SfxEngine({ master: 0.6 });
+let audioUnlocked = false;
 
 let state;
 
@@ -85,6 +91,7 @@ function ensureShoe() {
   if (!state.shoe || state.shoeDecks !== state.options.decks || state.shoe.length < minCards) {
     state.shoe = createShoe(state.options.decks);
     state.shoeDecks = state.options.decks;
+    sfx.play(BANK_BLACKJACK, 'shuffle');
   }
 }
 
@@ -92,6 +99,12 @@ function drawCard(faceUp = true) {
   ensureShoe();
   const card = state.shoe.pop();
   card.faceUp = faceUp;
+  return card;
+}
+
+function drawCardWithSfx(faceUp = true, eventName = 'dealCard', payload) {
+  const card = drawCard(faceUp);
+  sfx.play(BANK_BLACKJACK, eventName, payload);
   return card;
 }
 
@@ -196,11 +209,15 @@ function startRound() {
     statusEl.textContent = 'Bet exceeds bank.';
     return;
   }
+  unlockAudio();
+  sfx.play(BANK_BLACKJACK, 'bet', { amount: state.bet });
 
-  state.dealer = state.options.europeanNoHoleCard ? [drawCard(true)] : [drawCard(true), drawCard(false)];
+  state.dealer = state.options.europeanNoHoleCard
+    ? [drawCardWithSfx(true)]
+    : [drawCardWithSfx(true), drawCardWithSfx(false)];
   state.hands = [
     {
-      cards: [drawCard(true), drawCard(true)],
+      cards: [drawCardWithSfx(true), drawCardWithSfx(true)],
       bet: state.bet,
       stood: false,
       busted: false,
@@ -209,6 +226,8 @@ function startRound() {
       finished: false,
       fromSplit: false,
       natural: false,
+      naturalSounded: false,
+      bustSounded: false,
       hasActed: false,
       result: '',
     },
@@ -230,6 +249,10 @@ function checkNaturals() {
   const playerNatural = state.hands.length === 1 && state.hands[0].natural;
   if (state.options.europeanNoHoleCard) {
     if (!playerNatural) return;
+    if (!state.hands[0].naturalSounded) {
+      sfx.play(BANK_BLACKJACK, 'blackjack');
+      state.hands[0].naturalSounded = true;
+    }
     statusEl.textContent = 'Blackjack! Waiting for dealer...';
     state.hands[0].finished = true;
     state.hands[0].hasActed = true;
@@ -250,14 +273,18 @@ function checkNaturals() {
     state.bank += state.bet;
     state.hands[0].result = 'Push (blackjack)';
     payouts.push('Push (BJ)');
+    sfx.play(BANK_BLACKJACK, 'push');
   } else if (playerNatural) {
     const payout = state.bet + Math.floor(state.bet * 1.5);
     state.bank += payout;
     state.hands[0].result = 'Blackjack!';
     payouts.push('Blackjack pays 3:2');
+    sfx.play(BANK_BLACKJACK, 'blackjack');
+    sfx.play(BANK_BLACKJACK, 'payout', { ratio: payout / state.bet });
   } else {
     state.hands[0].result = 'Dealer blackjack';
     payouts.push('Dealer blackjack');
+    sfx.play(BANK_BLACKJACK, 'lose');
   }
 
   renderHands();
@@ -266,38 +293,47 @@ function checkNaturals() {
 }
 
 function hit() {
+  unlockAudio();
   const hand = getActiveHand();
   if (!hand || hand.finished) return;
-  hand.cards.push(drawCard(true));
+  hand.cards.push(drawCardWithSfx(true, 'hit'));
   hand.hasActed = true;
   if (handValue(hand.cards).total > 21) {
     hand.busted = true;
     hand.finished = true;
+    sfx.play(BANK_BLACKJACK, 'bust');
+    hand.bustSounded = true;
   }
   renderHands();
   advanceTurn();
 }
 
 function stand() {
+  unlockAudio();
   const hand = getActiveHand();
   if (!hand || hand.finished) return;
   hand.stood = true;
   hand.finished = true;
   hand.hasActed = true;
+  sfx.play(BANK_BLACKJACK, 'stand');
   renderHands();
   advanceTurn();
 }
 
 function doubleDown() {
+  unlockAudio();
   const hand = getActiveHand();
   if (!canDouble(hand)) return;
+  sfx.play(BANK_BLACKJACK, 'bet', { amount: hand.bet });
   state.bank -= hand.bet;
   hand.bet *= 2;
   hand.doubled = true;
   hand.hasActed = true;
-  hand.cards.push(drawCard(true));
+  hand.cards.push(drawCardWithSfx(true, 'hit'));
   if (handValue(hand.cards).total > 21) {
     hand.busted = true;
+    sfx.play(BANK_BLACKJACK, 'bust');
+    hand.bustSounded = true;
   }
   hand.finished = true;
   renderHands();
@@ -305,17 +341,19 @@ function doubleDown() {
 }
 
 function splitHand() {
+  unlockAudio();
   const hand = getActiveHand();
   if (!canSplit(hand)) return;
   const [cardA, cardB] = hand.cards;
 
-  hand.cards = [cardA, drawCard(true)];
+  hand.cards = [cardA, drawCardWithSfx(true)];
   hand.fromSplit = true;
   hand.natural = false;
+  hand.naturalSounded = false;
   hand.hasActed = false;
 
   const newHand = {
-    cards: [cardB, drawCard(true)],
+    cards: [cardB, drawCardWithSfx(true)],
     bet: hand.bet,
     stood: false,
     busted: false,
@@ -324,10 +362,13 @@ function splitHand() {
     finished: false,
     fromSplit: true,
     natural: false,
+    naturalSounded: false,
+    bustSounded: false,
     hasActed: false,
     result: '',
   };
 
+  sfx.play(BANK_BLACKJACK, 'bet', { amount: hand.bet });
   state.bank -= hand.bet;
   state.hands.splice(state.activeHand + 1, 0, newHand);
   renderHands();
@@ -335,6 +376,7 @@ function splitHand() {
 }
 
 function surrender() {
+  unlockAudio();
   const hand = getActiveHand();
   if (!hand || hand.finished) return;
   if (!state.options.allowSurrender) return;
@@ -343,6 +385,7 @@ function surrender() {
   hand.surrendered = true;
   hand.finished = true;
   hand.result = 'Surrender';
+  sfx.play(BANK_BLACKJACK, 'lose');
   renderHands();
   advanceTurn();
 }
@@ -367,7 +410,7 @@ function dealerPlayAndSettle() {
 
   if (state.options.europeanNoHoleCard) {
     if (needsDealerResolve && state.dealer.length === 1) {
-      state.dealer.push(drawCard(true));
+      state.dealer.push(drawCardWithSfx(true));
     }
   } else {
     revealDealerHole();
@@ -376,7 +419,7 @@ function dealerPlayAndSettle() {
   let dv = handValue(state.dealer);
   if (needsDealerHit) {
     while (dv.total < 17 || (dv.total === 17 && dv.soft && state.options.dealerHitsSoft17)) {
-      state.dealer.push(drawCard(true));
+      state.dealer.push(drawCardWithSfx(true));
       dv = handValue(state.dealer);
     }
   }
@@ -430,6 +473,40 @@ function settleHands(dealerValue) {
     hand.result = result;
     totalPayout += payout;
     summaries.push(`Hand ${i + 1}: ${result}`);
+
+    if (hand.surrendered) {
+      sfx.play(BANK_BLACKJACK, 'lose');
+    } else if (hand.busted) {
+      if (!hand.bustSounded) {
+        sfx.play(BANK_BLACKJACK, 'bust');
+        hand.bustSounded = true;
+      }
+    } else if (dealerBust) {
+      sfx.play(BANK_BLACKJACK, 'win');
+      if (payout > hand.bet) {
+        sfx.play(BANK_BLACKJACK, 'payout', { ratio: payout / hand.bet });
+      }
+    } else if (dealerNatural && hand.natural) {
+      sfx.play(BANK_BLACKJACK, 'push');
+    } else if (dealerNatural && !hand.natural) {
+      sfx.play(BANK_BLACKJACK, 'lose');
+    } else if (hand.natural) {
+      if (!hand.naturalSounded) {
+        sfx.play(BANK_BLACKJACK, 'blackjack');
+      }
+      if (payout > hand.bet) {
+        sfx.play(BANK_BLACKJACK, 'payout', { ratio: payout / hand.bet });
+      }
+    } else if (hv.total > dealerValue.total) {
+      sfx.play(BANK_BLACKJACK, 'win');
+      if (payout > hand.bet) {
+        sfx.play(BANK_BLACKJACK, 'payout', { ratio: payout / hand.bet });
+      }
+    } else if (hv.total < dealerValue.total) {
+      sfx.play(BANK_BLACKJACK, 'lose');
+    } else {
+      sfx.play(BANK_BLACKJACK, 'push');
+    }
   }
 
   state.bank += Math.floor(totalPayout);
@@ -795,6 +872,12 @@ function newRound() {
   updateButtons();
 }
 
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  sfx.unlock();
+}
+
 function attachEvents() {
   dealBtn.addEventListener('click', startRound);
   hitBtn.addEventListener('click', hit);
@@ -804,7 +887,11 @@ function attachEvents() {
   surrenderBtn.addEventListener('click', surrender);
   hintBtn.addEventListener('click', hint);
   newRoundBtn.addEventListener('click', newRound);
-  betInput.addEventListener('change', updateBankAndBet);
+  betInput.addEventListener('change', () => {
+    updateBankAndBet();
+    unlockAudio();
+    sfx.play(BANK_BLACKJACK, 'bet', { amount: state.bet });
+  });
   [decksSelect, optEuropean, optSurrender, optDAS, optDoubleAny, optHitSoft17].forEach((el) =>
     el.addEventListener('change', updateOptionsFromUI),
   );
@@ -813,3 +900,4 @@ function attachEvents() {
 state = initialState();
 attachEvents();
 newRound();
+document.addEventListener('pointerdown', unlockAudio, { once: true });

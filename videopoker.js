@@ -1,5 +1,8 @@
 // Video Poker (9-6 Jacks or Better), plain JS + emoji/unicode cards.
 
+import { SfxEngine } from './sfx_engine.js';
+import { BANK_VIDEO_POKER } from './card_sfx_banks.js';
+
 const SUITS = ['clubs', 'diamonds', 'hearts', 'spades'];
 const SUIT_SYMBOLS = { clubs: '\u2663\uFE0F', diamonds: '\u2666\uFE0F', hearts: '\u2665\uFE0F', spades: '\u2660\uFE0F' };
 const VALUE_LABELS = {
@@ -20,6 +23,8 @@ const PAY_TABLE = [
   { key: 'Jacks or Better', label: 'JACKS OR BETTER', payouts: [1, 2, 3, 4, 5] },
 ];
 
+const BIG_WIN_HANDS = new Set(['Royal Flush', 'Straight Flush', 'Four of a Kind']);
+
 const creditsEl = document.getElementById('credits');
 const betEl = document.getElementById('bet');
 const winEl = document.getElementById('win');
@@ -30,6 +35,9 @@ const cardsEl = document.getElementById('cards');
 const paytableEl = document.getElementById('paytable');
 const dealBtn = document.getElementById('deal');
 const newGameBtn = document.getElementById('new-game');
+
+const sfx = new SfxEngine({ master: 0.6 });
+let audioUnlocked = false;
 
 let state = initialState();
 const paytableRowEls = new Map();
@@ -45,6 +53,12 @@ function initialState() {
     eval: { name: '', win: 0 },
     message: 'Click Deal to start.',
   };
+}
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  sfx.unlock();
 }
 
 function cardColor(suit) {
@@ -276,6 +290,9 @@ function buildPaytable() {
 }
 
 function dealNewHand() {
+  unlockAudio();
+  sfx.play(BANK_VIDEO_POKER, 'bet', { step: BET });
+  sfx.play(BANK_VIDEO_POKER, 'deal');
   state.credits -= BET;
   state.deck = createDeck();
   shuffle(state.deck);
@@ -288,6 +305,8 @@ function dealNewHand() {
 }
 
 function drawReplacements() {
+  unlockAudio();
+  sfx.play(BANK_VIDEO_POKER, 'draw');
   for (let i = 0; i < 5; i++) {
     if (!state.hold[i]) {
       state.hand[i] = drawCard();
@@ -298,13 +317,24 @@ function drawReplacements() {
   state.lastWin = state.eval.win;
   state.credits += state.lastWin;
   state.message = state.lastWin ? `Won ${state.lastWin} (${state.eval.name})` : 'No win. Click Deal to play again.';
+  if (state.lastWin > 0) {
+    if (state.lastWin >= 25 || BIG_WIN_HANDS.has(state.eval.name)) {
+      sfx.play(BANK_VIDEO_POKER, 'payoutBig', { credits: state.lastWin });
+    } else {
+      sfx.play(BANK_VIDEO_POKER, 'payoutSmall', { credits: state.lastWin });
+    }
+  } else {
+    sfx.play(BANK_VIDEO_POKER, 'lose');
+  }
 }
 
 function toggleHold(index) {
   if (state.roundEnded) return;
   if (index < 0 || index > 4) return;
   if (!state.hand[index]) return;
+  unlockAudio();
   state.hold[index] = !state.hold[index];
+  sfx.play(BANK_VIDEO_POKER, 'holdToggle', { on: state.hold[index] });
 }
 
 function renderCards() {
@@ -398,4 +428,4 @@ function main() {
 }
 
 main();
-
+document.addEventListener('pointerdown', unlockAudio, { once: true });

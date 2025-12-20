@@ -100,6 +100,10 @@
           <option value="PP">Puzzle Puncher</option>
           <option value="PLOP">Plop Plop</option>
           <option value="PILL">Pill Popper</option>
+          <option value="KLON">Klondike Solitaire</option>
+          <option value="SPIDER">Spider Solitaire</option>
+          <option value="BJ">Blackjack</option>
+          <option value="VP">Video Poker</option>
         </select>
       </label>
 
@@ -140,6 +144,7 @@
     import { BANK_PUZZLEPUNCHER } from './sfx_bank_puzzle_puncher.js';
     import { BANK_PLOPPLOP } from './sfx_bank_plop_plop.js';
     import { BANK_PILLPOPPER } from './sfx_bank_pill_popper.js';
+    import { BANK_KLONDIKE, BANK_SPIDER, BANK_BLACKJACK, BANK_VIDEO_POKER } from './card_sfx_banks.js';
 
     const sfx = new SfxEngine({ master: 0.6 });
 
@@ -163,6 +168,15 @@
         case 'PLOP':
           return BANK_PLOPPLOP;
         case 'PILL':
+          return BANK_PILLPOPPER;
+        case 'KLON':
+          return BANK_KLONDIKE;
+        case 'SPIDER':
+          return BANK_SPIDER;
+        case 'BJ':
+          return BANK_BLACKJACK;
+        case 'VP':
+          return BANK_VIDEO_POKER;
         default:
           return BANK_PILLPOPPER;
       }

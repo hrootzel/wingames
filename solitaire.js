@@ -3,6 +3,9 @@
  * Mirrors the logic in solitaire.ts.
  */
 
+import { SfxEngine } from './sfx_engine.js';
+import { BANK_KLONDIKE } from './card_sfx_banks.js';
+
 const SUITS = ['clubs', 'diamonds', 'hearts', 'spades'];
 const SUIT_SYMBOLS = { clubs: '\u2663\uFE0F', diamonds: '\u2666\uFE0F', hearts: '\u2665\uFE0F', spades: '\u2660\uFE0F' };
 const VALUE_LABELS = {
@@ -65,6 +68,10 @@ const autoBtn = document.getElementById('auto-move');
 const drawSelect = document.getElementById('draw-mode');
 const scoreSelect = document.getElementById('score-mode');
 const keepVegasCheckbox = document.getElementById('keep-vegas');
+
+const sfx = new SfxEngine({ master: 0.6 });
+let audioUnlocked = false;
+
 let dragState = null;
 
 function cleanupDanglingPreviews() {
@@ -156,6 +163,12 @@ function startTimer() {
     updateVegasBank();
     updateStatus();
   }, 1000);
+}
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  sfx.unlock();
 }
 
 function updateVegasBank() {
@@ -265,6 +278,7 @@ function getRedealThreshold() {
 }
 
 function handleStockClick() {
+  unlockAudio();
   if (state.stock.length === 0) {
     handleRedeal();
     return;
@@ -282,6 +296,7 @@ function drawFromStock() {
   drawn.forEach((card) => (card.faceUp = true));
   state.waste.push(...drawn);
   state.lastMoveSource = 'stock';
+  sfx.play(BANK_KLONDIKE, 'deal');
 }
 
 function handleRedeal() {
@@ -290,6 +305,7 @@ function handleRedeal() {
   const threshold = getRedealThreshold();
   if (options.scoreMode === 'vegas' && state.wasteRedeals >= threshold) {
     statusEl.textContent = 'No more redeals in Vegas mode.';
+    sfx.play(BANK_KLONDIKE, 'invalid');
     return;
   }
 
@@ -305,6 +321,7 @@ function handleRedeal() {
     updateVegasBank();
   }
   state.lastMoveSource = 'stock';
+  sfx.play(BANK_KLONDIKE, 'deal');
   render();
 }
 
@@ -340,12 +357,14 @@ function peekSelectedCards() {
 }
 
 function flipTopIfNeeded(origin) {
+  let flipped = false;
   if (origin.source === 'tableau') {
     const stack = state.tableau[origin.pileIndex];
     if (stack.length > 0) {
       const top = stack[stack.length - 1];
       if (!top.faceUp) {
         top.faceUp = true;
+        flipped = true;
         if (options.scoreMode === 'standard') {
           state.score += 5;
           updateVegasBank();
@@ -353,6 +372,7 @@ function flipTopIfNeeded(origin) {
       }
     }
   }
+  return flipped;
 }
 
 function applyTableauScoring(origin) {
@@ -381,7 +401,7 @@ function applyFoundationScoring(origin) {
   updateVegasBank();
 }
 
-function moveSelectionToTableau(targetIndex) {
+function moveSelectionToTableau(targetIndex, fromDrag = false) {
   if (!selection) return false;
   if (selection.source === 'tableau' && selection.pileIndex === targetIndex) {
     selection = null;
@@ -391,13 +411,22 @@ function moveSelectionToTableau(targetIndex) {
   const moving = peekSelectedCards();
   if (moving.length === 0) return false;
   const targetStack = state.tableau[targetIndex];
-  if (!canMoveToTableau(moving[0], targetStack)) return false;
+  if (!canMoveToTableau(moving[0], targetStack)) {
+    if (!fromDrag) {
+      sfx.play(BANK_KLONDIKE, 'invalid');
+    }
+    return false;
+  }
 
   setUndoSnapshot();
+  const origin = selection;
   const moved = takeSelectedCards();
   targetStack.push(...moved);
-  applyTableauScoring(selection);
-  flipTopIfNeeded(selection);
+  applyTableauScoring(origin);
+  sfx.play(BANK_KLONDIKE, 'place');
+  if (flipTopIfNeeded(origin)) {
+    sfx.play(BANK_KLONDIKE, 'flip');
+  }
   selection = null;
   state.started = true;
   startTimer();
@@ -405,7 +434,7 @@ function moveSelectionToTableau(targetIndex) {
   return true;
 }
 
-function moveSelectionToFoundation(targetIndex) {
+function moveSelectionToFoundation(targetIndex, fromDrag = false) {
   if (!selection) return false;
   if (selection.source === 'foundation') return false;
   const moving = peekSelectedCards();
@@ -413,17 +442,31 @@ function moveSelectionToFoundation(targetIndex) {
 
   const destIndex = targetIndex !== undefined ? targetIndex : getFoundationIndex(moving[0].suit);
   const stack = state.foundations[destIndex];
-  if (!canMoveToFoundation(moving[0], stack)) return false;
+  if (!canMoveToFoundation(moving[0], stack)) {
+    if (!fromDrag) {
+      sfx.play(BANK_KLONDIKE, 'invalid');
+    }
+    return false;
+  }
   if (selection.source === 'tableau') {
     const sourceStack = state.tableau[selection.pileIndex];
-    if (selection.cardIndex !== sourceStack.length - 1) return false;
+    if (selection.cardIndex !== sourceStack.length - 1) {
+      if (!fromDrag) {
+        sfx.play(BANK_KLONDIKE, 'invalid');
+      }
+      return false;
+    }
   }
 
   setUndoSnapshot();
+  const origin = selection;
   const card = takeSelectedCards()[0];
   stack.push(card);
-  applyFoundationScoring(selection);
-  flipTopIfNeeded(selection);
+  applyFoundationScoring(origin);
+  sfx.play(BANK_KLONDIKE, 'foundation');
+  if (flipTopIfNeeded(origin)) {
+    sfx.play(BANK_KLONDIKE, 'flip');
+  }
   selection = null;
   state.started = true;
   startTimer();
@@ -439,6 +482,7 @@ function autoMoveOnce() {
     if (canMoveToFoundation(wasteTop, state.foundations[idx])) {
       state.foundations[idx].push(state.waste.pop());
       applyFoundationScoring({ source: 'waste', pileIndex: 0, cardIndex: 0 });
+      sfx.play(BANK_KLONDIKE, 'foundation');
       render();
       checkForWin();
       return true;
@@ -453,7 +497,10 @@ function autoMoveOnce() {
       if (canMoveToFoundation(top, state.foundations[idx])) {
         state.foundations[idx].push(col.pop());
         applyFoundationScoring({ source: 'tableau', pileIndex: i, cardIndex: col.length });
-        flipTopIfNeeded({ source: 'tableau', pileIndex: i, cardIndex: col.length });
+        sfx.play(BANK_KLONDIKE, 'foundation');
+        if (flipTopIfNeeded({ source: 'tableau', pileIndex: i, cardIndex: col.length })) {
+          sfx.play(BANK_KLONDIKE, 'flip');
+        }
         render();
         checkForWin();
         return true;
@@ -464,6 +511,7 @@ function autoMoveOnce() {
 }
 
 function autoMoveAll() {
+  unlockAudio();
   let moved = false;
   do {
     moved = autoMoveOnce();
@@ -475,6 +523,8 @@ function autoMoveAll() {
 
 function undo() {
   if (!undoSnapshot) return;
+  unlockAudio();
+  sfx.play(BANK_KLONDIKE, 'undo');
   stopWinCelebration();
   state = cloneState(undoSnapshot.state);
   selection = null;
@@ -500,6 +550,7 @@ function checkForWin() {
     state.started = false;
     stopTimer();
     selection = null;
+    sfx.play(BANK_KLONDIKE, 'win');
     render();
     startWinCelebration();
   }
@@ -797,23 +848,28 @@ function attemptDrop(clientX, clientY) {
     const foundation = target.closest('.foundation');
     if (foundation) {
       const idx = Number(foundation.dataset.index ?? foundation.dataset.pileindex ?? 0);
-      handled = moveSelectionToFoundation(idx);
+      handled = moveSelectionToFoundation(idx, true);
     }
     if (!handled) {
       const colEl = target.closest('.tableau-col');
       if (colEl) {
         const idx = Number(colEl.dataset.col ?? 0);
-        handled = moveSelectionToTableau(idx);
+        handled = moveSelectionToTableau(idx, true);
       }
     }
   }
   if (!handled) {
+    if (selection) {
+      sfx.play(BANK_KLONDIKE, 'invalid');
+    }
     selection = null;
     render();
   }
+  return handled;
 }
 
 function handlePointerDown(ev) {
+  unlockAudio();
   const cardEl = ev.target instanceof HTMLElement ? ev.target.closest('.card') : null;
   if (!cardEl) return;
   const sel = selectionFromCardEl(cardEl);
@@ -833,6 +889,7 @@ function handlePointerDown(ev) {
   } else {
     dragState.stackSpacing = TABLEAU_SPACING;
   }
+  sfx.play(BANK_KLONDIKE, 'pickup');
 }
 
 function handlePointerMove(ev) {
@@ -1083,3 +1140,4 @@ function attachEvents() {
 attachEvents();
 newGame();
 startTimer();
+document.addEventListener('pointerdown', unlockAudio, { once: true });
