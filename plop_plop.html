@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PlopPlop</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="plop_plop.css">
+</head>
+<body class="plopplop">
+  <div id="app">
+    <header class="app-header">
+      <div>
+        <h1>PlopPlop</h1>
+        <p class="subtitle">Drop pairs, link blobs, chain pops.</p>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Ready.</span>
+      </div>
+    </div>
+
+    <div class="board plop-board">
+      <div class="plop-wrap">
+        <div class="plop-stage">
+          <canvas id="plop-canvas" width="320" height="600" aria-label="PlopPlop playfield"></canvas>
+        </div>
+
+        <div class="plop-panel">
+          <div class="panel-box">
+            <h3>Next Pair</h3>
+            <canvas id="next-canvas" class="preview-canvas" width="120" height="120" aria-label="Next pair preview"></canvas>
+          </div>
+
+          <div class="panel-box">
+            <h3>Scoreboard</h3>
+            <div class="quick-stats plop-stats">
+              <div>Score: <span id="score">0</span></div>
+              <div>Chain: <span id="chain">-</span></div>
+              <div>Level: <span id="level">1</span></div>
+              <div>Pieces: <span id="pieces">0</span></div>
+            </div>
+          </div>
+
+          <div class="panel-box">
+            <h3>Controls</h3>
+            <div class="key-hints">
+              <div><span class="key">Left/Right</span> Move</div>
+              <div><span class="key">Down</span> Soft drop</div>
+              <div><span class="key">Up/X</span> Rotate CW</div>
+              <div><span class="key">Z</span> Rotate CCW</div>
+              <div><span class="key">Space</span> Hard drop</div>
+              <div><span class="key">P</span> Pause</div>
+              <div><span class="key">R</span> Restart</div>
+            </div>
+
+            <div class="control-group plop-controls">
+              <button id="new-game">New Game</button>
+              <button id="pause">Pause</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="tips">
+      Connect four or more of the same color to pop them. Chains score big, so set up
+      cascades by stacking colors and letting gravity do the work.
+    </p>
+  </div>
+
+  <script type="module" src="plop_plop.js"></script>
+</body>
+</html>
