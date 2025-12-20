@@ -1,3 +1,6 @@
+import { SfxEngine } from './sfx_engine.js';
+import { BANK_PUZZLEPUNCHER } from './sfx_bank_puzzle_puncher.js';
+
 const W = 6;
 const H = 13;
 const VISIBLE_H = 12;
@@ -49,6 +52,9 @@ const piecesEl = document.getElementById('pieces');
 const statusEl = document.getElementById('status');
 const newBtn = document.getElementById('new-game');
 const pauseBtn = document.getElementById('pause');
+
+const sfx = new SfxEngine({ master: 0.6 });
+let audioUnlocked = false;
 
 const view = {
   cellSize: 40,
@@ -269,6 +275,7 @@ function spawnPiece() {
   if (!canPlace(cells)) {
     game.state = GameState.GAME_OVER;
     game.status = 'Game over. Press R to restart.';
+    sfx.play(BANK_PUZZLEPUNCHER, 'gameOver');
     return;
   }
   game.state = GameState.FALLING;
@@ -278,6 +285,7 @@ function spawnPiece() {
 
 function lockPiece() {
   if (!game.active) return;
+  sfx.play(BANK_PUZZLEPUNCHER, 'lock');
   const cells = pieceCells(game.active);
   let diamondCell = null;
   for (const cell of cells) {
@@ -312,7 +320,9 @@ function handleHorizontalRepeat(dt) {
   if (held.left && !held.right) {
     game.repeat.left += dt;
     while (game.repeat.left >= 0) {
-      tryMovePiece(0, -1);
+      if (tryMovePiece(0, -1)) {
+        sfx.play(BANK_PUZZLEPUNCHER, 'move');
+      }
       game.repeat.left -= ARR;
     }
   } else {
@@ -322,7 +332,9 @@ function handleHorizontalRepeat(dt) {
   if (held.right && !held.left) {
     game.repeat.right += dt;
     while (game.repeat.right >= 0) {
-      tryMovePiece(0, 1);
+      if (tryMovePiece(0, 1)) {
+        sfx.play(BANK_PUZZLEPUNCHER, 'move');
+      }
       game.repeat.right -= ARR;
     }
   } else {
@@ -337,16 +349,23 @@ function stepFalling(dt) {
   }
 
   if (game.input.pressed.rotateCW) {
-    tryRotate(1);
+    if (tryRotate(1)) {
+      sfx.play(BANK_PUZZLEPUNCHER, 'rotate');
+    }
   }
   if (game.input.pressed.rotateCCW) {
-    tryRotate(-1);
+    if (tryRotate(-1)) {
+      sfx.play(BANK_PUZZLEPUNCHER, 'rotate');
+    }
   }
 
   if (game.input.pressed.hardDrop) {
     let guard = 0;
     while (tryMovePiece(-1, 0) && guard < H) {
       guard += 1;
+    }
+    if (guard > 0) {
+      sfx.play(BANK_PUZZLEPUNCHER, 'hardDrop');
     }
     lockPiece();
     return;
@@ -586,6 +605,7 @@ function resolveBoard() {
     }
     game.score += SCORE.TECH;
     game.status = `Tech bonus +${SCORE.TECH}`;
+    sfx.play(BANK_PUZZLEPUNCHER, 'techBonus');
     game.pendingDiamond = null;
   }
 
@@ -597,6 +617,15 @@ function resolveBoard() {
       const toClear = collectColorClear(game.pendingDiamond.color, game.pendingDiamond);
       const counts = countClearCells(toClear);
       clearCells(toClear);
+      const totalCleared = counts.normal + counts.crash + counts.power + counts.diamond;
+      if (chainIndex >= 2) {
+        sfx.play(BANK_PUZZLEPUNCHER, 'chain', { chain: chainIndex, chainIndex });
+      }
+      if (counts.power > 0) {
+        sfx.play(BANK_PUZZLEPUNCHER, 'power', { power: counts.power, cleared: totalCleared });
+      }
+      sfx.play(BANK_PUZZLEPUNCHER, 'diamond', { cleared: totalCleared, chain: chainIndex, chainIndex });
+      sfx.play(BANK_PUZZLEPUNCHER, 'clear', { cleared: totalCleared, chain: chainIndex, chainIndex });
       scoreEvent(counts, chainIndex, true);
       game.pendingDiamond = null;
       resolved = true;
@@ -609,6 +638,14 @@ function resolveBoard() {
       const toClear = collectCrashClear(triggers);
       const counts = countClearCells(toClear);
       clearCells(toClear);
+      const totalCleared = counts.normal + counts.crash + counts.power + counts.diamond;
+      if (chainIndex >= 2) {
+        sfx.play(BANK_PUZZLEPUNCHER, 'chain', { chain: chainIndex, chainIndex });
+      }
+      if (counts.power > 0) {
+        sfx.play(BANK_PUZZLEPUNCHER, 'power', { power: counts.power, cleared: totalCleared });
+      }
+      sfx.play(BANK_PUZZLEPUNCHER, 'clear', { cleared: totalCleared, chain: chainIndex, chainIndex });
       scoreEvent(counts, chainIndex, false);
       resolved = true;
       chainIndex += 1;
@@ -623,9 +660,10 @@ function resolveBoard() {
     game.lastChain = 0;
   }
 
-  if (isBoardEmpty()) {
+  if (resolved && isBoardEmpty()) {
     game.score += SCORE.ALL_CLEAR;
     game.status = `All clear +${SCORE.ALL_CLEAR}`;
+    sfx.play(BANK_PUZZLEPUNCHER, 'allClear');
   }
 
   game.state = GameState.SPAWN;
@@ -964,13 +1002,16 @@ function draw(alpha) {
 
 function handleKeyDown(ev) {
   if (ev.repeat) return;
+  unlockAudio();
   const tag = ev.target && ev.target.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
   const key = ev.key.toLowerCase();
   if (key === 'arrowleft' || key === 'a') {
     if (!game.input.held.left) {
       game.input.held.left = true;
-      tryMovePiece(0, -1);
+      if (tryMovePiece(0, -1)) {
+        sfx.play(BANK_PUZZLEPUNCHER, 'move');
+      }
       game.repeat.left = -DAS;
     }
     ev.preventDefault();
@@ -979,7 +1020,9 @@ function handleKeyDown(ev) {
   if (key === 'arrowright' || key === 'd') {
     if (!game.input.held.right) {
       game.input.held.right = true;
-      tryMovePiece(0, 1);
+      if (tryMovePiece(0, 1)) {
+        sfx.play(BANK_PUZZLEPUNCHER, 'move');
+      }
       game.repeat.right = -DAS;
     }
     ev.preventDefault();
@@ -1014,6 +1057,12 @@ function handleKeyDown(ev) {
     newGame();
     ev.preventDefault();
   }
+}
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  sfx.unlock();
 }
 
 function handleKeyUp(ev) {
@@ -1068,6 +1117,7 @@ document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
 newBtn.addEventListener('click', () => newGame());
 pauseBtn.addEventListener('click', () => togglePause());
+document.addEventListener('pointerdown', unlockAudio, { once: true });
 
 setupView();
 newGame();
