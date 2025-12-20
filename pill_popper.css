@@ -1,0 +1,116 @@
+.pill-popper {
+  --pill-panel: rgba(0, 0, 0, 0.2);
+  --pill-border: rgba(255, 255, 255, 0.12);
+  --pill-glow: rgba(59, 130, 246, 0.35);
+}
+
+.pill-popper .pill-board {
+  padding: 16px;
+}
+
+.pill-popper .pill-wrap {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 250px;
+  gap: 16px;
+  align-items: start;
+}
+
+.pill-popper .pill-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  background: var(--pill-panel);
+  border-radius: 12px;
+  border: 1px solid var(--pill-border);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.pill-popper #pill-canvas {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 24px var(--pill-glow);
+  background: #0b1424;
+}
+
+.pill-popper .pill-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pill-popper .panel-box {
+  background: var(--pill-panel);
+  border-radius: 12px;
+  border: 1px solid var(--pill-border);
+  padding: 12px;
+}
+
+.pill-popper .panel-box h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.pill-popper .preview-canvas {
+  display: block;
+  margin: 0 auto;
+}
+
+.pill-popper .pill-stats {
+  text-align: left;
+}
+
+.pill-popper .key-hints {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.pill-popper .key-hints .key {
+  display: inline-block;
+  min-width: 84px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-weight: 700;
+  color: #fbbf24;
+  text-align: center;
+  margin-right: 6px;
+}
+
+.pill-popper .pill-speed {
+  margin-top: 12px;
+}
+
+.pill-popper .pill-controls {
+  margin-top: 12px;
+  justify-content: space-between;
+}
+
+@media (max-width: 900px) {
+  .pill-popper .pill-wrap {
+    grid-template-columns: 1fr;
+  }
+
+  .pill-popper .pill-panel {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .pill-popper .panel-box {
+    flex: 1 1 220px;
+  }
+
+  .pill-popper #pill-canvas {
+    max-width: 100%;
+  }
+}
