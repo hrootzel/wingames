@@ -1,3 +1,6 @@
+import { SfxEngine } from './sfx_engine.js';
+import { BANK_PILLPOPPER } from './sfx_bank_pill_popper.js';
+
 const W = 8;
 const H = 18;
 const VISIBLE_H = 16;
@@ -67,6 +70,9 @@ const statusEl = document.getElementById('status');
 const speedSelect = document.getElementById('speed');
 const newBtn = document.getElementById('new-game');
 const pauseBtn = document.getElementById('pause');
+
+const sfx = new SfxEngine({ master: 0.6 });
+let audioUnlocked = false;
 
 const view = {
   cellSize: 32,
@@ -269,6 +275,7 @@ function spawnCapsule() {
   if (!canPlaceActive(game.active.aRow, game.active.aCol, game.active.orient)) {
     game.state = GameState.GAME_OVER;
     game.status = 'Game over. Press R to restart.';
+    sfx.play(BANK_PILLPOPPER, 'gameOver');
     return;
   }
   game.state = GameState.FALLING;
@@ -278,6 +285,7 @@ function spawnCapsule() {
 function lockCapsule() {
   const active = game.active;
   if (!active) return;
+  sfx.play(BANK_PILLPOPPER, 'lock');
   const cells = activeCells(active);
   const id = game.pillId++;
   const { aLink, bLink } = linksForOrient(active.orient);
@@ -304,7 +312,9 @@ function handleHorizontalRepeat(dt) {
   if (held.left && !held.right) {
     game.repeat.left += dt;
     while (game.repeat.left >= 0) {
-      tryMoveActive(0, -1);
+      if (tryMoveActive(0, -1)) {
+        sfx.play(BANK_PILLPOPPER, 'move');
+      }
       game.repeat.left -= ARR;
     }
   } else {
@@ -314,7 +324,9 @@ function handleHorizontalRepeat(dt) {
   if (held.right && !held.left) {
     game.repeat.right += dt;
     while (game.repeat.right >= 0) {
-      tryMoveActive(0, 1);
+      if (tryMoveActive(0, 1)) {
+        sfx.play(BANK_PILLPOPPER, 'move');
+      }
       game.repeat.right -= ARR;
     }
   } else {
@@ -330,7 +342,9 @@ function stepFalling(dt) {
 
   if (game.input.pressed.rotate || game.input.pressed.rotateCCW) {
     const dir = game.input.pressed.rotate ? 1 : -1;
-    tryRotate(dir);
+    if (tryRotate(dir)) {
+      sfx.play(BANK_PILLPOPPER, 'rotate');
+    }
   }
 
   if (game.input.pressed.hardDrop) {
@@ -338,6 +352,7 @@ function stepFalling(dt) {
     while (tryMoveActive(-1, 0) && guard < H) {
       guard += 1;
     }
+    sfx.play(BANK_PILLPOPPER, 'hardDrop');
     lockCapsule();
     return;
   }
@@ -533,6 +548,10 @@ function resolveBoard() {
     if (matches.size === 0) break;
     chain += 1;
     lastViruses = clearCells(game.board, matches);
+    if (chain >= 2) {
+      sfx.play(BANK_PILLPOPPER, 'chain', { chain, chainIndex: chain });
+    }
+    sfx.play(BANK_PILLPOPPER, 'clear', { viruses: lastViruses, cleared: matches.size, chain, chainIndex: chain });
     if (lastViruses > 0) {
       const points = scoreViruses(game.speed, lastViruses);
       game.score += points;
@@ -548,6 +567,7 @@ function resolveBoard() {
     game.state = GameState.STAGE_CLEAR;
     game.timers.stageClearRemaining = 1200;
     game.status = 'Stage clear!';
+    sfx.play(BANK_PILLPOPPER, 'stageClear');
     return;
   }
 
@@ -585,6 +605,7 @@ function startStage(level) {
   generateViruses(virusCount);
   game.nextSpec = rollCapsuleSpec(game.rng);
   game.status = `Stage ${level + 1}`;
+  sfx.play(BANK_PILLPOPPER, 'stageStart');
 }
 
 function newGame() {
@@ -870,13 +891,16 @@ function togglePause() {
 
 function handleKeyDown(ev) {
   if (ev.repeat) return;
+  unlockAudio();
   const tag = ev.target && ev.target.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
   const key = ev.key.toLowerCase();
   if (key === 'arrowleft' || key === 'a') {
     if (!game.input.held.left) {
       game.input.held.left = true;
-      tryMoveActive(0, -1);
+      if (tryMoveActive(0, -1)) {
+        sfx.play(BANK_PILLPOPPER, 'move');
+      }
       game.repeat.left = -DAS;
     }
     ev.preventDefault();
@@ -885,7 +909,9 @@ function handleKeyDown(ev) {
   if (key === 'arrowright' || key === 'd') {
     if (!game.input.held.right) {
       game.input.held.right = true;
-      tryMoveActive(0, 1);
+      if (tryMoveActive(0, 1)) {
+        sfx.play(BANK_PILLPOPPER, 'move');
+      }
       game.repeat.right = -DAS;
     }
     ev.preventDefault();
@@ -920,6 +946,12 @@ function handleKeyDown(ev) {
     newGame();
     ev.preventDefault();
   }
+}
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  sfx.unlock();
 }
 
 function handleKeyUp(ev) {
@@ -964,6 +996,7 @@ speedSelect.addEventListener('change', () => {
   game.speed = speedSelect.value;
   newGame();
 });
+document.addEventListener('pointerdown', unlockAudio, { once: true });
 
 setupView();
 newGame();
