@@ -503,11 +503,6 @@ function settleOnce(board) {
           board.set(r, c, makeEmptyCell());
           board.set(r, c + 1, makeEmptyCell());
           moved = true;
-        } else if (leftCan !== rightCan) {
-          cell.link = Link.NONE;
-          other.link = Link.NONE;
-          board.set(r, c, cell);
-          board.set(r, c + 1, other);
         }
         continue;
       }
