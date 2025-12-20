@@ -845,6 +845,14 @@ function draw(alpha) {
   updateHud();
 }
 
+function preventArrowScroll(ev) {
+  const tag = ev.target && ev.target.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  if (ev.key === 'ArrowDown' || ev.key === 'Down') {
+    ev.preventDefault();
+  }
+}
+
 function stepGame(dt) {
   if (game.state === GameState.GAME_OVER) {
     game.input.clearPressed();
@@ -890,11 +898,16 @@ function togglePause() {
 }
 
 function handleKeyDown(ev) {
-  if (ev.repeat) return;
-  unlockAudio();
   const tag = ev.target && ev.target.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
   const key = ev.key.toLowerCase();
+  if (ev.repeat) {
+    if (key === 'arrowdown') {
+      ev.preventDefault();
+    }
+    return;
+  }
+  unlockAudio();
   if (key === 'arrowleft' || key === 'a') {
     if (!game.input.held.left) {
       game.input.held.left = true;
@@ -988,6 +1001,7 @@ function loop() {
   requestAnimationFrame(frame);
 }
 
+document.addEventListener('keydown', preventArrowScroll, { passive: false });
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
 newBtn.addEventListener('click', () => newGame());
