@@ -56,6 +56,7 @@ const SOFT_DROP_MULT = 8;
 const DAS = 160;
 const ARR = 60;
 const FIXED_DT = 1000 / 60;
+const RESOLVE_DROP_INTERVAL = 60;
 
 const canvas = document.getElementById('pill-canvas');
 const ctx = canvas.getContext('2d');
@@ -157,6 +158,7 @@ function makeGame() {
     status: 'Ready.',
     statusBeforePause: 'Ready.',
     timers: { gravityElapsed: 0, stageClearRemaining: 0 },
+    resolve: null,
   };
 }
 
@@ -305,6 +307,7 @@ function lockCapsule() {
 
   game.active = null;
   game.state = GameState.RESOLVE;
+  game.resolve = { chain: 0, settling: false, settleTimer: 0 };
 }
 
 function handleHorizontalRepeat(dt) {
@@ -539,39 +542,61 @@ function scoreViruses(speed, virusCount) {
   return VIRUS_POINTS[speed][v];
 }
 
-function resolveBoard() {
-  let chain = 0;
-  let lastViruses = 0;
+function resolveBoard(dt) {
+  const resolve = game.resolve || { chain: 0, settling: false, settleTimer: 0 };
 
-  while (true) {
-    const matches = findMatches(game.board);
-    if (matches.size === 0) break;
-    chain += 1;
-    lastViruses = clearCells(game.board, matches);
-    if (chain >= 2) {
-      sfx.play(BANK_PILLPOPPER, 'chain', { chain, chainIndex: chain });
+  if (resolve.settling) {
+    resolve.settleTimer += dt;
+    while (resolve.settleTimer >= RESOLVE_DROP_INTERVAL) {
+      const moved = settleOnce(game.board);
+      resolve.settleTimer -= RESOLVE_DROP_INTERVAL;
+      if (!moved) {
+        resolve.settling = false;
+        break;
+      }
     }
-    sfx.play(BANK_PILLPOPPER, 'clear', { viruses: lastViruses, cleared: matches.size, chain, chainIndex: chain });
-    if (lastViruses > 0) {
-      const points = scoreViruses(game.speed, lastViruses);
-      game.score += points;
-      game.virusesRemaining = Math.max(0, game.virusesRemaining - lastViruses);
-      game.status = `Cleared ${lastViruses} virus${lastViruses === 1 ? '' : 'es'} +${points}`;
-    } else {
-      game.status = chain > 1 ? `Chain x${chain}` : 'Match cleared';
-    }
-    settleAll(game.board);
+    game.resolve = resolve;
+    if (resolve.settling) return;
   }
 
-  if (game.virusesRemaining === 0) {
-    game.state = GameState.STAGE_CLEAR;
-    game.timers.stageClearRemaining = 1200;
-    game.status = 'Stage clear!';
-    sfx.play(BANK_PILLPOPPER, 'stageClear');
+  const matches = findMatches(game.board);
+  if (matches.size === 0) {
+    if (game.virusesRemaining === 0) {
+      game.state = GameState.STAGE_CLEAR;
+      game.timers.stageClearRemaining = 1200;
+      game.status = 'Stage clear!';
+      sfx.play(BANK_PILLPOPPER, 'stageClear');
+      game.resolve = null;
+      return;
+    }
+
+    game.state = GameState.SPAWN;
+    game.resolve = null;
     return;
   }
 
-  game.state = GameState.SPAWN;
+  resolve.chain += 1;
+  const lastViruses = clearCells(game.board, matches);
+  if (resolve.chain >= 2) {
+    sfx.play(BANK_PILLPOPPER, 'chain', { chain: resolve.chain, chainIndex: resolve.chain });
+  }
+  sfx.play(BANK_PILLPOPPER, 'clear', {
+    viruses: lastViruses,
+    cleared: matches.size,
+    chain: resolve.chain,
+    chainIndex: resolve.chain,
+  });
+  if (lastViruses > 0) {
+    const points = scoreViruses(game.speed, lastViruses);
+    game.score += points;
+    game.virusesRemaining = Math.max(0, game.virusesRemaining - lastViruses);
+    game.status = `Cleared ${lastViruses} virus${lastViruses === 1 ? '' : 'es'} +${points}`;
+  } else {
+    game.status = resolve.chain > 1 ? `Chain x${resolve.chain}` : 'Match cleared';
+  }
+  resolve.settling = true;
+  resolve.settleTimer = 0;
+  game.resolve = resolve;
 }
 
 function generateViruses(count) {
@@ -599,6 +624,7 @@ function startStage(level) {
   game.state = GameState.SPAWN;
   game.timers.gravityElapsed = 0;
   game.timers.stageClearRemaining = 0;
+  game.resolve = null;
   const virusCount = Math.min(84, (level + 1) * 4);
   game.virusLevel = level;
   game.virusesRemaining = virusCount;
@@ -919,7 +945,7 @@ function stepGame(dt) {
   } else if (game.state === GameState.FALLING) {
     stepFalling(dt);
   } else if (game.state === GameState.RESOLVE) {
-    resolveBoard();
+    resolveBoard(dt);
   }
 
   game.input.clearPressed();
