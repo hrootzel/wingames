@@ -54,14 +54,32 @@
     input[type="range"] {
       padding: 0;
     }
+    textarea {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #3a4256;
+      background: #141827;
+      color: #e7eaf0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      resize: vertical;
+      width: 100%;
+    }
     .panel {
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 14px;
       padding: 14px;
       background: rgba(255, 255, 255, 0.04);
     }
+    .event-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
     .muted {
       color: rgba(231, 234, 240, 0.65);
+    }
+    .error {
+      color: #fca5a5;
     }
     code {
       color: #b7c6ff;
@@ -99,17 +117,18 @@
       <label>chain <input id="chain" type="number" min="1" max="20" value="2" style="width: 76px;"></label>
       <label>cleared <input id="cleared" type="number" min="0" max="60" value="8" style="width: 76px;"></label>
       <label>viruses <input id="viruses" type="number" min="0" max="6" value="2" style="width: 76px;"></label>
+      <label>power <input id="power" type="number" min="0" max="20" value="2" style="width: 76px;"></label>
       <span class="muted">(payload fields are optional; banks ignore what they do not use)</span>
     </div>
 
-    <div class="row">
-      <button data-sfx="move">move</button>
-      <button data-sfx="rotate">rotate</button>
-      <button data-sfx="lock">lock</button>
-      <button data-sfx="clear">clear</button>
-      <button data-sfx="chain">chain</button>
-      <button data-sfx="gameOver">game over</button>
-    </div>
+    <label style="display: block; margin-top: 8px;">
+      Payload (JSON)
+      <textarea id="payload-json" rows="3">{}</textarea>
+    </label>
+    <div id="payload-error" class="muted" style="margin-top: 4px;"></div>
+
+    <div id="bank-info" class="muted" style="margin-top: 10px;"></div>
+    <div id="sfx-buttons" class="event-grid" style="margin-top: 8px;"></div>
 
     <div class="muted" style="margin-top: 10px;">
       Tip: If you do not hear anything, click <code>Unlock / Enable Audio</code> again.
@@ -131,6 +150,11 @@
     const elChain = document.querySelector('#chain');
     const elCleared = document.querySelector('#cleared');
     const elViruses = document.querySelector('#viruses');
+    const elPower = document.querySelector('#power');
+    const elPayloadJson = document.querySelector('#payload-json');
+    const elPayloadError = document.querySelector('#payload-error');
+    const elButtons = document.querySelector('#sfx-buttons');
+    const elBankInfo = document.querySelector('#bank-info');
 
     function currentBank() {
       switch (elBank.value) {
@@ -144,13 +168,55 @@
       }
     }
 
+    function readJsonPayload() {
+      const text = elPayloadJson.value.trim();
+      if (!text) {
+        elPayloadError.textContent = '';
+        elPayloadError.classList.remove('error');
+        return {};
+      }
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          elPayloadError.textContent = '';
+          elPayloadError.classList.remove('error');
+          return parsed;
+        }
+      } catch (err) {
+        // fall through to error below
+      }
+      elPayloadError.textContent = 'Invalid JSON payload (using quick fields only).';
+      elPayloadError.classList.add('error');
+      return {};
+    }
+
     function payload() {
-      return {
+      const base = {
         chain: Number(elChain.value) || 1,
         chainIndex: Number(elChain.value) || 1,
         cleared: Number(elCleared.value) || 0,
         viruses: Number(elViruses.value) || 0,
+        power: Number(elPower.value) || 0,
       };
+      return { ...base, ...readJsonPayload() };
+    }
+
+    function renderButtons() {
+      const bank = currentBank();
+      const keys = Object.keys(bank ?? {});
+      elButtons.innerHTML = '';
+      if (!keys.length) {
+        elBankInfo.textContent = 'No events found in this bank.';
+        return;
+      }
+      elBankInfo.textContent = `Events in bank: ${keys.length}`;
+      keys.forEach((name) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('data-sfx', name);
+        btn.textContent = name;
+        elButtons.appendChild(btn);
+      });
     }
 
     elUnlock.addEventListener('click', () => {
@@ -165,11 +231,19 @@
       sfx.setEnabled(elEnabled.checked);
     });
 
-    document.querySelectorAll('button[data-sfx]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const name = btn.getAttribute('data-sfx');
-        sfx.play(currentBank(), name, payload());
-      });
+    elPayloadJson.addEventListener('input', () => {
+      readJsonPayload();
+    });
+
+    elBank.addEventListener('change', () => {
+      renderButtons();
+    });
+
+    elButtons.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-sfx]');
+      if (!btn) return;
+      const name = btn.getAttribute('data-sfx');
+      sfx.play(currentBank(), name, payload());
     });
 
     window.addEventListener('keydown', (e) => {
@@ -196,6 +270,8 @@
     });
 
     window.addEventListener('pointerdown', () => sfx.unlock(), { once: true });
+
+    renderButtons();
   </script>
 </body>
 </html>
