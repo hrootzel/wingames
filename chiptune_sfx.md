@@ -482,3 +482,191 @@ If it’s too repetitive:
 4. Map effects → bank events.
 5. Pass payload data (chain index, cleared size, viruses cleared) so sounds scale.
 
+
+
+## 8) Simple Soundboard test page (HTML)
+
+A soundoard page is a quick way to audition your banks and tune volumes/pitches without running the full game.
+
+### File layout
+
+- `soundboard.html` (soundboard UI)
+- `sfx_engine.js` (the engine + exported banks)
+
+> Note: because `type="module"` uses ES module imports, you’ll usually need to run a tiny local server (not `file://`).
+
+Examples:
+- Python: `python -m http.server 8080`
+- Node: `npx serve .`
+
+Then open `http://localhost:8080`.
+
+### Optional: add a master-volume setter to `SfxEngine`
+
+If you want the soundboard to adjust volume cleanly, add this method to your class:
+
+```js
+setMaster(level) {
+  this.masterLevel = Math.max(0, Math.min(1, level));
+  if (!this._ctx) return;           // not created yet
+  if (!this._master) return;        // not created yet
+  this._master.gain.value = this.enabled ? this.masterLevel : 0;
+}
+```
+
+### `soundboard.html` (single-file soundboard)
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chiptune SFX Soundboard</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 18px; background: #0f1117; color: #e7eaf0; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; align-items: center; }
+    button { padding: 10px 12px; border: 0; border-radius: 10px; background: #2a3142; color: #e7eaf0; cursor: pointer; }
+    button:hover { background: #39425a; }
+    button.primary { background: #3b62ff; }
+    button.primary:hover { background: #2f56f0; }
+    label { display: inline-flex; gap: 8px; align-items: center; }
+    select, input { padding: 8px 10px; border-radius: 10px; border: 1px solid #3a4256; background: #141827; color: #e7eaf0; }
+    input[type="range"] { padding: 0; }
+    .panel { border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 14px; background: rgba(255,255,255,0.04); }
+    .muted { color: rgba(231,234,240,0.65); }
+    code { color: #b7c6ff; }
+  </style>
+</head>
+<body>
+  <h1 style="margin:0 0 6px;">Chiptune SFX Soundboard</h1>
+  <div class="muted">Pick a bank, unlock audio (required by browsers), then press buttons to test SFX.</div>
+
+  <div class="panel" style="margin-top:14px;">
+    <div class="row">
+      <button id="unlock" class="primary">Unlock / Enable Audio</button>
+
+      <label>
+        Bank
+        <select id="bank">
+          <option value="PF">Puzzle Fighter</option>
+          <option value="PUYO">Puyo Puyo</option>
+          <option value="DR">Dr. Mario</option>
+        </select>
+      </label>
+
+      <label>
+        Master
+        <input id="master" type="range" min="0" max="1" step="0.01" value="0.60" />
+      </label>
+
+      <label>
+        <input id="enabled" type="checkbox" checked /> Enabled
+      </label>
+    </div>
+
+    <div class="row">
+      <label>chain <input id="chain" type="number" min="1" max="20" value="2" style="width:76px;"></label>
+      <label>cleared <input id="cleared" type="number" min="0" max="60" value="8" style="width:76px;"></label>
+      <label>viruses <input id="viruses" type="number" min="0" max="6" value="2" style="width:76px;"></label>
+      <span class="muted">(payload fields are optional; banks ignore what they don’t use)</span>
+    </div>
+
+    <div class="row">
+      <button data-sfx="move">move</button>
+      <button data-sfx="rotate">rotate</button>
+      <button data-sfx="lock">lock</button>
+      <button data-sfx="clear">clear</button>
+      <button data-sfx="chain">chain</button>
+      <button data-sfx="gameOver">game over</button>
+    </div>
+
+    <div class="muted" style="margin-top:10px;">
+      Tip: If you don’t hear anything, click <code>Unlock / Enable Audio</code> again (some browsers suspend audio after tab switches).
+    </div>
+  </div>
+
+  <script type="module">
+    import { SfxEngine, BANK_PUZZLEFIGHTER, BANK_PUYO, BANK_DRMARIO } from './sfx_engine.js';
+
+    const sfx = new SfxEngine({ master: 0.6 });
+
+    const elUnlock = document.querySelector('#unlock');
+    const elBank = document.querySelector('#bank');
+    const elMaster = document.querySelector('#master');
+    const elEnabled = document.querySelector('#enabled');
+    const elChain = document.querySelector('#chain');
+    const elCleared = document.querySelector('#cleared');
+    const elViruses = document.querySelector('#viruses');
+
+    function currentBank() {
+      switch (elBank.value) {
+        case 'PF': return BANK_PUZZLEFIGHTER;
+        case 'PUYO': return BANK_PUYO;
+        case 'DR': return BANK_DRMARIO;
+      }
+    }
+
+    function payload() {
+      return {
+        chain: Number(elChain.value) || 1,
+        chainIndex: Number(elChain.value) || 1, // some of your code may use chainIndex
+        cleared: Number(elCleared.value) || 0,
+        viruses: Number(elViruses.value) || 0,
+      };
+    }
+
+    // Unlock
+    elUnlock.addEventListener('click', () => {
+      sfx.unlock();
+    });
+
+    // Master volume (requires setMaster; otherwise this fallback nudges internals for test-only)
+    elMaster.addEventListener('input', () => {
+      const v = Number(elMaster.value);
+      if (typeof sfx.setMaster === 'function') sfx.setMaster(v);
+      else {
+        sfx.masterLevel = v;
+        if (sfx._master) sfx._master.gain.value = sfx.enabled ? v : 0; // test harness fallback
+      }
+    });
+
+    elEnabled.addEventListener('change', () => sfx.setEnabled(elEnabled.checked));
+
+    // Buttons
+    document.querySelectorAll('button[data-sfx]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const name = btn.getAttribute('data-sfx');
+        sfx.play(currentBank(), name, payload());
+      });
+    });
+
+    // Handy keyboard shortcuts (optional)
+    window.addEventListener('keydown', (e) => {
+      if (e.repeat) return;
+      if (e.key === ' ') { sfx.play(currentBank(), 'lock', payload()); e.preventDefault(); }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') sfx.play(currentBank(), 'move', payload());
+      if (e.key === 'ArrowUp') sfx.play(currentBank(), 'rotate', payload());
+      if (e.key.toLowerCase() === 'c') sfx.play(currentBank(), 'clear', payload());
+      if (e.key.toLowerCase() === 'x') sfx.play(currentBank(), 'chain', payload());
+      if (e.key.toLowerCase() === 'g') sfx.play(currentBank(), 'gameOver', payload());
+    });
+
+    // Auto-unlock on first click anywhere (nice QoL)
+    window.addEventListener('pointerdown', () => sfx.unlock(), { once: true });
+  </script>
+</body>
+</html>
+```
+
+### Quick workflow for tuning
+
+1. Start the server (`python -m http.server 8080`).
+2. Open the page.
+3. Pick a bank.
+4. Click **Unlock**.
+5. Tap `rotate/move/lock/clear/chain` and adjust:
+   - `master`
+   - per-bank `volume`
+   - per-bank `freq` and `duration`
+   - `jitter` and `duty` for character
