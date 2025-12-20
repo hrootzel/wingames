@@ -1,3 +1,6 @@
+import { SfxEngine } from './sfx_engine.js';
+import { BANK_PLOPPLOP } from './sfx_bank_plop_plop.js';
+
 const W = 6;
 const H = 14;
 const VISIBLE_H = 12;
@@ -46,6 +49,9 @@ const piecesEl = document.getElementById('pieces');
 const statusEl = document.getElementById('status');
 const newBtn = document.getElementById('new-game');
 const pauseBtn = document.getElementById('pause');
+
+const sfx = new SfxEngine({ master: 0.6 });
+let audioUnlocked = false;
 
 const view = {
   cellSize: 38,
@@ -228,6 +234,7 @@ function spawnPair() {
   if (!canPlace(game.active, game.active.axisRow, game.active.axisCol, game.active.orient)) {
     game.state = GameState.GAME_OVER;
     game.status = 'Game over. Press R to restart.';
+    sfx.play(BANK_PLOPPLOP, 'gameOver');
     return;
   }
   game.state = GameState.FALLING;
@@ -237,6 +244,7 @@ function spawnPair() {
 
 function lockPair() {
   if (!game.active) return;
+  sfx.play(BANK_PLOPPLOP, 'lock');
   const cells = activeCells(game.active);
   for (const cell of cells) {
     game.board.set(cell.row, cell.col, { kind: Kind.COLOR, color: cell.puyo.color });
@@ -250,7 +258,9 @@ function handleHorizontalRepeat(dt) {
   if (held.left && !held.right) {
     game.repeat.left += dt;
     while (game.repeat.left >= 0) {
-      tryMove(0, -1);
+      if (tryMove(0, -1)) {
+        sfx.play(BANK_PLOPPLOP, 'move');
+      }
       game.repeat.left -= ARR;
     }
   } else {
@@ -260,7 +270,9 @@ function handleHorizontalRepeat(dt) {
   if (held.right && !held.left) {
     game.repeat.right += dt;
     while (game.repeat.right >= 0) {
-      tryMove(0, 1);
+      if (tryMove(0, 1)) {
+        sfx.play(BANK_PLOPPLOP, 'move');
+      }
       game.repeat.right -= ARR;
     }
   } else {
@@ -275,15 +287,22 @@ function stepFalling(dt) {
   }
 
   if (game.input.pressed.rotCW) {
-    tryRotate(1);
+    if (tryRotate(1)) {
+      sfx.play(BANK_PLOPPLOP, 'rotate');
+    }
   } else if (game.input.pressed.rotCCW) {
-    tryRotate(-1);
+    if (tryRotate(-1)) {
+      sfx.play(BANK_PLOPPLOP, 'rotate');
+    }
   }
 
   if (game.input.pressed.hardDrop) {
     let guard = 0;
     while (tryMove(-1, 0) && guard < H) {
       guard += 1;
+    }
+    if (guard > 0) {
+      sfx.play(BANK_PLOPPLOP, 'hardDrop');
     }
     lockPair();
     return;
@@ -455,6 +474,10 @@ function resolveBoard() {
     const linkScore = scoreLink(chainIndex, info.clearedCount, info.distinctColors, info.groupSizes);
     game.score += linkScore;
     game.status = `Link ${chainIndex} +${linkScore}`;
+    if (chainIndex >= 2) {
+      sfx.play(BANK_PLOPPLOP, 'chain', { chain: chainIndex, chainIndex });
+    }
+    sfx.play(BANK_PLOPPLOP, 'clear', { cleared: info.clearedCount, chain: chainIndex, chainIndex });
     clearedAny = true;
     chainIndex += 1;
   }
@@ -465,6 +488,7 @@ function resolveBoard() {
   if (clearedAny && isBoardEmpty()) {
     game.score += ALL_CLEAR_BONUS;
     game.status = `All clear +${ALL_CLEAR_BONUS}`;
+    sfx.play(BANK_PLOPPLOP, 'allClear');
   }
 
   game.state = GameState.SPAWN;
@@ -703,13 +727,16 @@ function togglePause() {
 
 function handleKeyDown(ev) {
   if (ev.repeat) return;
+  unlockAudio();
   const tag = ev.target && ev.target.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
   const key = ev.key.toLowerCase();
   if (key === 'arrowleft' || key === 'a') {
     if (!game.input.held.left) {
       game.input.held.left = true;
-      tryMove(0, -1);
+      if (tryMove(0, -1)) {
+        sfx.play(BANK_PLOPPLOP, 'move');
+      }
       game.repeat.left = -DAS;
     }
     ev.preventDefault();
@@ -718,7 +745,9 @@ function handleKeyDown(ev) {
   if (key === 'arrowright' || key === 'd') {
     if (!game.input.held.right) {
       game.input.held.right = true;
-      tryMove(0, 1);
+      if (tryMove(0, 1)) {
+        sfx.play(BANK_PLOPPLOP, 'move');
+      }
       game.repeat.right = -DAS;
     }
     ev.preventDefault();
@@ -753,6 +782,12 @@ function handleKeyDown(ev) {
     newGame();
     ev.preventDefault();
   }
+}
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  sfx.unlock();
 }
 
 function handleKeyUp(ev) {
@@ -817,6 +852,7 @@ document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
 newBtn.addEventListener('click', () => newGame());
 pauseBtn.addEventListener('click', () => togglePause());
+document.addEventListener('pointerdown', unlockAudio, { once: true });
 
 setupView();
 newGame();
