@@ -199,7 +199,7 @@ export class SfxEngine {
   }
 }
 
-export const BANK_PUZZLEFIGHTER = {
+export const BANK_PUZZLEPUNCHER = {
   move: (sfx) => {
     sfx.tone({ freq: 180, type: 'square', duty: 0.25, duration: 0.03, volume: 0.08, jitter: 8 });
   },
@@ -236,7 +236,7 @@ export const BANK_PUZZLEFIGHTER = {
   },
 };
 
-export const BANK_PUYO = {
+export const BANK_PLOPPLOP = {
   move: (sfx) => {
     sfx.tone({ freq: 240, type: 'triangle', duration: 0.03, volume: 0.07, jitter: 6 });
   },
@@ -263,7 +263,7 @@ export const BANK_PUYO = {
   },
 };
 
-export const BANK_DRMARIO = {
+export const BANK_PILLPOPPER = {
   move: (sfx) => {
     sfx.tone({ freq: 200, type: 'square', duty: 0.5, duration: 0.03, volume: 0.07, jitter: 4 });
   },

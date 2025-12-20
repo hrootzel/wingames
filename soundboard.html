@@ -79,9 +79,9 @@
       <label>
         Bank
         <select id="bank">
-          <option value="PF">Puzzle Fighter</option>
-          <option value="PUYO">Puyo Puyo</option>
-          <option value="DR">Dr. Mario</option>
+          <option value="PP">Puzzle Puncher</option>
+          <option value="PLOP">Plop Plop</option>
+          <option value="PILL">Pill Popper</option>
         </select>
       </label>
 
@@ -117,7 +117,7 @@
   </div>
 
   <script type="module">
-    import { SfxEngine, BANK_PUZZLEFIGHTER, BANK_PUYO, BANK_DRMARIO } from './sfx_engine.js';
+    import { SfxEngine, BANK_PUZZLEPUNCHER, BANK_PLOPPLOP, BANK_PILLPOPPER } from './sfx_engine.js';
 
     const sfx = new SfxEngine({ master: 0.6 });
 
@@ -131,13 +131,13 @@
 
     function currentBank() {
       switch (elBank.value) {
-        case 'PF':
-          return BANK_PUZZLEFIGHTER;
-        case 'PUYO':
-          return BANK_PUYO;
-        case 'DR':
+        case 'PP':
+          return BANK_PUZZLEPUNCHER;
+        case 'PLOP':
+          return BANK_PLOPPLOP;
+        case 'PILL':
         default:
-          return BANK_DRMARIO;
+          return BANK_PILLPOPPER;
       }
     }
 
