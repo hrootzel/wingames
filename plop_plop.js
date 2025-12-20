@@ -61,7 +61,6 @@ const view = {
   boardHeight: 0,
 };
 
-const BRIDGE_MODE = 'peanut';
 const BRIDGE_PINCH = 0.62;
 const BRIDGE_STEPS = 8;
 
@@ -552,11 +551,6 @@ function drawPuyo(ctxRef, x, y, s, colorKey) {
   ctxRef.stroke();
 }
 
-function addCirclePath(path, cx, cy, r) {
-  path.moveTo(cx + r, cy);
-  path.arc(cx, cy, r, 0, Math.PI * 2);
-}
-
 function addTaperBridge(path, ax, ay, bx, by, r, pinch, steps) {
   const dx = bx - ax;
   const dy = by - ay;
@@ -591,45 +585,11 @@ function addTaperBridge(path, ax, ay, bx, by, r, pinch, steps) {
   path.closePath();
 }
 
-function addPeanutBridge(path, ax, ay, bx, by, r, pinch) {
-  const mx = (ax + bx) * 0.5;
-  const my = (ay + by) * 0.5;
-  addCirclePath(path, mx, my, r * pinch);
-}
-
-function addPeanutBridge5(path, ax, ay, bx, by, r, pinch) {
-  const qx1 = ax + (bx - ax) * 0.25;
-  const qy1 = ay + (by - ay) * 0.25;
-  const mx = ax + (bx - ax) * 0.5;
-  const my = ay + (by - ay) * 0.5;
-  const qx2 = ax + (bx - ax) * 0.75;
-  const qy2 = ay + (by - ay) * 0.75;
-
-  const rQ = r * (0.5 + 0.5 * pinch);
-  const rM = r * pinch;
-
-  addCirclePath(path, qx1, qy1, rQ);
-  addCirclePath(path, mx, my, rM);
-  addCirclePath(path, qx2, qy2, rQ);
-}
-
-function addBridge(path, ax, ay, bx, by, r) {
-  if (BRIDGE_MODE === 'peanut') {
-    addPeanutBridge(path, ax, ay, bx, by, r, BRIDGE_PINCH);
-    return;
-  }
-  if (BRIDGE_MODE === 'peanut5') {
-    addPeanutBridge5(path, ax, ay, bx, by, r, BRIDGE_PINCH);
-    return;
-  }
-  addTaperBridge(path, ax, ay, bx, by, r, BRIDGE_PINCH, BRIDGE_STEPS);
-}
-
 function drawBridge(ctxRef, ax, ay, bx, by, colorKey, s) {
   const palette = PALETTE[colorKey];
   const r = s * 0.42;
   const path = new Path2D();
-  addBridge(path, ax, ay, bx, by, r);
+  addTaperBridge(path, ax, ay, bx, by, r, BRIDGE_PINCH, BRIDGE_STEPS);
 
   const mx = (ax + bx) * 0.5;
   const my = (ay + by) * 0.5;

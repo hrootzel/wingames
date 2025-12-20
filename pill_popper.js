@@ -710,19 +710,60 @@ function drawVirus(ctxRef, x, y, s, colorKey) {
   const cx = x + s / 2;
   const cy = y + s / 2;
   const r = s * 0.42;
-  const grad = ctxRef.createRadialGradient(cx - r * 0.4, cy - r * 0.5, r * 0.2, cx, cy, r);
+  const gx = cx - r + 2 * r * 0.35;
+  const gy = cy - r + 2 * r * 0.3;
+  const r0 = 2 * r * 0.05;
+  const r1 = 2 * r * 0.85;
+  const grad = ctxRef.createRadialGradient(gx, gy, r0, gx, gy, r1);
   grad.addColorStop(0, palette.light);
-  grad.addColorStop(0.6, palette.base);
+  grad.addColorStop(0.55, palette.base);
   grad.addColorStop(1, palette.dark);
+
   ctxRef.beginPath();
   ctxRef.arc(cx, cy, r, 0, Math.PI * 2);
   ctxRef.fillStyle = grad;
   ctxRef.fill();
-  ctxRef.strokeStyle = 'rgba(0, 0, 0, 0.25)';
+
   ctxRef.lineWidth = Math.max(1, s * 0.06);
+  ctxRef.strokeStyle = 'rgba(0, 0, 0, 0.25)';
   ctxRef.stroke();
+
   ctxRef.save();
-  ctxRef.globalAlpha = 0.18;
+  ctxRef.globalAlpha = 0.22;
+  ctxRef.beginPath();
+  ctxRef.arc(cx, cy, r * 0.82, 0, Math.PI * 2);
+  ctxRef.lineWidth = Math.max(1, s * 0.03);
+  ctxRef.strokeStyle = palette.light;
+  ctxRef.stroke();
+  ctxRef.restore();
+
+  ctxRef.save();
+  ctxRef.beginPath();
+  ctxRef.arc(cx, cy, r, 0, Math.PI * 2);
+  ctxRef.clip();
+
+  ctxRef.globalAlpha = 0.22;
+  ctxRef.fillStyle = 'white';
+  ctxRef.beginPath();
+  ctxRef.ellipse(
+    cx - r * 0.28,
+    cy - r * 0.38,
+    r * 0.7,
+    r * 0.48,
+    -0.35,
+    0,
+    Math.PI * 2
+  );
+  ctxRef.fill();
+
+  ctxRef.globalAlpha = 0.35;
+  ctxRef.beginPath();
+  ctxRef.arc(cx - r * 0.38, cy - r * 0.48, r * 0.12, 0, Math.PI * 2);
+  ctxRef.fill();
+  ctxRef.restore();
+
+  ctxRef.save();
+  ctxRef.globalAlpha = 0.16;
   ctxRef.fillStyle = palette.dark;
   for (let i = 0; i < 3; i++) {
     const a = i * 2.1;
