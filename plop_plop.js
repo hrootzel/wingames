@@ -61,6 +61,9 @@ const view = {
   boardHeight: 0,
 };
 
+const BRIDGE_PINCH = 0.62;
+const BRIDGE_STEPS = 8;
+
 const game = makeGame();
 
 function makeRng(seed) {
@@ -548,15 +551,58 @@ function drawPuyo(ctxRef, x, y, s, colorKey) {
   ctxRef.stroke();
 }
 
-function drawConnector(ctxRef, ax, ay, bx, by, colorKey, s) {
+function addTaperBridge(path, ax, ay, bx, by, r, pinch, steps) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len = Math.hypot(dx, dy);
+  if (len < 1e-6) return;
+
+  const ux = dx / len;
+  const uy = dy / len;
+  const px = -uy;
+  const py = ux;
+
+  function w(t) {
+    const s = Math.sin(Math.PI * t);
+    const s2 = s * s;
+    return r * (1 - (1 - pinch) * s2);
+  }
+
+  const top = [];
+  const bot = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const wt = w(t);
+    const x = ax + dx * t;
+    const y = ay + dy * t;
+    top.push({ x: x + px * wt, y: y + py * wt });
+    bot.push({ x: x - px * wt, y: y - py * wt });
+  }
+
+  path.moveTo(top[0].x, top[0].y);
+  for (let i = 1; i < top.length; i++) path.lineTo(top[i].x, top[i].y);
+  for (let i = bot.length - 1; i >= 0; i--) path.lineTo(bot[i].x, bot[i].y);
+  path.closePath();
+}
+
+function drawBridge(ctxRef, ax, ay, bx, by, colorKey, s) {
   const palette = PALETTE[colorKey];
-  ctxRef.strokeStyle = palette.base;
-  ctxRef.lineWidth = s * 0.82;
-  ctxRef.lineCap = 'round';
-  ctxRef.beginPath();
-  ctxRef.moveTo(ax, ay);
-  ctxRef.lineTo(bx, by);
-  ctxRef.stroke();
+  const r = s * 0.42;
+  const path = new Path2D();
+  addTaperBridge(path, ax, ay, bx, by, r, BRIDGE_PINCH, BRIDGE_STEPS);
+
+  const mx = (ax + bx) * 0.5;
+  const my = (ay + by) * 0.5;
+  const grad = ctxRef.createRadialGradient(mx - r * 0.25, my - r * 0.25, r * 0.15, mx, my, r * 1.2);
+  grad.addColorStop(0, palette.light);
+  grad.addColorStop(0.55, palette.base);
+  grad.addColorStop(1, palette.dark);
+  ctxRef.fillStyle = grad;
+  ctxRef.fill(path);
+
+  ctxRef.lineWidth = Math.max(1, s * 0.05);
+  ctxRef.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+  ctxRef.stroke(path);
 }
 
 function drawBoard(alpha) {
@@ -608,7 +654,7 @@ function drawBoard(alpha) {
         const by = ay;
         ctx.save();
         if (r >= VISIBLE_H) ctx.globalAlpha = 0.6;
-        drawConnector(ctx, ax, ay, bx, by, cell.color, view.cellSize);
+        drawBridge(ctx, ax, ay, bx, by, cell.color, view.cellSize);
         ctx.restore();
       }
       const up = r + 1 < H ? game.board.cells[r + 1][c] : null;
@@ -619,7 +665,7 @@ function drawBoard(alpha) {
         const by = cellToY(r + 1) + view.cellSize / 2;
         ctx.save();
         if (r >= VISIBLE_H || r + 1 >= VISIBLE_H) ctx.globalAlpha = 0.6;
-        drawConnector(ctx, ax, ay, bx, by, cell.color, view.cellSize);
+        drawBridge(ctx, ax, ay, bx, by, cell.color, view.cellSize);
         ctx.restore();
       }
     }
@@ -646,7 +692,7 @@ function drawBoard(alpha) {
     const axisPos = { x: cellToX(axis.col) + view.cellSize / 2, y: cellToY(axis.row) + view.cellSize / 2 + offset };
     const childPos = { x: cellToX(child.col) + view.cellSize / 2, y: cellToY(child.row) + view.cellSize / 2 + offset };
     if (axis.puyo.color === child.puyo.color) {
-      drawConnector(ctx, axisPos.x, axisPos.y, childPos.x, childPos.y, axis.puyo.color, view.cellSize);
+      drawBridge(ctx, axisPos.x, axisPos.y, childPos.x, childPos.y, axis.puyo.color, view.cellSize);
     }
     drawPuyo(ctx, cellToX(axis.col), cellToY(axis.row) + offset, view.cellSize, axis.puyo.color);
     drawPuyo(ctx, cellToX(child.col), cellToY(child.row) + offset, view.cellSize, child.puyo.color);
