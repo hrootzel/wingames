@@ -180,15 +180,43 @@ function makeActiveCapsule(spec) {
   };
 }
 
+function orientOffset(orient) {
+  switch (orient & 3) {
+    case 0:
+      return { dr: 0, dc: 1 };
+    case 1:
+      return { dr: 1, dc: 0 };
+    case 2:
+      return { dr: 0, dc: -1 };
+    case 3:
+      return { dr: -1, dc: 0 };
+    default:
+      return { dr: 0, dc: 1 };
+  }
+}
+
+function linksForOrient(orient) {
+  switch (orient & 3) {
+    case 0:
+      return { aLink: Link.R, bLink: Link.L };
+    case 1:
+      return { aLink: Link.U, bLink: Link.D };
+    case 2:
+      return { aLink: Link.L, bLink: Link.R };
+    case 3:
+      return { aLink: Link.D, bLink: Link.U };
+    default:
+      return { aLink: Link.R, bLink: Link.L };
+  }
+}
+
 function activeCells(active, orientOverride, colOverride, rowOverride) {
   const orient = orientOverride === undefined ? active.orient : orientOverride;
   const aRow = rowOverride === undefined ? active.aRow : rowOverride;
   const aCol = colOverride === undefined ? active.aCol : colOverride;
+  const offset = orientOffset(orient);
   const a = { r: aRow, c: aCol, color: active.aColor, which: 'A' };
-  if (orient === 0) {
-    return [a, { r: aRow, c: aCol + 1, color: active.bColor, which: 'B' }];
-  }
-  return [a, { r: aRow + 1, c: aCol, color: active.bColor, which: 'B' }];
+  return [a, { r: aRow + offset.dr, c: aCol + offset.dc, color: active.bColor, which: 'B' }];
 }
 
 function canPlaceActive(aRow, aCol, orient) {
@@ -210,9 +238,9 @@ function tryMoveActive(dr, dc) {
   return true;
 }
 
-function tryRotate() {
+function tryRotate(dir) {
   if (!game.active) return false;
-  const nextOrient = game.active.orient === 0 ? 1 : 0;
+  const nextOrient = (game.active.orient + dir + 4) & 3;
   const kicks = [0, -1, 1];
   for (const kick of kicks) {
     const nextCol = game.active.aCol + kick;
@@ -252,8 +280,7 @@ function lockCapsule() {
   if (!active) return;
   const cells = activeCells(active);
   const id = game.pillId++;
-  const aLink = active.orient === 0 ? Link.R : Link.U;
-  const bLink = active.orient === 0 ? Link.L : Link.D;
+  const { aLink, bLink } = linksForOrient(active.orient);
 
   game.board.set(cells[0].r, cells[0].c, {
     kind: Kind.SEGMENT,
@@ -302,7 +329,8 @@ function stepFalling(dt) {
   }
 
   if (game.input.pressed.rotate || game.input.pressed.rotateCCW) {
-    tryRotate();
+    const dir = game.input.pressed.rotate ? 1 : -1;
+    tryRotate(dir);
   }
 
   if (game.input.pressed.hardDrop) {
@@ -747,9 +775,8 @@ function drawBoard(alpha) {
       if (cell.r < 0 || cell.r >= VISIBLE_H) continue;
       const x = cellToX(cell.c);
       const y = cellToY(cell.r) + offset;
-      const link = cell.which === 'A'
-        ? (game.active.orient === 0 ? Link.R : Link.U)
-        : (game.active.orient === 0 ? Link.L : Link.D);
+      const { aLink, bLink } = linksForOrient(game.active.orient);
+      const link = cell.which === 'A' ? aLink : bLink;
       drawSegment(ctx, x, y, view.cellSize, cell.color, link);
     }
   }
@@ -870,12 +897,12 @@ function handleKeyDown(ev) {
     return;
   }
   if (key === 'arrowup' || key === 'x') {
-    game.input.pressed.rotate = true;
+    game.input.pressed.rotateCCW = true;
     ev.preventDefault();
     return;
   }
   if (key === 'z' || key === 'q') {
-    game.input.pressed.rotateCCW = true;
+    game.input.pressed.rotate = true;
     ev.preventDefault();
     return;
   }
