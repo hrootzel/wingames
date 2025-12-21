@@ -39,9 +39,14 @@ const settingsThemeBtn = document.getElementById('settings-theme');
 const THEME_KEY = 'sudoku_theme';
 
 const cellEls = [];
+const valueEls = [];
+const notesEls = [];
+const noteSpanEls = [];
 const keyEls = [];
 const undoStack = [];
 const UNDO_LIMIT = 200;
+const SAVE_THROTTLE_MS = 250;
+let saveTimer = null;
 
 function idx(r, c) {
   return r * 9 + c;
@@ -141,16 +146,20 @@ function shuffle(list) {
   return list;
 }
 
+function candidateMask(board, i) {
+  if (board[i] !== 0) return 0;
+  let used = 0;
+  for (const p of PEERS[i]) {
+    const v = board[p];
+    if (v) used |= bit(v);
+  }
+  return ALL_MASK & ~used;
+}
+
 function computeCandidates(board) {
   const cand = Array(81).fill(0);
   for (let i = 0; i < 81; i++) {
-    if (board[i] !== 0) continue;
-    let used = 0;
-    for (const p of PEERS[i]) {
-      const v = board[p];
-      if (v) used |= bit(v);
-    }
-    cand[i] = ALL_MASK & ~used;
+    cand[i] = candidateMask(board, i);
   }
   return cand;
 }
@@ -527,6 +536,9 @@ function updateLabels() {
 function buildBoard() {
   boardEl.innerHTML = '';
   cellEls.length = 0;
+  valueEls.length = 0;
+  notesEls.length = 0;
+  noteSpanEls.length = 0;
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
       const i = idx(r, c);
@@ -539,16 +551,21 @@ function buildBoard() {
 
       const notesEl = document.createElement('div');
       notesEl.className = 'notes';
+      const spans = Array(10);
       for (let d = 1; d <= 9; d++) {
         const span = document.createElement('span');
         span.dataset.note = String(d);
         notesEl.appendChild(span);
+        spans[d] = span;
       }
 
       cell.appendChild(valueEl);
       cell.appendChild(notesEl);
       boardEl.appendChild(cell);
       cellEls[i] = cell;
+      valueEls[i] = valueEl;
+      notesEls[i] = notesEl;
+      noteSpanEls[i] = spans;
     }
   }
   boardEl.addEventListener('click', onBoardClick);
@@ -620,8 +637,9 @@ function renderBoard() {
     cell.classList.toggle('error', gameState.errors[i]);
     cell.classList.toggle('selected', gameState.selection && gameState.selection.i === i);
 
-    const valueEl = cell.querySelector('.value');
-    const notesEl = cell.querySelector('.notes');
+    const valueEl = valueEls[i];
+    const notesEl = notesEls[i];
+    const noteSpans = noteSpanEls[i];
 
     if (value !== 0) {
       valueEl.textContent = String(value);
@@ -631,7 +649,7 @@ function renderBoard() {
       notesEl.style.visibility = 'visible';
       const mask = gameState.notes[i];
       for (let d = 1; d <= 9; d++) {
-        const span = notesEl.querySelector(`span[data-note="${d}"]`);
+        const span = noteSpans[d];
         span.textContent = hasNote(mask, d) ? String(d) : '';
       }
     }
@@ -721,7 +739,7 @@ function applyInputToCell(i, d, modeOverride) {
 function afterMove() {
   renderBoard();
   renderKeypad();
-  saveGame(gameState.diff);
+  scheduleSave();
   if (isSolved()) {
     onWin();
   }
@@ -1023,8 +1041,22 @@ function handleKeyDown(ev) {
   }
 }
 
+function scheduleSave() {
+  if (!gameState || !gameState.diff) return;
+  if (saveTimer !== null) return;
+  saveTimer = window.setTimeout(() => {
+    saveTimer = null;
+    if (!gameState || !gameState.diff) return;
+    saveGame(gameState.diff);
+  }, SAVE_THROTTLE_MS);
+}
+
 function saveGame(diff) {
   if (!gameState || !diff) return;
+  if (saveTimer !== null) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
   const payload = {
     version: 1,
     diff,
@@ -1160,56 +1192,35 @@ function onPickDifficulty(diff) {
   startNewGame(diff);
 }
 
-function getCandidates(board, i) {
-  if (board[i] !== 0) return [];
-  const used = new Set();
-  const r = row(i);
-  const c = col(i);
-  for (let cc = 0; cc < 9; cc++) {
-    const v = board[idx(r, cc)];
-    if (v) used.add(v);
-  }
-  for (let rr = 0; rr < 9; rr++) {
-    const v = board[idx(rr, c)];
-    if (v) used.add(v);
-  }
-  const br = Math.floor(r / 3) * 3;
-  const bc = Math.floor(c / 3) * 3;
-  for (let rr = br; rr < br + 3; rr++) {
-    for (let cc = bc; cc < bc + 3; cc++) {
-      const v = board[idx(rr, cc)];
-      if (v) used.add(v);
-    }
-  }
-  const candidates = [];
-  for (let d = 1; d <= 9; d++) {
-    if (!used.has(d)) candidates.push(d);
-  }
-  return candidates;
-}
-
 function findBestCell(board) {
-  let best = null;
+  let bestI = -1;
+  let bestMask = 0;
+  let bestCount = 10;
   for (let i = 0; i < 81; i++) {
     if (board[i] !== 0) continue;
-    const candidates = getCandidates(board, i);
-    if (candidates.length === 0) {
-      return { i, candidates };
+    const mask = candidateMask(board, i);
+    const count = popcount(mask);
+    if (count === 0) {
+      return { i, mask, count };
     }
-    if (!best || candidates.length < best.candidates.length) {
-      best = { i, candidates };
-      if (candidates.length === 1) break;
+    if (count < bestCount) {
+      bestI = i;
+      bestMask = mask;
+      bestCount = count;
+      if (count === 1) break;
     }
   }
-  return best;
+  if (bestI < 0) return null;
+  return { i: bestI, mask: bestMask, count: bestCount };
 }
 
 function solveBoard(board) {
   const spot = findBestCell(board);
   if (!spot) return true;
-  if (spot.candidates.length === 0) return false;
-  shuffle(spot.candidates);
-  for (const d of spot.candidates) {
+  if (spot.count === 0) return false;
+  const digits = maskToDigits(spot.mask);
+  shuffle(digits);
+  for (const d of digits) {
     board[spot.i] = d;
     if (solveBoard(board)) return true;
     board[spot.i] = 0;
@@ -1226,8 +1237,9 @@ function countSolutions(board, limit) {
       count += 1;
       return;
     }
-    if (spot.candidates.length === 0) return;
-    for (const d of spot.candidates) {
+    if (spot.count === 0) return;
+    const digits = maskToDigits(spot.mask);
+    for (const d of digits) {
       board[spot.i] = d;
       search();
       board[spot.i] = 0;

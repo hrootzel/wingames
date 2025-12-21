@@ -53,8 +53,8 @@ body.sudoku[data-theme="light"] {
   --sudoku-modal-overlay: rgba(148, 163, 184, 0.35);
 }
 
-.screen.hidden {
-  display: none;
+.hidden {
+  display: none !important;
 }
 
 #screen-title {
@@ -241,16 +241,6 @@ body.sudoku[data-theme="light"] {
   color: var(--sudoku-status);
 }
 
-.theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.theme-toggle select {
-  min-width: 120px;
-}
-
 .settings {
   position: relative;
   margin-left: auto;
@@ -293,10 +283,6 @@ body.sudoku[data-theme="light"] {
   box-shadow: 0 16px 24px rgba(0, 0, 0, 0.3);
 }
 
-.settings-menu.hidden {
-  display: none;
-}
-
 .settings-menu button {
   background: transparent;
   color: inherit;
@@ -319,10 +305,6 @@ body.sudoku[data-theme="light"] {
   place-items: center;
   background: var(--sudoku-modal-overlay);
   z-index: 999;
-}
-
-.modal.hidden {
-  display: none;
 }
 
 .modal-card {
