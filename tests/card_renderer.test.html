@@ -55,6 +55,15 @@
       const pipCard = renderer.createCardElement({ suit: 'clubs', value: 5, faceUp: true });
       const pipCount = pipCard.querySelectorAll('.pip').length;
       assert('pip count matches layout', pipCount === pipLayout(5).length, `got ${pipCount}`);
+
+      const themed = renderer.createCardElement(
+        { suit: 'diamonds', value: 9, faceUp: true },
+        { skin: 'classic', size: 'lg', dataset: { theme: 'gold' }, className: 'test-card' },
+      );
+      assert('theme dataset applied', themed.dataset.theme === 'gold');
+      assert('skin dataset applied', themed.dataset.skin === 'classic');
+      assert('size dataset applied', themed.dataset.size === 'lg');
+      assert('extra class applied', themed.classList.contains('test-card'));
     } catch (err) {
       report('test run', false, err.message);
     }

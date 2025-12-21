@@ -8,6 +8,11 @@ const DEFAULT_CLASSES = {
   faceLabel: 'face-label',
 };
 
+const DEFAULT_STATE_CLASSES = {
+  faceDown: 'face-down',
+  red: 'red',
+};
+
 const defaultGetPipsModifiers = (value) => {
   const classes = [];
   if (value >= 7) {
@@ -86,30 +91,57 @@ export class CardRenderer {
     this.pipLayout = options.pipLayout || pipLayout;
     this.faceValueStart = options.faceValueStart ?? 11;
     this.classes = { ...DEFAULT_CLASSES, ...(options.classes || {}) };
+    this.stateClasses = { ...DEFAULT_STATE_CLASSES, ...(options.stateClasses || {}) };
     this.getPipSizeClass = options.getPipSizeClass || defaultGetPipSizeClass;
     this.getPipsModifiers = options.getPipsModifiers || defaultGetPipsModifiers;
     this.skin = options.skin || null;
     this.size = options.size || null;
+    this.dataset = { ...(options.dataset || {}) };
+    this.getDataset = typeof options.getDataset === 'function' ? options.getDataset : null;
   }
 
   formatCardLabel(card) {
     return formatCardLabel(card, this.valueLabels, this.suitSymbols);
   }
 
-  createCardElement(card, { faceUp } = {}) {
+  createCardElement(card, options = {}) {
+    const { faceUp, skin, size, dataset, className, attributes } = options;
     const el = document.createElement('div');
     el.className = this.classes.card;
-    if (this.skin) el.dataset.skin = this.skin;
-    if (this.size) el.dataset.size = this.size;
+    if (className) {
+      const tokens = Array.isArray(className) ? className : String(className).split(' ').filter(Boolean);
+      if (tokens.length) el.classList.add(...tokens);
+    }
+
+    const resolvedSkin = skin ?? this.skin;
+    const resolvedSize = size ?? this.size;
+    const runtimeDataset = this.getDataset ? this.getDataset(card, options) : null;
+    const computedDataset = {
+      ...this.dataset,
+      ...(runtimeDataset || {}),
+      ...(dataset || {}),
+    };
+    if (resolvedSkin) computedDataset.skin = resolvedSkin;
+    if (resolvedSize) computedDataset.size = resolvedSize;
+    Object.entries(computedDataset).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      el.dataset[key] = String(value);
+    });
+    if (attributes) {
+      Object.entries(attributes).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        el.setAttribute(key, String(value));
+      });
+    }
 
     const showFace = faceUp ?? (card && card.faceUp);
     if (!card || !showFace) {
-      el.classList.add('face-down');
+      el.classList.add(this.stateClasses.faceDown);
       return el;
     }
 
     if (cardColor(card.suit) === 'red') {
-      el.classList.add('red');
+      el.classList.add(this.stateClasses.red);
     }
 
     const content = document.createElement('div');
