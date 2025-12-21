@@ -6,10 +6,10 @@ const DIFF_LABELS = {
   extreme: 'Extreme',
 };
 const DIFF_PROFILE = {
-  easy: { minClues: 36, maxClues: 40 },
-  medium: { minClues: 32, maxClues: 35 },
-  hard: { minClues: 28, maxClues: 31 },
-  extreme: { minClues: 24, maxClues: 27 },
+  easy: { minClues: 36, maxClues: 40, maxLevel: 1, allowGuess: false, requireGuess: false },
+  medium: { minClues: 32, maxClues: 35, maxLevel: 2, allowGuess: false, requireGuess: false },
+  hard: { minClues: 28, maxClues: 31, maxLevel: 3, allowGuess: false, requireGuess: false },
+  extreme: { minClues: 24, maxClues: 27, maxLevel: 4, allowGuess: true, requireGuess: true },
 };
 
 const appState = {
@@ -56,6 +56,64 @@ function boxIndex(r, c) {
   return Math.floor(r / 3) * 3 + Math.floor(c / 3);
 }
 
+const ALL_MASK = (1 << 9) - 1;
+
+function bit(d) {
+  return 1 << (d - 1);
+}
+
+function popcount(x) {
+  let count = 0;
+  let v = x;
+  while (v) {
+    v &= v - 1;
+    count += 1;
+  }
+  return count;
+}
+
+function firstDigit(mask) {
+  return Math.floor(Math.log2(mask)) + 1;
+}
+
+function maskToDigits(mask) {
+  const out = [];
+  for (let d = 1; d <= 9; d++) {
+    if (mask & bit(d)) out.push(d);
+  }
+  return out;
+}
+
+const ROWS = Array.from({ length: 9 }, () => []);
+const COLS = Array.from({ length: 9 }, () => []);
+const BOXES = Array.from({ length: 9 }, () => []);
+
+for (let r = 0; r < 9; r++) {
+  for (let c = 0; c < 9; c++) {
+    const i = idx(r, c);
+    ROWS[r].push(i);
+    COLS[c].push(i);
+    const b = boxIndex(r, c);
+    BOXES[b].push(i);
+  }
+}
+
+const UNITS = ROWS.concat(COLS, BOXES);
+const PEERS = Array.from({ length: 81 }, () => []);
+{
+  const peerSets = Array.from({ length: 81 }, () => new Set());
+  for (const unit of UNITS) {
+    for (const i of unit) {
+      for (const j of unit) {
+        if (i !== j) peerSets[i].add(j);
+      }
+    }
+  }
+  for (let i = 0; i < 81; i++) {
+    PEERS[i] = Array.from(peerSets[i]);
+  }
+}
+
 function hasNote(mask, d) {
   return (mask & (1 << (d - 1))) !== 0;
 }
@@ -78,6 +136,337 @@ function shuffle(list) {
     [list[i], list[j]] = [list[j], list[i]];
   }
   return list;
+}
+
+function computeCandidates(board) {
+  const cand = Array(81).fill(0);
+  for (let i = 0; i < 81; i++) {
+    if (board[i] !== 0) continue;
+    let used = 0;
+    for (const p of PEERS[i]) {
+      const v = board[p];
+      if (v) used |= bit(v);
+    }
+    cand[i] = ALL_MASK & ~used;
+  }
+  return cand;
+}
+
+function techNakedSingles(board, cand) {
+  const actions = [];
+  for (let i = 0; i < 81; i++) {
+    if (board[i] !== 0) continue;
+    if (popcount(cand[i]) === 1) {
+      actions.push({ type: 'assign', i, d: firstDigit(cand[i]), level: 1 });
+    }
+  }
+  return actions;
+}
+
+function techHiddenSingles(board, cand) {
+  const actions = [];
+  for (const unit of UNITS) {
+    const count = Array(10).fill(0);
+    const last = Array(10).fill(-1);
+    for (const i of unit) {
+      if (board[i] !== 0) continue;
+      const mask = cand[i];
+      for (let d = 1; d <= 9; d++) {
+        if (mask & bit(d)) {
+          count[d] += 1;
+          last[d] = i;
+        }
+      }
+    }
+    for (let d = 1; d <= 9; d++) {
+      if (count[d] === 1) {
+        actions.push({ type: 'assign', i: last[d], d, level: 1 });
+      }
+    }
+  }
+  return actions;
+}
+
+function techLockedCandidates(board, cand) {
+  const actions = [];
+
+  for (let b = 0; b < 9; b++) {
+    const box = BOXES[b];
+    for (let d = 1; d <= 9; d++) {
+      const cells = [];
+      for (const i of box) {
+        if (board[i] === 0 && (cand[i] & bit(d))) cells.push(i);
+      }
+      if (cells.length < 2) continue;
+
+      const r0 = row(cells[0]);
+      const c0 = col(cells[0]);
+      const sameRow = cells.every((i) => row(i) === r0);
+      const sameCol = cells.every((i) => col(i) === c0);
+
+      if (sameRow) {
+        for (const i of ROWS[r0]) {
+          if (box.includes(i)) continue;
+          if (board[i] === 0 && (cand[i] & bit(d))) {
+            actions.push({ type: 'elim', i, mask: bit(d), level: 2 });
+          }
+        }
+      }
+
+      if (sameCol) {
+        for (const i of COLS[c0]) {
+          if (box.includes(i)) continue;
+          if (board[i] === 0 && (cand[i] & bit(d))) {
+            actions.push({ type: 'elim', i, mask: bit(d), level: 2 });
+          }
+        }
+      }
+    }
+  }
+
+  for (let r = 0; r < 9; r++) {
+    const unit = ROWS[r];
+    for (let d = 1; d <= 9; d++) {
+      const cells = [];
+      for (const i of unit) {
+        if (board[i] === 0 && (cand[i] & bit(d))) cells.push(i);
+      }
+      if (cells.length < 2) continue;
+      const boxId = boxIndex(row(cells[0]), col(cells[0]));
+      const sameBox = cells.every((i) => boxIndex(row(i), col(i)) === boxId);
+      if (!sameBox) continue;
+      for (const i of BOXES[boxId]) {
+        if (row(i) === r) continue;
+        if (board[i] === 0 && (cand[i] & bit(d))) {
+          actions.push({ type: 'elim', i, mask: bit(d), level: 2 });
+        }
+      }
+    }
+  }
+
+  for (let c = 0; c < 9; c++) {
+    const unit = COLS[c];
+    for (let d = 1; d <= 9; d++) {
+      const cells = [];
+      for (const i of unit) {
+        if (board[i] === 0 && (cand[i] & bit(d))) cells.push(i);
+      }
+      if (cells.length < 2) continue;
+      const boxId = boxIndex(row(cells[0]), col(cells[0]));
+      const sameBox = cells.every((i) => boxIndex(row(i), col(i)) === boxId);
+      if (!sameBox) continue;
+      for (const i of BOXES[boxId]) {
+        if (col(i) === c) continue;
+        if (board[i] === 0 && (cand[i] & bit(d))) {
+          actions.push({ type: 'elim', i, mask: bit(d), level: 2 });
+        }
+      }
+    }
+  }
+
+  return actions;
+}
+
+function techNakedPairs(board, cand) {
+  const actions = [];
+  for (const unit of UNITS) {
+    const pairs = new Map();
+    for (const i of unit) {
+      if (board[i] !== 0) continue;
+      const mask = cand[i];
+      if (popcount(mask) === 2) {
+        const key = String(mask);
+        if (!pairs.has(key)) pairs.set(key, []);
+        pairs.get(key).push(i);
+      }
+    }
+    for (const [key, cells] of pairs.entries()) {
+      if (cells.length !== 2) continue;
+      const mask = Number(key);
+      for (const i of unit) {
+        if (cells.includes(i)) continue;
+        if (board[i] === 0 && (cand[i] & mask)) {
+          actions.push({ type: 'elim', i, mask, level: 2 });
+        }
+      }
+    }
+  }
+  return actions;
+}
+
+function techXWing(board, cand) {
+  const actions = [];
+  for (let d = 1; d <= 9; d++) {
+    const rowPairs = [];
+    for (let r = 0; r < 9; r++) {
+      const cols = [];
+      for (let c = 0; c < 9; c++) {
+        const i = idx(r, c);
+        if (board[i] === 0 && (cand[i] & bit(d))) cols.push(c);
+      }
+      if (cols.length === 2) {
+        rowPairs.push({ r, c1: cols[0], c2: cols[1] });
+      }
+    }
+    for (let a = 0; a < rowPairs.length; a++) {
+      for (let b = a + 1; b < rowPairs.length; b++) {
+        const A = rowPairs[a];
+        const B = rowPairs[b];
+        if (A.c1 !== B.c1 || A.c2 !== B.c2) continue;
+        const cols = [A.c1, A.c2];
+        for (const c of cols) {
+          for (let r = 0; r < 9; r++) {
+            if (r === A.r || r === B.r) continue;
+            const i = idx(r, c);
+            if (board[i] === 0 && (cand[i] & bit(d))) {
+              actions.push({ type: 'elim', i, mask: bit(d), level: 3 });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  for (let d = 1; d <= 9; d++) {
+    const colPairs = [];
+    for (let c = 0; c < 9; c++) {
+      const rows = [];
+      for (let r = 0; r < 9; r++) {
+        const i = idx(r, c);
+        if (board[i] === 0 && (cand[i] & bit(d))) rows.push(r);
+      }
+      if (rows.length === 2) {
+        colPairs.push({ c, r1: rows[0], r2: rows[1] });
+      }
+    }
+    for (let a = 0; a < colPairs.length; a++) {
+      for (let b = a + 1; b < colPairs.length; b++) {
+        const A = colPairs[a];
+        const B = colPairs[b];
+        if (A.r1 !== B.r1 || A.r2 !== B.r2) continue;
+        const rows = [A.r1, A.r2];
+        for (const r of rows) {
+          for (let c = 0; c < 9; c++) {
+            if (c === A.c || c === B.c) continue;
+            const i = idx(r, c);
+            if (board[i] === 0 && (cand[i] & bit(d))) {
+              actions.push({ type: 'elim', i, mask: bit(d), level: 3 });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return actions;
+}
+
+const TECHS = [
+  techNakedSingles,
+  techHiddenSingles,
+  techLockedCandidates,
+  techNakedPairs,
+  techXWing,
+];
+
+function solveByTechniques(puzzle, allowGuess, maxGuessDepth) {
+  const board = puzzle.slice();
+  let cand = computeCandidates(board);
+  const report = { solved: false, steps: 0, maxLevelUsed: 0, usedGuess: false };
+
+  function applyActions(actions) {
+    let assigned = false;
+    for (const action of actions) {
+      if (action.type === 'assign') {
+        board[action.i] = action.d;
+        assigned = true;
+      }
+      report.steps += 1;
+      report.maxLevelUsed = Math.max(report.maxLevelUsed, action.level || 0);
+    }
+    if (assigned) {
+      cand = computeCandidates(board);
+    }
+    for (const action of actions) {
+      if (action.type === 'elim') {
+        cand[action.i] &= ~action.mask;
+      }
+    }
+  }
+
+  function isComplete() {
+    return board.every((v) => v !== 0);
+  }
+
+  while (true) {
+    if (isComplete()) {
+      report.solved = true;
+      return { board, report };
+    }
+
+    let progressed = false;
+    for (const tech of TECHS) {
+      const actions = tech(board, cand);
+      if (actions.length > 0) {
+        applyActions(actions);
+        progressed = true;
+        break;
+      }
+    }
+    if (progressed) continue;
+
+    if (!allowGuess || maxGuessDepth <= 0) {
+      return { board, report };
+    }
+
+    report.usedGuess = true;
+    let bestI = -1;
+    let bestMask = 0;
+    let bestCount = 10;
+    for (let i = 0; i < 81; i++) {
+      if (board[i] !== 0) continue;
+      const count = popcount(cand[i]);
+      if (count === 0) return { board, report };
+      if (count < bestCount) {
+        bestCount = count;
+        bestMask = cand[i];
+        bestI = i;
+        if (count === 1) break;
+      }
+    }
+
+    if (bestI < 0) return { board, report };
+    const digits = maskToDigits(bestMask);
+    for (const d of digits) {
+      const next = board.slice();
+      next[bestI] = d;
+      const sub = solveByTechniques(next, allowGuess, maxGuessDepth - 1);
+      if (sub.report.solved) {
+        for (let i = 0; i < 81; i++) {
+          board[i] = sub.board[i];
+        }
+        report.steps += sub.report.steps;
+        report.maxLevelUsed = Math.max(report.maxLevelUsed, 4, sub.report.maxLevelUsed);
+        report.solved = true;
+        return { board, report };
+      }
+    }
+
+    return { board, report };
+  }
+}
+
+function rateByLogicalSolve(puzzle, solution, allowGuess) {
+  const { board, report } = solveByTechniques(puzzle, allowGuess, allowGuess ? 2 : 0);
+  if (report.solved) {
+    for (let i = 0; i < 81; i++) {
+      if (board[i] !== solution[i]) {
+        report.solved = false;
+        break;
+      }
+    }
+  }
+  return report;
 }
 
 function showScreen(name) {
@@ -672,10 +1061,23 @@ function digHolesUnique(solution, minClues, maxClues) {
 function generatePuzzle(diff) {
   const profile = DIFF_PROFILE[diff] || DIFF_PROFILE.easy;
   let fallback = null;
-  for (let attempt = 0; attempt < 60; attempt++) {
+  for (let attempt = 0; attempt < 120; attempt++) {
     const solution = generateSolvedGrid();
     const puzzle = digHolesUnique(solution, profile.minClues, profile.maxClues);
     const clues = countClues(puzzle);
+    const report = rateByLogicalSolve(puzzle, solution, profile.allowGuess);
+    if (!report.solved) {
+      continue;
+    }
+    if (!profile.allowGuess && report.usedGuess) {
+      continue;
+    }
+    if (profile.requireGuess && !report.usedGuess) {
+      continue;
+    }
+    if (report.maxLevelUsed > profile.maxLevel) {
+      continue;
+    }
     if (clues >= profile.minClues && clues <= profile.maxClues) {
       return { puzzle, solution };
     }
