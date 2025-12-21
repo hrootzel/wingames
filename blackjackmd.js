@@ -2,15 +2,7 @@
 
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_BLACKJACK } from './card_sfx_banks.js';
-
-const SUITS = ['clubs', 'diamonds', 'hearts', 'spades'];
-const SUIT_SYMBOLS = {
-  clubs: '\u2663\uFE0F',
-  diamonds: '\u2666\uFE0F',
-  hearts: '\u2665\uFE0F',
-  spades: '\u2660\uFE0F',
-};
-const VALUE_LABELS = { 1: 'A', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: '10', 11: 'J', 12: 'Q', 13: 'K' };
+import { CardRenderer, SUITS } from './card_renderer.js';
 const ACTIONS = { STAND: 'stand', HIT: 'hit', DOUBLE: 'double', SPLIT: 'split', SURRENDER: 'surrender' };
 
 const dealerEl = document.getElementById('dealer-hand');
@@ -38,33 +30,10 @@ const optDoubleAny = document.getElementById('opt-double-any');
 const optHitSoft17 = document.getElementById('opt-hit-soft17');
 
 const sfx = new SfxEngine({ master: 0.6 });
+const cardRenderer = new CardRenderer();
 let audioUnlocked = false;
 
 let state;
-
-function cardColor(suit) {
-  return suit === 'diamonds' || suit === 'hearts' ? 'red' : 'black';
-}
-
-function pipLayout(value) {
-  const defaults = {
-    1: [10],
-    2: [1, 19],
-    3: [1, 10, 19],
-    4: [0, 2, 18, 20],
-    5: [0, 2, 10, 18, 20],
-    6: [0, 2, 9, 11, 18, 20],
-    7: [0, 2, 3, 5, 6, 8, 4],
-    8: [0, 2, 3, 5, 6, 8, 9, 11],
-  };
-  if (value === 9) return [0, 2, 3, 5, 6, 8, 9, 11, 4];
-  if (value === 10) return [0, 2, 3, 5, 6, 8, 9, 11, 4, 7];
-  return defaults[value] || [];
-}
-
-function formatCardLabel(card) {
-  return `${VALUE_LABELS[card.value]}${SUIT_SYMBOLS[card.suit]}`;
-}
 
 function shuffle(deck) {
   for (let i = deck.length - 1; i > 0; i--) {
@@ -547,7 +516,7 @@ function renderHands() {
       const visibleCards = state.dealer.filter((c) => c.faceUp);
       const showing = visibleCards.length ? handValue(visibleCards).total : 0;
       dealerStatusEl.textContent = `Showing: ${showing}`;
-      dealerOutcomeEl.textContent = `Upcard: ${formatCardLabel(state.dealer[0])}`;
+      dealerOutcomeEl.textContent = `Upcard: ${cardRenderer.formatCardLabel(state.dealer[0])}`;
     } else {
       const dv = handValue(state.dealer);
       dealerStatusEl.textContent = state.roundOver ? `Total: ${dv.total}` : europeanNoHole && state.dealer.length === 1 ? `Showing: ${dv.total}` : `Total: ${dv.total}`;
@@ -608,65 +577,7 @@ function renderHand(container, hand, hideHole = false) {
 }
 
 function buildCardElement(card, displayCard = card) {
-  const el = document.createElement('div');
-  el.className = 'card';
-
-  if (!displayCard.faceUp) {
-    el.classList.add('face-down');
-    return el;
-  }
-
-  if (cardColor(displayCard.suit) === 'red') {
-    el.classList.add('red');
-  }
-
-  const content = document.createElement('div');
-  content.className = 'card-content';
-
-  const cornerTop = document.createElement('div');
-  cornerTop.className = 'corner top';
-  cornerTop.textContent = formatCardLabel(displayCard);
-  content.appendChild(cornerTop);
-
-  const cornerBottom = document.createElement('div');
-  cornerBottom.className = 'corner bottom';
-  cornerBottom.textContent = formatCardLabel(displayCard);
-  content.appendChild(cornerBottom);
-
-  if (displayCard.value >= 11) {
-    const face = document.createElement('div');
-    face.className = 'face-label';
-    face.textContent = VALUE_LABELS[displayCard.value];
-    content.appendChild(face);
-  } else {
-    const pips = document.createElement('div');
-    pips.className = 'pips';
-    if (displayCard.value >= 7) {
-      pips.classList.add('pips-tight', 'pips-compact-4');
-    }
-    if (displayCard.value === 7) {
-      pips.classList.add('pips-seven');
-    }
-    pipLayout(displayCard.value).forEach((cell) => {
-      const pip = document.createElement('div');
-      pip.className = 'pip';
-      if (displayCard.value >= 9 && displayCard.value <= 10) {
-        pip.classList.add('pip-xsmall');
-      } else if (displayCard.value >= 5 && displayCard.value <= 8) {
-        pip.classList.add('pip-small');
-      }
-      const row = Math.floor(cell / 3) + 1;
-      const col = (cell % 3) + 1;
-      pip.style.gridRow = String(row);
-      pip.style.gridColumn = String(col);
-      pip.textContent = SUIT_SYMBOLS[displayCard.suit];
-      pips.appendChild(pip);
-    });
-    content.appendChild(pips);
-  }
-
-  el.appendChild(content);
-  return el;
+  return cardRenderer.createCardElement(displayCard);
 }
 
 function updateButtons() {

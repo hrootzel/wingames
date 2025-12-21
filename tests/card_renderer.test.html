@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Card Renderer Tests</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 16px;
+    }
+    .pass {
+      color: #0f5132;
+    }
+    .fail {
+      color: #842029;
+    }
+  </style>
+</head>
+<body>
+  <h1>Card Renderer Tests</h1>
+  <div id="results"></div>
+
+  <script type="module">
+    import { CardRenderer, SUIT_SYMBOLS, VALUE_LABELS, pipLayout } from '../card_renderer.js';
+
+    const renderer = new CardRenderer();
+    const results = document.getElementById('results');
+
+    function report(name, ok, detail = '') {
+      const row = document.createElement('div');
+      row.className = ok ? 'pass' : 'fail';
+      row.textContent = `${ok ? 'PASS' : 'FAIL'}: ${name}${detail ? ` (${detail})` : ''}`;
+      results.appendChild(row);
+    }
+
+    function assert(name, condition, detail = '') {
+      if (!condition) {
+        report(name, false, detail);
+        throw new Error(`Assertion failed: ${name}`);
+      }
+      report(name, true);
+    }
+
+    try {
+      const label = renderer.formatCardLabel({ suit: 'spades', value: 1, faceUp: true });
+      assert('formatCardLabel uses symbols', label === `${VALUE_LABELS[1]}${SUIT_SYMBOLS.spades}`);
+
+      const faceDown = renderer.createCardElement({ faceUp: false });
+      assert('face-down card has class', faceDown.classList.contains('face-down'));
+
+      const faceCard = renderer.createCardElement({ suit: 'hearts', value: 12, faceUp: true });
+      assert('face-up card renders content', !!faceCard.querySelector('.card-content'));
+      assert('face card renders face label', !!faceCard.querySelector('.face-label'));
+
+      const pipCard = renderer.createCardElement({ suit: 'clubs', value: 5, faceUp: true });
+      const pipCount = pipCard.querySelectorAll('.pip').length;
+      assert('pip count matches layout', pipCount === pipLayout(5).length, `got ${pipCount}`);
+    } catch (err) {
+      report('test run', false, err.message);
+    }
+  </script>
+</body>
+</html>
