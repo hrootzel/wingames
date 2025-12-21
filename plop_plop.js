@@ -36,6 +36,7 @@ const ALL_CLEAR_BONUS = 5000;
 const DAS = 160;
 const ARR = 60;
 const FIXED_DT = 1000 / 60;
+const RESOLVE_DROP_INTERVAL = 60;
 
 const canvas = document.getElementById('plop-canvas');
 const ctx = canvas.getContext('2d');
@@ -131,6 +132,7 @@ function makeGame() {
     paused: false,
     active: null,
     nextSpec: null,
+    resolve: null,
     pieceIndex: 0,
     level: 1,
     score: 0,
@@ -254,6 +256,7 @@ function lockPair() {
   }
   game.active = null;
   game.state = GameState.RESOLVE;
+  game.resolve = { chainIndex: 1, clearedAny: false, settling: true, settleTimer: 0 };
 }
 
 function handleHorizontalRepeat(dt) {
@@ -335,6 +338,21 @@ function applyGravity() {
       game.board.cells[r][c] = stack[r] ? stack[r] : makeEmptyCell();
     }
   }
+}
+
+function settleOnce() {
+  let moved = false;
+  for (let r = 1; r < H; r++) {
+    for (let c = 0; c < W; c++) {
+      const cell = game.board.get(r, c);
+      if (!cell || cell.kind === Kind.EMPTY) continue;
+      if (!game.board.isEmpty(r - 1, c)) continue;
+      game.board.set(r - 1, c, cell);
+      game.board.set(r, c, makeEmptyCell());
+      moved = true;
+    }
+  }
+  return moved;
 }
 
 function keyFor(r, c) {
@@ -465,36 +483,58 @@ function isBoardEmpty() {
   return true;
 }
 
-function resolveBoard() {
-  let chainIndex = 1;
-  let clearedAny = false;
+function resolveBoard(dt) {
+  const resolve = game.resolve || {
+    chainIndex: 1,
+    clearedAny: false,
+    settling: false,
+    settleTimer: 0,
+  };
 
-  while (true) {
-    applyGravity();
-    const groups = findPopGroups();
-    if (groups.length === 0) break;
-    const info = clearGroups(groups);
-    const linkScore = scoreLink(chainIndex, info.clearedCount, info.distinctColors, info.groupSizes);
-    game.score += linkScore;
-    game.status = `Link ${chainIndex} +${linkScore}`;
-    if (chainIndex >= 2) {
-      sfx.play(BANK_PLOPPLOP, 'chain', { chain: chainIndex, chainIndex });
+  if (resolve.settling) {
+    resolve.settleTimer += dt;
+    while (resolve.settleTimer >= RESOLVE_DROP_INTERVAL) {
+      const moved = settleOnce();
+      resolve.settleTimer -= RESOLVE_DROP_INTERVAL;
+      if (!moved) {
+        resolve.settling = false;
+        break;
+      }
     }
-    sfx.play(BANK_PLOPPLOP, 'clear', { cleared: info.clearedCount, chain: chainIndex, chainIndex });
-    clearedAny = true;
-    chainIndex += 1;
+    game.resolve = resolve;
+    if (resolve.settling) return;
   }
 
-  game.lastChain = clearedAny ? chainIndex - 1 : 0;
-  if (game.lastChain < 2) game.lastChain = 0;
+  const groups = findPopGroups();
+  if (groups.length === 0) {
+    game.lastChain = resolve.clearedAny ? resolve.chainIndex - 1 : 0;
+    if (game.lastChain < 2) game.lastChain = 0;
 
-  if (clearedAny && isBoardEmpty()) {
-    game.score += ALL_CLEAR_BONUS;
-    game.status = `All clear +${ALL_CLEAR_BONUS}`;
-    sfx.play(BANK_PLOPPLOP, 'allClear');
+    if (resolve.clearedAny && isBoardEmpty()) {
+      game.score += ALL_CLEAR_BONUS;
+      game.status = `All clear +${ALL_CLEAR_BONUS}`;
+      sfx.play(BANK_PLOPPLOP, 'allClear');
+    }
+
+    game.state = GameState.SPAWN;
+    game.resolve = null;
+    return;
   }
 
-  game.state = GameState.SPAWN;
+  const info = clearGroups(groups);
+  const chainIndex = resolve.chainIndex;
+  const linkScore = scoreLink(chainIndex, info.clearedCount, info.distinctColors, info.groupSizes);
+  game.score += linkScore;
+  game.status = `Link ${chainIndex} +${linkScore}`;
+  if (chainIndex >= 2) {
+    sfx.play(BANK_PLOPPLOP, 'chain', { chain: chainIndex, chainIndex });
+  }
+  sfx.play(BANK_PLOPPLOP, 'clear', { cleared: info.clearedCount, chain: chainIndex, chainIndex });
+  resolve.clearedAny = true;
+  resolve.chainIndex += 1;
+  resolve.settling = true;
+  resolve.settleTimer = 0;
+  game.resolve = resolve;
 }
 
 function stepGame(dt) {
@@ -512,7 +552,7 @@ function stepGame(dt) {
   } else if (game.state === GameState.FALLING) {
     stepFalling(dt);
   } else if (game.state === GameState.RESOLVE) {
-    resolveBoard();
+    resolveBoard(dt);
   }
 
   game.input.clearPressed();
@@ -887,6 +927,7 @@ function newGame() {
   game.lastChain = 0;
   game.status = 'Ready.';
   game.statusBeforePause = 'Ready.';
+  game.resolve = null;
   game.timers.gravityElapsed = 0;
   pauseBtn.textContent = 'Pause';
 }

@@ -39,6 +39,7 @@ const SCORE = {
 const DAS = 160;
 const ARR = 60;
 const FIXED_DT = 1000 / 60;
+const RESOLVE_DROP_INTERVAL = 60;
 
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -117,6 +118,7 @@ function makeGame() {
     active: null,
     nextSpec: null,
     pendingDiamond: null,
+    resolve: null,
     pieceIndex: 0,
     level: 1,
     score: 0,
@@ -149,6 +151,7 @@ function newGame() {
   game.paused = false;
   game.active = null;
   game.pendingDiamond = null;
+  game.resolve = null;
   game.pieceIndex = 0;
   game.level = 1;
   game.score = 0;
@@ -313,6 +316,13 @@ function lockPiece() {
 
   game.active = null;
   game.state = GameState.RESOLVE;
+  game.resolve = {
+    chainIndex: 1,
+    resolved: false,
+    settling: true,
+    settleTimer: 0,
+    techHandled: false,
+  };
 }
 
 function handleHorizontalRepeat(dt) {
@@ -401,6 +411,24 @@ function applyGravity() {
       }
       game.board.cells[r][c] = next;
     }
+  }
+  return moved;
+}
+
+function settleOnce() {
+  let moved = false;
+  for (let r = 1; r < H; r++) {
+    for (let c = 0; c < W; c++) {
+      const cell = game.board.cells[r][c];
+      if (cell.kind === Kind.EMPTY) continue;
+      if (game.board.cells[r - 1][c].kind !== Kind.EMPTY) continue;
+      game.board.cells[r - 1][c] = cell;
+      game.board.cells[r][c] = makeEmptyCell();
+      moved = true;
+    }
+  }
+  if (moved) {
+    clearPowerGroups();
   }
   return moved;
 }
@@ -594,11 +622,16 @@ function isBoardEmpty() {
   return true;
 }
 
-function resolveBoard() {
-  let chainIndex = 1;
-  let resolved = false;
+function resolveBoard(dt) {
+  const resolve = game.resolve || {
+    chainIndex: 1,
+    resolved: false,
+    settling: false,
+    settleTimer: 0,
+    techHandled: false,
+  };
 
-  if (game.pendingDiamond && game.pendingDiamond.type === 'TECH') {
+  if (!resolve.techHandled && game.pendingDiamond && game.pendingDiamond.type === 'TECH') {
     const { row, col } = game.pendingDiamond;
     if (inBounds(row, col)) {
       game.board.cells[row][col] = makeEmptyCell();
@@ -607,66 +640,92 @@ function resolveBoard() {
     game.status = `Tech bonus +${SCORE.TECH}`;
     sfx.play(BANK_PUZZLEPUNCHER, 'techBonus');
     game.pendingDiamond = null;
+    resolve.techHandled = true;
+    resolve.settling = true;
+    resolve.settleTimer = 0;
+    clearPowerGroups();
+    game.resolve = resolve;
+    return;
   }
 
-  while (true) {
-    applyGravity();
-    markPowerGroups();
-
-    if (game.pendingDiamond && game.pendingDiamond.type === 'TRIGGER') {
-      const toClear = collectColorClear(game.pendingDiamond.color, game.pendingDiamond);
-      const counts = countClearCells(toClear);
-      clearCells(toClear);
-      const totalCleared = counts.normal + counts.crash + counts.power + counts.diamond;
-      if (chainIndex >= 2) {
-        sfx.play(BANK_PUZZLEPUNCHER, 'chain', { chain: chainIndex, chainIndex });
+  if (resolve.settling) {
+    resolve.settleTimer += dt;
+    while (resolve.settleTimer >= RESOLVE_DROP_INTERVAL) {
+      const moved = settleOnce();
+      resolve.settleTimer -= RESOLVE_DROP_INTERVAL;
+      if (!moved) {
+        resolve.settling = false;
+        break;
       }
-      if (counts.power > 0) {
-        sfx.play(BANK_PUZZLEPUNCHER, 'power', { power: counts.power, cleared: totalCleared });
-      }
-      sfx.play(BANK_PUZZLEPUNCHER, 'diamond', { cleared: totalCleared, chain: chainIndex, chainIndex });
-      sfx.play(BANK_PUZZLEPUNCHER, 'clear', { cleared: totalCleared, chain: chainIndex, chainIndex });
-      scoreEvent(counts, chainIndex, true);
-      game.pendingDiamond = null;
-      resolved = true;
-      chainIndex += 1;
-      continue;
     }
-
-    const triggers = findCrashTriggers();
-    if (triggers.length > 0) {
-      const toClear = collectCrashClear(triggers);
-      const counts = countClearCells(toClear);
-      clearCells(toClear);
-      const totalCleared = counts.normal + counts.crash + counts.power + counts.diamond;
-      if (chainIndex >= 2) {
-        sfx.play(BANK_PUZZLEPUNCHER, 'chain', { chain: chainIndex, chainIndex });
-      }
-      if (counts.power > 0) {
-        sfx.play(BANK_PUZZLEPUNCHER, 'power', { power: counts.power, cleared: totalCleared });
-      }
-      sfx.play(BANK_PUZZLEPUNCHER, 'clear', { cleared: totalCleared, chain: chainIndex, chainIndex });
-      scoreEvent(counts, chainIndex, false);
-      resolved = true;
-      chainIndex += 1;
-      continue;
-    }
-
-    break;
+    game.resolve = resolve;
+    if (resolve.settling) return;
   }
 
-  game.lastChain = chainIndex - 1;
-  if (resolved && game.lastChain < 2) {
+  markPowerGroups();
+
+  if (game.pendingDiamond && game.pendingDiamond.type === 'TRIGGER') {
+    const toClear = collectColorClear(game.pendingDiamond.color, game.pendingDiamond);
+    const counts = countClearCells(toClear);
+    clearCells(toClear);
+    clearPowerGroups();
+    const totalCleared = counts.normal + counts.crash + counts.power + counts.diamond;
+    const chainIndex = resolve.chainIndex;
+    if (chainIndex >= 2) {
+      sfx.play(BANK_PUZZLEPUNCHER, 'chain', { chain: chainIndex, chainIndex });
+    }
+    if (counts.power > 0) {
+      sfx.play(BANK_PUZZLEPUNCHER, 'power', { power: counts.power, cleared: totalCleared });
+    }
+    sfx.play(BANK_PUZZLEPUNCHER, 'diamond', { cleared: totalCleared, chain: chainIndex, chainIndex });
+    sfx.play(BANK_PUZZLEPUNCHER, 'clear', { cleared: totalCleared, chain: chainIndex, chainIndex });
+    scoreEvent(counts, chainIndex, true);
+    game.pendingDiamond = null;
+    resolve.resolved = true;
+    resolve.chainIndex += 1;
+    resolve.settling = true;
+    resolve.settleTimer = 0;
+    game.resolve = resolve;
+    return;
+  }
+
+  const triggers = findCrashTriggers();
+  if (triggers.length > 0) {
+    const toClear = collectCrashClear(triggers);
+    const counts = countClearCells(toClear);
+    clearCells(toClear);
+    clearPowerGroups();
+    const totalCleared = counts.normal + counts.crash + counts.power + counts.diamond;
+    const chainIndex = resolve.chainIndex;
+    if (chainIndex >= 2) {
+      sfx.play(BANK_PUZZLEPUNCHER, 'chain', { chain: chainIndex, chainIndex });
+    }
+    if (counts.power > 0) {
+      sfx.play(BANK_PUZZLEPUNCHER, 'power', { power: counts.power, cleared: totalCleared });
+    }
+    sfx.play(BANK_PUZZLEPUNCHER, 'clear', { cleared: totalCleared, chain: chainIndex, chainIndex });
+    scoreEvent(counts, chainIndex, false);
+    resolve.resolved = true;
+    resolve.chainIndex += 1;
+    resolve.settling = true;
+    resolve.settleTimer = 0;
+    game.resolve = resolve;
+    return;
+  }
+
+  game.lastChain = resolve.resolved ? resolve.chainIndex - 1 : 0;
+  if (game.lastChain < 2) {
     game.lastChain = 0;
   }
 
-  if (resolved && isBoardEmpty()) {
+  if (resolve.resolved && isBoardEmpty()) {
     game.score += SCORE.ALL_CLEAR;
     game.status = `All clear +${SCORE.ALL_CLEAR}`;
     sfx.play(BANK_PUZZLEPUNCHER, 'allClear');
   }
 
   game.state = GameState.SPAWN;
+  game.resolve = null;
 }
 
 function stepGame(dt) {
@@ -684,7 +743,7 @@ function stepGame(dt) {
   } else if (game.state === GameState.FALLING) {
     stepFalling(dt);
   } else if (game.state === GameState.RESOLVE) {
-    resolveBoard();
+    resolveBoard(dt);
   }
 
   game.input.clearPressed();
