@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
+  <title>FreeCell</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="freecell.css">
+</head>
+<body class="freecell">
+  <div id="app" class="freecell-app" data-size="md">
+    <header class="app-header compact-header freecell-header">
+      <div>
+        <h1>FreeCell</h1>
+        <p class="subtitle">Microsoft-style deals, classic rules.</p>
+      </div>
+      <div class="quick-stats freecell-stats">
+        <div>Game: <span id="deal-number">1</span></div>
+        <div>Moves: <span id="moves">0</span></div>
+        <div>Time: <span id="time">0:00</span></div>
+      </div>
+      <button id="options" class="icon-button" aria-label="Options" title="Options">Options</button>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Ready</span>
+      </div>
+    </div>
+
+    <div class="board freecell-board">
+      <div class="top-row freecell-top">
+        <div class="pile-wrap">
+          <div class="label">Free Cells</div>
+          <div id="freecells" class="foundation-row freecells-row"></div>
+        </div>
+        <div class="pile-wrap">
+          <div class="label">Foundations</div>
+          <div id="foundations" class="foundation-row foundations-row"></div>
+        </div>
+      </div>
+      <div class="tableau-wrap">
+        <div class="label">Tableau</div>
+        <div id="tableau" class="tableau freecell-tableau"></div>
+      </div>
+    </div>
+
+    <div class="control-group bottom-controls freecell-controls">
+      <button id="new-game">New Game</button>
+      <button id="select-game">Select Game</button>
+      <button id="stats">Statistics</button>
+      <button id="undo" disabled>Undo</button>
+    </div>
+
+    <p class="tips">
+      Click a card to select, then click a destination. Dragging is supported for moving stacks when legal.
+      Double-click a card to send it to a foundation. Use Select Game for numbered deals (1-32000).
+    </p>
+  </div>
+
+  <div id="select-game-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="select-game-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="select-game-title">Select Game</h2>
+      </header>
+      <div class="ms-modal-body">
+        <label>Game number
+          <input id="select-game-input" type="number" min="1" max="32000" value="1">
+        </label>
+        <p class="modal-hint">Enter a number from 1 to 32000 for Microsoft-compatible deals.</p>
+      </div>
+      <div class="ms-modal-actions">
+        <button id="select-game-ok">OK</button>
+        <button id="select-game-cancel" class="secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="stats-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="stats-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="stats-title">Statistics</h2>
+      </header>
+      <div class="ms-modal-body">
+        <div class="stats-grid">
+          <div>Games played</div><div id="stats-played">0</div>
+          <div>Games won</div><div id="stats-won">0</div>
+          <div>Win %</div><div id="stats-winrate">0%</div>
+          <div>Current streak</div><div id="stats-streak">0</div>
+          <div>Best streak</div><div id="stats-best-streak">0</div>
+          <div>Fastest win</div><div id="stats-best-time">-</div>
+          <div>Fewest moves</div><div id="stats-best-moves">-</div>
+        </div>
+      </div>
+      <div class="ms-modal-actions">
+        <button id="stats-close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="options-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="options-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="options-title">Options</h2>
+      </header>
+      <div class="ms-modal-body">
+        <label>Deal mode
+          <select id="opt-deal-mode">
+            <option value="microsoft" selected>Microsoft 32,000</option>
+            <option value="random">Random</option>
+          </select>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="opt-supermove" checked> Allow multi-card drag (supermove)
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="opt-auto-foundation" checked> Auto-move to foundation on double-click
+        </label>
+        <label>Card size
+          <select id="opt-card-size">
+            <option value="sm">Small</option>
+            <option value="md" selected>Medium</option>
+            <option value="lg">Large</option>
+          </select>
+        </label>
+      </div>
+      <div class="ms-modal-actions">
+        <button id="options-close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="freecell.js"></script>
+</body>
+</html>
