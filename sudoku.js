@@ -40,6 +40,8 @@ const THEME_KEY = 'sudoku_theme';
 
 const cellEls = [];
 const keyEls = [];
+const undoStack = [];
+const UNDO_LIMIT = 200;
 
 function idx(r, c) {
   return r * 9 + c;
@@ -560,7 +562,7 @@ function buildKeypad() {
     1, 2, 3, 4, 5, 6, 7, 8, 9,
     { tool: 'pencil', label: '✏️' },
     { tool: 'eraser', label: '🧽' },
-    { tool: 'back', label: '↩️' },
+    { tool: 'undo', label: '↩️' },
   ];
 
   for (const k of keys) {
@@ -579,9 +581,9 @@ function buildKeypad() {
       } else if (k.tool === 'eraser') {
         el.title = 'Eraser (clear cell)';
         el.setAttribute('aria-label', 'Eraser (clear cell)');
-      } else if (k.tool === 'back') {
-        el.title = 'Back to title';
-        el.setAttribute('aria-label', 'Back to title');
+      } else if (k.tool === 'undo') {
+        el.title = 'Undo';
+        el.setAttribute('aria-label', 'Undo');
       }
     }
     keypadEl.appendChild(el);
@@ -667,14 +669,15 @@ function isValidPlacement(board, i, d) {
 function applyInputToCell(i, d, modeOverride) {
   if (!gameState || gameState.completed) return;
   if (gameState.fixed[i]) return;
-  if (gameState.revealed[i]) {
-    gameState.revealed[i] = false;
-  }
 
   const mode = modeOverride || gameState.input.mode;
   if (mode === 'eraser') {
+    const shouldClear = gameState.board[i] !== 0 || gameState.notes[i] !== 0 || gameState.revealed[i] || gameState.errors[i];
+    if (!shouldClear) return;
+    pushUndo();
     gameState.board[i] = 0;
     gameState.notes[i] = 0;
+    gameState.revealed[i] = false;
     gameState.errors[i] = false;
     afterMove();
     return;
@@ -684,7 +687,10 @@ function applyInputToCell(i, d, modeOverride) {
 
   if (mode === 'pen') {
     if (gameState.board[i] === d) {
+      pushUndo();
       gameState.board[i] = 0;
+      gameState.notes[i] = 0;
+      gameState.revealed[i] = false;
       gameState.errors[i] = false;
       afterMove();
       return;
@@ -693,15 +699,22 @@ function applyInputToCell(i, d, modeOverride) {
       flashInvalid(i);
       return;
     }
+    pushUndo();
     gameState.board[i] = d;
     gameState.notes[i] = 0;
+    gameState.revealed[i] = false;
     gameState.errors[i] = false;
     afterMove();
     return;
   }
 
   if (gameState.board[i] !== 0) return;
-  gameState.notes[i] = toggleNote(gameState.notes[i], d);
+  const nextMask = toggleNote(gameState.notes[i], d);
+  if (nextMask === gameState.notes[i]) return;
+  pushUndo();
+  gameState.notes[i] = nextMask;
+  gameState.revealed[i] = false;
+  gameState.errors[i] = false;
   afterMove();
 }
 
@@ -777,8 +790,8 @@ function onKeypadClick(ev) {
     setEraser(false);
     return;
   }
-  if (tool === 'back') {
-    backToTitle();
+  if (tool === 'undo') {
+    undoLastMove();
   }
 }
 
@@ -806,6 +819,48 @@ function setEraser(applyNow) {
   }
 }
 
+function snapshotState() {
+  return {
+    board: gameState.board.slice(),
+    notes: gameState.notes.slice(),
+    revealed: gameState.revealed.slice(),
+    errors: gameState.errors.slice(),
+    completed: gameState.completed,
+    selection: gameState.selection ? { i: gameState.selection.i } : null,
+    input: { mode: gameState.input.mode, digit: gameState.input.digit },
+  };
+}
+
+function pushUndo() {
+  if (!gameState) return;
+  undoStack.push(snapshotState());
+  if (undoStack.length > UNDO_LIMIT) {
+    undoStack.shift();
+  }
+}
+
+function undoLastMove() {
+  if (!gameState) return;
+  const prev = undoStack.pop();
+  if (!prev) {
+    setStatus('Nothing to undo.');
+    return;
+  }
+  gameState.board = prev.board.slice();
+  gameState.notes = prev.notes.slice();
+  gameState.revealed = prev.revealed.slice();
+  gameState.errors = prev.errors.slice();
+  gameState.completed = prev.completed;
+  gameState.selection = prev.selection ? { i: prev.selection.i } : null;
+  gameState.input.mode = prev.input.mode;
+  gameState.input.digit = prev.input.digit;
+  updateLabels();
+  renderBoard();
+  renderKeypad();
+  setStatus('Undid.');
+  saveGame(gameState.diff);
+}
+
 function resetBoard() {
   if (!gameState) return;
   gameState.board = gameState.puzzle.slice();
@@ -817,6 +872,7 @@ function resetBoard() {
   gameState.input.mode = 'pen';
   gameState.input.digit = null;
   updateLabels();
+  undoStack.length = 0;
   renderBoard();
   renderKeypad();
   setStatus('Reset puzzle.');
@@ -834,6 +890,7 @@ function solvePuzzle() {
   gameState.input.mode = 'pen';
   gameState.input.digit = null;
   updateLabels();
+  undoStack.length = 0;
   renderBoard();
   renderKeypad();
   setStatus('Solved.');
@@ -1033,6 +1090,7 @@ function resumeGame(saved) {
   renderKeypad();
   showScreen('game');
   setStatus(saved.completed ? 'Puzzle solved!' : 'Resumed puzzle.');
+  undoStack.length = 0;
 }
 
 function startNewGame(diff) {
@@ -1058,6 +1116,7 @@ function startNewGame(diff) {
   showScreen('game');
   setStatus(`${DIFF_LABELS[diff]} puzzle`);
   saveGame(diff);
+  undoStack.length = 0;
 }
 
 function backToTitle() {
@@ -1273,6 +1332,10 @@ function attachEvents() {
       }
       if (action === 'validate') {
         validateBoard();
+        return;
+      }
+      if (action === 'back') {
+        backToTitle();
         return;
       }
       if (action === 'theme') {
