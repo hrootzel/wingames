@@ -104,19 +104,25 @@
         <h2 id="options-title">Options</h2>
       </header>
       <div class="ms-modal-body">
-        <label>Deal mode
+        <label title="Choose Microsoft numbered deals or a random shuffle.">Deal mode
           <select id="opt-deal-mode">
             <option value="microsoft" selected>Microsoft 32,000</option>
             <option value="random">Random</option>
           </select>
         </label>
-        <label class="checkbox">
+        <label class="checkbox" title="Allow dragging valid stacks (subject to the supermove cap unless disabled).">
           <input type="checkbox" id="opt-supermove" checked> Allow multi-card drag (supermove)
         </label>
-        <label class="checkbox">
+        <label class="checkbox" title="Ignore the supermove cap and allow any valid stack to move.">
+          <input type="checkbox" id="opt-disable-cap"> Disable supermove cap
+        </label>
+        <label class="checkbox" title="Double-click a card to auto-move it to a foundation.">
           <input type="checkbox" id="opt-auto-foundation" checked> Auto-move to foundation on double-click
         </label>
-        <label>Card size
+        <label class="checkbox" title="Show drop outlines while dragging a selection.">
+          <input type="checkbox" id="opt-outline-valid" checked> Outline valid moves
+        </label>
+        <label title="Adjust the card size used on the board.">Card size
           <select id="opt-card-size">
             <option value="sm">Small</option>
             <option value="md" selected>Medium</option>

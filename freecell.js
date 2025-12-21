@@ -46,7 +46,9 @@ const statsCloseBtn = document.getElementById('stats-close');
 const optionsModal = document.getElementById('options-modal');
 const optDealMode = document.getElementById('opt-deal-mode');
 const optSupermove = document.getElementById('opt-supermove');
+const optDisableCap = document.getElementById('opt-disable-cap');
 const optAutoFoundation = document.getElementById('opt-auto-foundation');
+const optOutlineValid = document.getElementById('opt-outline-valid');
 const optCardSize = document.getElementById('opt-card-size');
 const optionsCloseBtn = document.getElementById('options-close');
 
@@ -59,6 +61,7 @@ let stats = loadStats();
 let state = null;
 let selection = null;
 let dragState = null;
+let dropIndicator = null;
 let undoStack = [];
 let timerId = null;
 let clickTracker = { cardKey: null, time: 0 };
@@ -72,18 +75,34 @@ function getCardMetrics(sizeKey) {
 function loadOptions() {
   const raw = localStorage.getItem('freecellOptions');
   if (!raw) {
-    return { dealMode: 'microsoft', allowSupermove: true, autoFoundation: true, cardSize: 'md' };
+    return {
+      dealMode: 'microsoft',
+      allowSupermove: true,
+      disableSupermoveCap: false,
+      autoFoundation: true,
+      outlineValid: true,
+      cardSize: 'md',
+    };
   }
   try {
     const parsed = JSON.parse(raw);
     return {
       dealMode: parsed.dealMode === 'random' ? 'random' : 'microsoft',
       allowSupermove: parsed.allowSupermove !== false,
+      disableSupermoveCap: parsed.disableSupermoveCap === true,
       autoFoundation: parsed.autoFoundation !== false,
+      outlineValid: parsed.outlineValid !== false,
       cardSize: ['sm', 'md', 'lg'].includes(parsed.cardSize) ? parsed.cardSize : 'md',
     };
   } catch {
-    return { dealMode: 'microsoft', allowSupermove: true, autoFoundation: true, cardSize: 'md' };
+    return {
+      dealMode: 'microsoft',
+      allowSupermove: true,
+      disableSupermoveCap: false,
+      autoFoundation: true,
+      outlineValid: true,
+      cardSize: 'md',
+    };
   }
 }
 
@@ -167,9 +186,12 @@ function applyOptions() {
   cardRenderer.size = options.cardSize;
   optDealMode.value = options.dealMode;
   optSupermove.checked = options.allowSupermove;
+  optDisableCap.checked = options.disableSupermoveCap;
   optAutoFoundation.checked = options.autoFoundation;
+  optOutlineValid.checked = options.outlineValid;
   optCardSize.value = options.cardSize;
   saveOptions();
+  if (!options.outlineValid) clearDropIndicator();
   render();
 }
 
@@ -261,8 +283,9 @@ function newGame({ dealNumber, randomize } = {}) {
   }
 }
 
-function updateStatus(text) {
+function updateStatus(text, tone = 'normal') {
   statusEl.textContent = text;
+  statusEl.classList.toggle('status-warning', tone === 'warning');
 }
 
 function updateHud() {
@@ -419,12 +442,17 @@ function moveSelectionToTableau(destIndex, fromDrag = false) {
   if (selection.source.type === 'tableau' && !isValidTableauSequence(moving)) return false;
 
   const destIsEmpty = destStack.length === 0;
-  const maxMove = options.allowSupermove
-    ? maxMovableToTableau({ tableauPiles: state.tableau, freePiles: state.freecells, destIsEmptyTableau: destIsEmpty })
-    : 1;
-  if (moving.length > maxMove) {
-    if (!fromDrag) updateStatus('Not enough free cells.');
-    return false;
+  if (options.allowSupermove && !options.disableSupermoveCap) {
+    const maxMove = maxMovableToTableau({
+      tableauPiles: state.tableau,
+      freePiles: state.freecells,
+      destIsEmptyTableau: destIsEmpty,
+    });
+    if (moving.length > maxMove) {
+      const capType = destIsEmpty ? 'empty' : 'non-empty';
+      updateStatus(`Blocked by supermove cap (${maxMove}) for ${capType}`, 'warning');
+      return false;
+    }
   }
 
   const sourceStack = getStack(selection.source);
@@ -621,7 +649,120 @@ function clearDragPreview() {
     dragState.preview.parentElement.removeChild(dragState.preview);
   }
   if (dragState) dragState.preview = null;
+  clearDropIndicator();
   cleanupDanglingPreviews();
+}
+
+function clearDropIndicator() {
+  if (!dropIndicator) return;
+  dropIndicator.el.classList.remove(dropIndicator.className);
+  dropIndicator = null;
+}
+
+function setDropIndicator(el, className) {
+  if (!el || !className) {
+    clearDropIndicator();
+    return;
+  }
+  if (dropIndicator && dropIndicator.el === el && dropIndicator.className === className) return;
+  clearDropIndicator();
+  el.classList.add(className);
+  dropIndicator = { el, className };
+}
+
+function evaluateTableauDrop(destIndex) {
+  if (!selection) return { ok: false, reason: 'BUILD_RULE' };
+  if (selection.source.type === 'tableau' && selection.source.index === destIndex) {
+    return { ok: false, reason: 'BUILD_RULE' };
+  }
+  const moving = peekSelectionCards(selection);
+  if (moving.length === 0) return { ok: false, reason: 'BUILD_RULE' };
+  const destStack = state.tableau[destIndex];
+  if (!canPlaceOnTableau(moving[0], destStack)) return { ok: false, reason: 'BUILD_RULE' };
+  if (selection.source.type !== 'tableau' && moving.length > 1) return { ok: false, reason: 'BUILD_RULE' };
+  if (selection.source.type === 'tableau' && !isValidTableauSequence(moving)) return { ok: false, reason: 'BUILD_RULE' };
+  if (!options.allowSupermove && moving.length > 1) return { ok: false, reason: 'BUILD_RULE' };
+
+  if (moving.length > 1 && options.allowSupermove && !options.disableSupermoveCap) {
+    const destIsEmpty = destStack.length === 0;
+    const maxMove = maxMovableToTableau({
+      tableauPiles: state.tableau,
+      freePiles: state.freecells,
+      destIsEmptyTableau: destIsEmpty,
+    });
+    if (moving.length > maxMove) return { ok: false, reason: 'CAP' };
+  }
+  return { ok: true };
+}
+
+function evaluateFreecellDrop(destIndex) {
+  if (!selection) return { ok: false, reason: 'BUILD_RULE' };
+  if (selection.source.type === 'freecell' && selection.source.index === destIndex) {
+    return { ok: false, reason: 'BUILD_RULE' };
+  }
+  const moving = peekSelectionCards(selection);
+  if (moving.length !== 1) return { ok: false, reason: 'BUILD_RULE' };
+  const destStack = state.freecells[destIndex];
+  if (destStack.length !== 0) return { ok: false, reason: 'BUILD_RULE' };
+  return { ok: true };
+}
+
+function evaluateFoundationDrop(destIndex) {
+  if (!selection) return { ok: false, reason: 'BUILD_RULE' };
+  if (selection.source.type === 'foundation' && selection.source.index === destIndex) {
+    return { ok: false, reason: 'BUILD_RULE' };
+  }
+  const moving = peekSelectionCards(selection);
+  if (moving.length !== 1) return { ok: false, reason: 'BUILD_RULE' };
+  const destStack = state.foundations[destIndex];
+  if (!canPlaceOnFoundation(moving[0], destStack, destIndex)) return { ok: false, reason: 'BUILD_RULE' };
+  return { ok: true };
+}
+
+function dropIndicatorClass(result) {
+  if (result.ok) return 'drop-ok';
+  return result.reason === 'CAP' ? 'drop-cap' : 'drop-rule';
+}
+
+function updateDropIndicator(clientX, clientY) {
+  if (!options.outlineValid) {
+    clearDropIndicator();
+    return;
+  }
+  if (!selection) {
+    clearDropIndicator();
+    return;
+  }
+  const target = document.elementFromPoint(clientX, clientY);
+  if (!target) {
+    clearDropIndicator();
+    return;
+  }
+  const freecellSlot = target.closest('.freecell-slot');
+  if (freecellSlot) {
+    const idx = Number(freecellSlot.dataset.index);
+    const highlightEl = freecellSlot.querySelector('.card') || freecellSlot;
+    const result = evaluateFreecellDrop(idx);
+    setDropIndicator(highlightEl, dropIndicatorClass(result));
+    return;
+  }
+  const foundationSlot = target.closest('.foundation-slot');
+  if (foundationSlot) {
+    const idx = Number(foundationSlot.dataset.index);
+    const highlightEl = foundationSlot.querySelector('.card') || foundationSlot;
+    const result = evaluateFoundationDrop(idx);
+    setDropIndicator(highlightEl, dropIndicatorClass(result));
+    return;
+  }
+  const colEl = target.closest('.tableau-col');
+  if (colEl) {
+    const idx = Number(colEl.dataset.col);
+    const highlightEl = colEl.querySelector('.card:last-child') || colEl;
+    const result = evaluateTableauDrop(idx);
+    setDropIndicator(highlightEl, dropIndicatorClass(result));
+    return;
+  }
+  clearDropIndicator();
 }
 
 function selectionFromCardEl(cardEl) {
@@ -706,6 +847,7 @@ function handlePointerMove(ev) {
   }
   ev.preventDefault();
   updateDragPreviewPosition(ev.clientX, ev.clientY);
+  updateDropIndicator(ev.clientX, ev.clientY);
 }
 
 function attemptDrop(clientX, clientY) {
@@ -847,8 +989,16 @@ function attachEvents() {
     options.allowSupermove = optSupermove.checked;
     applyOptions();
   });
+  optDisableCap.addEventListener('change', () => {
+    options.disableSupermoveCap = optDisableCap.checked;
+    applyOptions();
+  });
   optAutoFoundation.addEventListener('change', () => {
     options.autoFoundation = optAutoFoundation.checked;
+    applyOptions();
+  });
+  optOutlineValid.addEventListener('change', () => {
+    options.outlineValid = optOutlineValid.checked;
     applyOptions();
   });
   optCardSize.addEventListener('change', () => {

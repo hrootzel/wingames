@@ -12,6 +12,40 @@
   --fc-card-gap: 10px;
 }
 
+.freecell[data-size="sm"] .corner {
+  font-size: 11px;
+}
+
+.freecell[data-size="sm"] .pips {
+  inset: 14px 10px;
+  font-size: 14px;
+  row-gap: 2px;
+  column-gap: 1px;
+}
+
+.freecell[data-size="sm"] .pip {
+  font-size: 14px;
+}
+
+.freecell[data-size="sm"] .pip-small {
+  font-size: 10px;
+}
+
+.freecell[data-size="sm"] .pip-xsmall {
+  font-size: 8px;
+}
+
+.freecell[data-size="sm"] .pips-tight {
+  inset: 12px 8px;
+  row-gap: 0;
+  column-gap: 0;
+}
+
+.freecell[data-size="sm"] .face-label {
+  inset: 14px 10px;
+  font-size: 28px;
+}
+
 .freecell[data-size="lg"] {
   --fc-card-width: 104px;
   --fc-card-height: 144px;
@@ -29,12 +63,37 @@
   height: var(--fc-card-height);
 }
 
+.freecell .drop-ok,
+.freecell .drop-cap,
+.freecell .drop-rule {
+  outline-width: 3px;
+  outline-style: solid;
+  outline-offset: -2px;
+}
+
+.freecell .drop-ok {
+  outline-color: rgba(34, 197, 94, 0.95);
+}
+
+.freecell .drop-cap {
+  outline-color: rgba(245, 158, 11, 0.95);
+}
+
+.freecell .drop-rule {
+  outline-color: rgba(239, 68, 68, 0.95);
+}
+
 .freecell-header {
   align-items: center;
 }
 
 .freecell-stats {
   text-align: right;
+}
+
+.freecell #status.status-warning {
+  color: #fbbf24;
+  font-weight: 700;
 }
 
 .freecell-board {
