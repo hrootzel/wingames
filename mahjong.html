@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mahjong Solitaire</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="mahjong.css">
+</head>
+<body class="mahjong">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>Mahjong Solitaire</h1>
+        <p class="subtitle">Match free pairs and clear the board.</p>
+      </div>
+      <div class="status-row">
+        <span id="status">Ready.</span>
+      </div>
+    </header>
+
+    <div class="board mahjong-board">
+      <div class="topbar">
+        <div class="stats">
+          <div>Tiles left: <span id="tiles-left">000</span></div>
+          <div>Pairs left: <span id="pairs-left">000</span></div>
+          <div>Seed: <span id="seed-label">-</span></div>
+        </div>
+        <button id="face-button" class="face-button" aria-label="New game" title="New game">🙂</button>
+        <button id="settings-toggle" class="icon-button" aria-label="Settings" title="Settings">⚙</button>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="mahjong-canvas" aria-label="Mahjong board" role="img"></canvas>
+      </div>
+
+      <div class="controls">
+        <button id="btn-hint">Hint</button>
+        <button id="btn-undo">Undo</button>
+        <button id="btn-shuffle">Shuffle</button>
+      </div>
+    </div>
+
+    <p class="tips">
+      A tile is free if nothing sits on top of it and it has an open side (left or right).
+      Flowers match any flower (🌸 🌼 🌺 🪷), seasons match any season (🌱 ☀️ 🍂 ❄️).
+    </p>
+  </div>
+
+  <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="settings-title">Settings</h2>
+        <button id="settings-close" class="icon-button" aria-label="Close settings">✕</button>
+      </header>
+
+      <div class="ms-form">
+        <label class="ms-field">
+          <span>Preset</span>
+          <select id="preset-select">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="expert">Expert</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+
+        <label class="ms-field">
+          <span>Layout</span>
+          <select id="layout-select">
+            <option value="standard">Standard</option>
+            <option value="bridge">Bridge</option>
+            <option value="castle">Castle</option>
+            <option value="cube">Cube</option>
+            <option value="glyph">Glyph</option>
+            <option value="pyramid">Pyramid</option>
+            <option value="spiral">Spiral</option>
+          </select>
+        </label>
+
+        <label class="ms-field">
+          <span>Puzzle seed</span>
+          <input id="seed-input" type="text" placeholder="Random">
+        </label>
+
+        <label class="ms-toggle">
+          <input id="solvable-toggle" type="checkbox">
+          <span>Solvable guarantee</span>
+        </label>
+        <label class="ms-toggle">
+          <input id="hint-toggle" type="checkbox">
+          <span>Hint allowed</span>
+        </label>
+        <label class="ms-toggle">
+          <input id="undo-toggle" type="checkbox">
+          <span>Undo allowed</span>
+        </label>
+        <label class="ms-field inline-field">
+          <span>Undo limit (0 = unlimited)</span>
+          <input id="undo-limit" type="number" min="0" max="999" step="1">
+        </label>
+        <label class="ms-toggle">
+          <input id="shuffle-toggle" type="checkbox">
+          <span>Shuffle allowed</span>
+        </label>
+        <label class="ms-toggle">
+          <input id="highlight-toggle" type="checkbox">
+          <span>Highlight free tiles</span>
+        </label>
+        <button type="button" id="settings-theme" class="secondary ms-theme-button">Light Theme</button>
+
+        <p id="settings-error" class="ms-error" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="ms-actions">
+        <button id="settings-apply">Apply</button>
+        <button id="settings-cancel" class="secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="mahjong.js"></script>
+</body>
+</html>
