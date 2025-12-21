@@ -23,6 +23,7 @@ const movesEl = document.getElementById('moves');
 const timeEl = document.getElementById('time');
 const statusEl = document.getElementById('status');
 const newBtn = document.getElementById('new-game');
+const autoMoveBtn = document.getElementById('auto-move');
 const selectGameBtn = document.getElementById('select-game');
 const statsBtn = document.getElementById('stats');
 const undoBtn = document.getElementById('undo');
@@ -528,6 +529,42 @@ function moveSelectionToAutoFoundation() {
   return moveSelectionToFoundation(destIndex, true);
 }
 
+function autoMoveOnce() {
+  if (!state || state.won) return false;
+
+  for (let i = 0; i < TABLEAU_COLS; i++) {
+    const stack = state.tableau[i];
+    if (!stack.length) continue;
+    const card = stack[stack.length - 1];
+    const destIndex = SUITS.indexOf(card.suit);
+    if (destIndex < 0) continue;
+    if (!canPlaceOnFoundation(card, state.foundations[destIndex], destIndex)) continue;
+    const removed = [stack.pop()];
+    applyMove({ type: 'tableau', index: i }, { type: 'foundation', index: destIndex }, removed);
+    return true;
+  }
+
+  return false;
+}
+
+function autoMoveAll() {
+  if (!state || state.won) return;
+  selection = null;
+  clearDragPreview();
+  dragState = null;
+
+  let movedAny = false;
+  let moved = false;
+  do {
+    moved = autoMoveOnce();
+    movedAny = movedAny || moved;
+  } while (moved && !state.won);
+
+  if (!movedAny) {
+    render();
+  }
+}
+
 function undo() {
   if (state.won) return;
   const move = undoStack.pop();
@@ -986,6 +1023,7 @@ function attachEvents() {
   });
   undoBtn.addEventListener('click', () => undo());
   optionsBtn.addEventListener('click', () => openModal(optionsModal));
+  autoMoveBtn.addEventListener('click', () => autoMoveAll());
 
   selectGameOk.addEventListener('click', () => {
     const value = Number(selectGameInput.value);

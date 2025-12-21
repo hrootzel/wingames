@@ -24,7 +24,10 @@
         <button data-diff="easy">Easy</button>
       </div>
 
-      <button id="btn-quit" class="secondary">Quit</button>
+      <div class="title-actions">
+        <button id="btn-instructions" class="secondary">Instructions</button>
+        <button id="btn-quit" class="secondary">Quit</button>
+      </div>
     </section>
 
     <section id="screen-game" class="screen hidden">
@@ -71,6 +74,21 @@
         <div class="modal-actions">
           <button id="modal-yes">Yes</button>
           <button id="modal-no" class="secondary">No</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="instructions-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="instructions-title">
+      <div class="modal-card">
+        <h2 id="instructions-title">How to Play</h2>
+        <div class="instructions-body">
+          <p>Fill every row, column, and 3x3 box with digits 1-9. No repeats.</p>
+          <p>Select a number, then click a cell to place it.</p>
+          <p>Use the Pencil button ✏️ to add small candidate notes (tap again to remove a note).</p>
+          <p>Use the Eraser button 🧽 to clear a cell and its notes.</p>
+        </div>
+        <div class="modal-actions">
+          <button id="instructions-close">Close</button>
         </div>
       </div>
     </div>

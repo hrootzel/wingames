@@ -32,9 +32,12 @@ const diffLabelEl = document.getElementById('diff-label');
 const modeLabelEl = document.getElementById('mode-label');
 const statusEl = document.getElementById('status');
 const quitBtn = document.getElementById('btn-quit');
+const instructionsBtn = document.getElementById('btn-instructions');
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsMenu = document.getElementById('settings-menu');
 const settingsThemeBtn = document.getElementById('settings-theme');
+const instructionsModal = document.getElementById('instructions-modal');
+const instructionsCloseBtn = document.getElementById('instructions-close');
 
 const THEME_KEY = 'sudoku_theme';
 
@@ -1179,6 +1182,16 @@ function openModal(text, onYes, onNo) {
   };
 }
 
+function openInstructionsModal() {
+  if (!instructionsModal) return;
+  instructionsModal.classList.remove('hidden');
+}
+
+function closeInstructionsModal() {
+  if (!instructionsModal) return;
+  instructionsModal.classList.add('hidden');
+}
+
 function onPickDifficulty(diff) {
   const saved = loadGame(diff);
   if (saved && !saved.completed) {
@@ -1315,6 +1328,26 @@ function attachEvents() {
   document.addEventListener('keydown', handleKeyDown);
   quitBtn.addEventListener('click', () => {
     window.location.href = 'index.html';
+  });
+  if (instructionsBtn) {
+    instructionsBtn.addEventListener('click', () => {
+      openInstructionsModal();
+    });
+  }
+  if (instructionsCloseBtn) {
+    instructionsCloseBtn.addEventListener('click', () => {
+      closeInstructionsModal();
+    });
+  }
+  if (instructionsModal) {
+    instructionsModal.addEventListener('click', (ev) => {
+      if (ev.target === instructionsModal) closeInstructionsModal();
+    });
+  }
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && instructionsModal && !instructionsModal.classList.contains('hidden')) {
+      closeInstructionsModal();
+    }
   });
   if (settingsToggle) {
     settingsToggle.addEventListener('click', (ev) => {
