@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bombflagger</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="bombflagger.css">
+</head>
+<body class="bombflagger">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>Bombflagger</h1>
+        <p class="subtitle">Flag every mine without tripping one.</p>
+      </div>
+      <div class="settings">
+        <button id="settings-toggle" class="icon-button" aria-expanded="false" aria-controls="settings-modal" aria-label="Settings" title="Settings">⚙</button>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Ready.</span>
+      </div>
+    </div>
+
+    <div class="board bomb-board">
+      <div class="scorebar">
+        <div class="counter">
+          <span class="counter-label">Mines</span>
+          <span id="mine-count" class="counter-value">010</span>
+        </div>
+        <button id="face-button" class="face-button" aria-label="New game" title="New game">🙂</button>
+        <div class="counter">
+          <span class="counter-label">Time</span>
+          <span id="time-count" class="counter-value">000</span>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="bomb-canvas" aria-label="Minesweeper board" role="img"></canvas>
+      </div>
+    </div>
+
+    <p class="tips">
+      Left click reveals a tile. Right click marks 🚩 and optional ? tiles. Open the ⚙ settings for difficulty or custom boards.
+    </p>
+  </div>
+
+  <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="settings-title">Settings</h2>
+        <button id="settings-close" class="icon-button" aria-label="Close settings">✕</button>
+      </header>
+
+      <div class="ms-form">
+        <label class="ms-field">
+          <span>Preset</span>
+          <select id="preset-select">
+            <option value="beginner">Beginner (8x8, 10)</option>
+            <option value="intermediate">Intermediate (16x16, 40)</option>
+            <option value="expert">Expert (30x16, 99)</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+
+        <div class="ms-grid">
+          <label class="ms-field">
+            <span>Rows</span>
+            <input id="rows-input" type="number" min="8" max="24" step="1">
+          </label>
+          <label class="ms-field">
+            <span>Columns</span>
+            <input id="cols-input" type="number" min="8" max="30" step="1">
+          </label>
+          <label class="ms-field">
+            <span>Mines</span>
+            <input id="mines-input" type="number" min="10" step="1">
+          </label>
+        </div>
+        <div class="ms-meta">
+          <span id="max-mines">Max mines: 0</span>
+        </div>
+
+        <label class="ms-toggle">
+          <input id="first-safe-toggle" type="checkbox">
+          <span>First click is safe</span>
+        </label>
+        <label class="ms-toggle">
+          <input id="question-toggle" type="checkbox">
+          <span>Right-click cycles ? marker</span>
+        </label>
+
+        <p id="settings-error" class="ms-error" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="ms-actions">
+        <button id="settings-apply">Apply</button>
+        <button id="settings-cancel" class="secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="bombflagger.js"></script>
+</body>
+</html>
