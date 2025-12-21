@@ -572,6 +572,16 @@ function buildKeypad() {
       el.dataset.tool = k.tool;
       el.classList.add('tool');
       el.textContent = k.label;
+      if (k.tool === 'pencil') {
+        el.title = 'Pencil (notes)';
+        el.setAttribute('aria-label', 'Pencil (notes)');
+      } else if (k.tool === 'eraser') {
+        el.title = 'Eraser (clear cell)';
+        el.setAttribute('aria-label', 'Eraser (clear cell)');
+      } else if (k.tool === 'back') {
+        el.title = 'Back to title';
+        el.setAttribute('aria-label', 'Back to title');
+      }
     }
     keypadEl.appendChild(el);
     keyEls.push(el);
