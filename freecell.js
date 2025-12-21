@@ -323,20 +323,40 @@ function isValidTableauSequence(cards) {
   return true;
 }
 
-function getEmptyCounts() {
-  const emptyFree = state.freecells.filter((slot) => slot.length === 0).length;
-  const emptyTableau = state.tableau.filter((col) => col.length === 0).length;
-  return { emptyFree, emptyTableau };
+function countEmptyFreeCells(freePiles) {
+  let n = 0;
+  for (const pile of freePiles) {
+    if (pile.length === 0) n += 1;
+  }
+  return n;
 }
 
-function maxMovableCount(destStack) {
-  if (!options.allowSupermove) return 1;
-  const { emptyFree, emptyTableau } = getEmptyCounts();
-  let max = (emptyFree + 1) * (1 << emptyTableau);
-  if (destStack.length === 0) {
-    max = Math.floor(max / 2);
+function countEmptyTableauCols(tableauPiles) {
+  let n = 0;
+  for (const col of tableauPiles) {
+    if (col.length === 0) n += 1;
   }
-  return Math.max(1, max);
+  return n;
+}
+
+function emptyBufferCols(tableauPiles, destIsEmptyTableau) {
+  const emptyCols = countEmptyTableauCols(tableauPiles);
+  const usable = destIsEmptyTableau ? (emptyCols - 1) : emptyCols;
+  return Math.max(0, usable);
+}
+
+function maxMovableToTableau({ tableauPiles, freePiles, destIsEmptyTableau }) {
+  const free = countEmptyFreeCells(freePiles);
+  const emptyBuffers = emptyBufferCols(tableauPiles, destIsEmptyTableau);
+  return (free + 1) * (1 << emptyBuffers);
+}
+
+function maxMovableToNonEmptyTableau(tableauPiles, freePiles) {
+  return maxMovableToTableau({ tableauPiles, freePiles, destIsEmptyTableau: false });
+}
+
+function maxMovableToEmptyTableau(tableauPiles, freePiles) {
+  return maxMovableToTableau({ tableauPiles, freePiles, destIsEmptyTableau: true });
 }
 
 function getStack(source) {
@@ -398,7 +418,10 @@ function moveSelectionToTableau(destIndex, fromDrag = false) {
   if (selection.source.type !== 'tableau' && moving.length > 1) return false;
   if (selection.source.type === 'tableau' && !isValidTableauSequence(moving)) return false;
 
-  const maxMove = maxMovableCount(destStack);
+  const destIsEmpty = destStack.length === 0;
+  const maxMove = options.allowSupermove
+    ? maxMovableToTableau({ tableauPiles: state.tableau, freePiles: state.freecells, destIsEmptyTableau: destIsEmpty })
+    : 1;
   if (moving.length > maxMove) {
     if (!fromDrag) updateStatus('Not enough free cells.');
     return false;
@@ -811,6 +834,9 @@ function attachEvents() {
 
   statsCloseBtn.addEventListener('click', () => closeModal(statsModal));
   optionsCloseBtn.addEventListener('click', () => closeModal(optionsModal));
+  optionsModal.addEventListener('click', (ev) => {
+    if (ev.target === optionsModal) closeModal(optionsModal);
+  });
 
   optDealMode.addEventListener('change', () => {
     options.dealMode = optDealMode.value === 'random' ? 'random' : 'microsoft';
