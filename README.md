@@ -11,6 +11,7 @@ Local, dependency-free implementations of card, puzzle, and arcade games using J
 - **Pill Popper**: Dr. Mario-style virus buster with falling capsules and chain clears.
 - **PlopPlop**: Puyo-style blob matching with chain scoring.
 - **Super Buster**: Pang-style harpoon action with bouncing balls that split.
+- **Sudoku**: Difficulty-based logic puzzle with notes, eraser, and resume support.
 - **Soundboard (prototype)**: Chiptune SFX tester for the shared sound banks.
 
 ## Run locally
@@ -26,6 +27,7 @@ Local, dependency-free implementations of card, puzzle, and arcade games using J
    - `http://localhost:8000/pill_popper.html` (Pill Popper)
    - `http://localhost:8000/plop_plop.html` (PlopPlop)
    - `http://localhost:8000/super_buster.html` (Super Buster)
+   - `http://localhost:8000/sudoku.html` (Sudoku)
    - `http://localhost:8000/soundboard.html` (SFX tester)
 
 ## Controls

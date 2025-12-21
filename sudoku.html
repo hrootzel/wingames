@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
+  <title>Sudoku</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="sudoku.css">
+</head>
+<body class="sudoku">
+  <div id="app">
+    <section id="screen-title" class="screen">
+      <header class="app-header compact-header" style="justify-content: center;">
+        <div>
+          <h1>Sudoku</h1>
+          <p class="subtitle">Choose a difficulty and start solving.</p>
+        </div>
+      </header>
+
+      <div class="menu">
+        <button data-diff="extreme">Extreme</button>
+        <button data-diff="hard">Hard</button>
+        <button data-diff="medium">Medium</button>
+        <button data-diff="easy">Easy</button>
+      </div>
+
+      <button id="btn-quit" class="secondary">Quit</button>
+    </section>
+
+    <section id="screen-game" class="screen hidden">
+      <header class="app-header compact-header">
+        <div>
+          <h1>Sudoku</h1>
+          <p class="subtitle">Fill every row, column, and 3x3 box.</p>
+        </div>
+        <div class="settings">
+          <button id="settings-toggle" class="icon-button" aria-expanded="false" aria-controls="settings-menu" aria-label="Settings" title="Settings">⚙️</button>
+          <div id="settings-menu" class="settings-menu hidden">
+            <button type="button" data-action="reset">Reset</button>
+            <button type="button" data-action="solve">Solve</button>
+            <button type="button" data-action="hint">Hint</button>
+            <button type="button" data-action="validate">Validate</button>
+            <button type="button" id="settings-theme" data-action="theme">Light Theme</button>
+            <button type="button" data-action="back">Back to title</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="hud">
+        <div class="status-row">
+          <span id="status">Ready.</span>
+        </div>
+      </div>
+
+      <div class="game-layout">
+        <div id="board" class="board sudoku-board" aria-label="Sudoku board"></div>
+
+        <aside class="panel">
+          <div id="keypad" class="keypad" aria-label="Sudoku keypad"></div>
+          <div class="status-panel">
+            <div>Difficulty: <span id="diff-label">-</span></div>
+            <div>Mode: <span id="mode-label">Pen</span></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <p id="modal-text"></p>
+        <div class="modal-actions">
+          <button id="modal-yes">Yes</button>
+          <button id="modal-no" class="secondary">No</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="sudoku.js"></script>
+</body>
+</html>
