@@ -67,6 +67,7 @@ let timerId = null;
 let clickTracker = { cardKey: null, time: 0 };
 let ignoreClicksUntil = 0;
 let currentDealNumber = 1;
+let winOverlay = null;
 
 function getCardMetrics(sizeKey) {
   return SIZE_PRESETS[sizeKey] || SIZE_PRESETS.md;
@@ -138,6 +139,26 @@ function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function stopWinPopup() {
+  if (!winOverlay) return;
+  if (winOverlay.parentElement) {
+    winOverlay.parentElement.removeChild(winOverlay);
+  }
+  winOverlay = null;
+}
+
+function showWinPopup() {
+  stopWinPopup();
+  const overlay = document.createElement('div');
+  overlay.className = 'win-overlay';
+  const msg = document.createElement('div');
+  msg.className = 'win-message';
+  msg.textContent = `You win! Time: ${formatTime(state.timeSeconds)} Moves: ${state.moves} (New Game to restart)`;
+  overlay.appendChild(msg);
+  document.body.appendChild(overlay);
+  winOverlay = overlay;
 }
 
 function openModal(modalEl) {
@@ -247,6 +268,7 @@ function dealRoundRobin(cards) {
 }
 
 function resetState({ dealNumber, tableau }) {
+  stopWinPopup();
   state = {
     tableau,
     freecells: Array.from({ length: FREECELL_SLOTS }, () => []),
@@ -529,6 +551,7 @@ function checkForWin() {
   recordGameEnd(true);
   updateStatus('You win! Click New Game to play again.');
   updateHud();
+  showWinPopup();
 }
 
 function buildCardElement(card, pileType, pileIndex, cardIndex) {
