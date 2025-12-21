@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Super Buster</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="super_buster.css">
+</head>
+<body class="superbuster">
+  <div id="app">
+    <header class="app-header">
+      <div>
+        <h1>Super Buster</h1>
+        <p class="subtitle">Harpoons up, bubbles down.</p>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Ready.</span>
+      </div>
+    </div>
+
+    <div class="board buster-board">
+      <div class="buster-wrap">
+        <div class="buster-stage">
+          <canvas id="buster-canvas" width="640" height="360" aria-label="Super Buster playfield"></canvas>
+        </div>
+
+        <div class="buster-panel">
+          <div class="panel-box">
+            <h3>Scoreboard</h3>
+            <div class="quick-stats buster-stats">
+              <div>Score: <span id="score">0</span></div>
+              <div>Level: <span id="level">1</span></div>
+              <div>Lives: <span id="lives">3</span></div>
+            </div>
+          </div>
+
+          <div class="panel-box">
+            <h3>Controls</h3>
+            <div class="key-hints">
+              <div><span class="key">Left/Right</span> Move</div>
+              <div><span class="key">Space/Enter</span> Fire harpoon</div>
+              <div><span class="key">R</span> Restart</div>
+            </div>
+
+            <div class="control-group buster-controls">
+              <button id="new-game">New Game</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="tips">
+      Pop every bouncing ball by hitting it with the harpoon. Each hit splits a ball
+      into two smaller ones until the tiniest size disappears. Clear all levels to win.
+    </p>
+  </div>
+
+  <script type="module" src="super_buster.js"></script>
+</body>
+</html>
