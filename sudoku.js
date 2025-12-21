@@ -32,8 +32,9 @@ const diffLabelEl = document.getElementById('diff-label');
 const modeLabelEl = document.getElementById('mode-label');
 const statusEl = document.getElementById('status');
 const quitBtn = document.getElementById('btn-quit');
-const themeSelectTitle = document.getElementById('theme-select-title');
-const themeSelectGame = document.getElementById('theme-select-game');
+const settingsToggle = document.getElementById('settings-toggle');
+const settingsMenu = document.getElementById('settings-menu');
+const settingsThemeBtn = document.getElementById('settings-theme');
 
 const THEME_KEY = 'sudoku_theme';
 
@@ -480,11 +481,16 @@ function setStatus(text) {
   statusEl.textContent = text;
 }
 
+function updateThemeMenuLabel() {
+  if (!settingsThemeBtn) return;
+  const current = document.body.dataset.theme === 'light' ? 'light' : 'dark';
+  settingsThemeBtn.textContent = current === 'dark' ? 'Light Theme' : 'Dark Theme';
+}
+
 function setTheme(theme, persist = true) {
   const next = theme === 'light' ? 'light' : 'dark';
   document.body.dataset.theme = next;
-  if (themeSelectTitle) themeSelectTitle.value = next;
-  if (themeSelectGame) themeSelectGame.value = next;
+  updateThemeMenuLabel();
   if (persist) {
     try {
       localStorage.setItem(THEME_KEY, next);
@@ -597,6 +603,7 @@ function renderBoard() {
     const fixed = gameState.fixed[i];
 
     cell.classList.toggle('fixed', fixed);
+    cell.classList.toggle('revealed', gameState.revealed[i]);
     cell.classList.toggle('selected', gameState.selection && gameState.selection.i === i);
 
     const valueEl = cell.querySelector('.value');
@@ -648,6 +655,9 @@ function isValidPlacement(board, i, d) {
 function applyInputToCell(i, d) {
   if (!gameState || gameState.completed) return;
   if (gameState.fixed[i]) return;
+  if (gameState.revealed[i]) {
+    gameState.revealed[i] = false;
+  }
 
   const mode = gameState.input.mode;
   if (mode === 'eraser') {
@@ -762,6 +772,75 @@ function setEraser(applyNow) {
   }
 }
 
+function resetBoard() {
+  if (!gameState) return;
+  gameState.board = gameState.puzzle.slice();
+  gameState.notes = Array(81).fill(0);
+  gameState.revealed = Array(81).fill(false);
+  gameState.completed = false;
+  gameState.selection = null;
+  gameState.input.mode = 'pen';
+  gameState.input.digit = null;
+  updateLabels();
+  renderBoard();
+  renderKeypad();
+  setStatus('Reset puzzle.');
+  saveGame(gameState.diff);
+}
+
+function solvePuzzle() {
+  if (!gameState) return;
+  gameState.board = gameState.solution.slice();
+  gameState.notes = Array(81).fill(0);
+  gameState.revealed = gameState.fixed.map((v) => !v);
+  gameState.completed = true;
+  gameState.selection = null;
+  gameState.input.mode = 'pen';
+  gameState.input.digit = null;
+  updateLabels();
+  renderBoard();
+  renderKeypad();
+  setStatus('Solved.');
+  saveGame(gameState.diff);
+}
+
+function revealHint() {
+  if (!gameState || gameState.completed) return;
+  const empty = [];
+  for (let i = 0; i < 81; i++) {
+    if (gameState.fixed[i]) continue;
+    if (gameState.board[i] === 0) empty.push(i);
+  }
+  if (empty.length === 0) {
+    setStatus('No empty cells for a hint.');
+    return;
+  }
+  const pick = empty[randomInt(0, empty.length - 1)];
+  gameState.board[pick] = gameState.solution[pick];
+  gameState.notes[pick] = 0;
+  gameState.revealed[pick] = true;
+  renderBoard();
+  renderKeypad();
+  saveGame(gameState.diff);
+  if (isSolved()) {
+    onWin();
+  } else {
+    setStatus('Hint revealed.');
+  }
+}
+
+function setSettingsOpen(open) {
+  if (!settingsMenu || !settingsToggle) return;
+  settingsMenu.classList.toggle('hidden', !open);
+  settingsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function toggleSettings() {
+  if (!settingsMenu) return;
+  const open = settingsMenu.classList.contains('hidden');
+  setSettingsOpen(open);
+}
+
 function moveSelection(dr, dc) {
   if (!gameState) return;
   let i = gameState.selection ? gameState.selection.i : idx(4, 4);
@@ -836,6 +915,7 @@ function saveGame(diff) {
     board: gameState.board,
     fixed: gameState.fixed.map((v) => (v ? 1 : 0)),
     notes: gameState.notes,
+    revealed: gameState.revealed,
     completed: gameState.completed,
   };
   try {
@@ -863,6 +943,9 @@ function loadGame(diff) {
 }
 
 function resumeGame(saved) {
+  const revealed = Array.isArray(saved.revealed) && saved.revealed.length === 81
+    ? saved.revealed.map((v) => Boolean(v))
+    : Array(81).fill(false);
   gameState = {
     diff: saved.diff,
     puzzle: saved.puzzle.slice(),
@@ -870,6 +953,7 @@ function resumeGame(saved) {
     board: saved.board.slice(),
     fixed: saved.fixed.map((v) => Boolean(v)),
     notes: saved.notes.slice(),
+    revealed,
     selection: null,
     input: { mode: 'pen', digit: null },
     completed: Boolean(saved.completed),
@@ -892,6 +976,7 @@ function startNewGame(diff) {
     board: result.puzzle.slice(),
     fixed: result.puzzle.map((v) => v !== 0),
     notes: Array(81).fill(0),
+    revealed: Array(81).fill(false),
     selection: null,
     input: { mode: 'pen', digit: null },
     completed: false,
@@ -1091,16 +1176,47 @@ function attachEvents() {
   quitBtn.addEventListener('click', () => {
     window.location.href = 'index.html';
   });
-  if (themeSelectTitle) {
-    themeSelectTitle.addEventListener('change', () => {
-      setTheme(themeSelectTitle.value);
+  if (settingsToggle) {
+    settingsToggle.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      toggleSettings();
     });
   }
-  if (themeSelectGame) {
-    themeSelectGame.addEventListener('change', () => {
-      setTheme(themeSelectGame.value);
+  if (settingsMenu) {
+    settingsMenu.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      setSettingsOpen(false);
+      if (action === 'reset') {
+        resetBoard();
+        return;
+      }
+      if (action === 'solve') {
+        solvePuzzle();
+        return;
+      }
+      if (action === 'hint') {
+        openModal('Do you want a Hint?', () => {
+          revealHint();
+        }, () => {});
+        return;
+      }
+      if (action === 'theme') {
+        const next = document.body.dataset.theme === 'light' ? 'dark' : 'light';
+        setTheme(next);
+      }
     });
   }
+  document.addEventListener('click', (ev) => {
+    if (!settingsMenu || !settingsToggle) return;
+    if (settingsMenu.classList.contains('hidden')) return;
+    const target = ev.target;
+    if (target instanceof Node) {
+      if (settingsMenu.contains(target) || settingsToggle.contains(target)) return;
+    }
+    setSettingsOpen(false);
+  });
   const diffButtons = document.querySelectorAll('[data-diff]');
   diffButtons.forEach((btn) => {
     btn.addEventListener('click', () => {

@@ -16,6 +16,7 @@
   --sudoku-key-text: #e2e8f0;
   --sudoku-key-active: rgba(59, 130, 246, 0.2);
   --sudoku-status: rgba(226, 232, 240, 0.85);
+  --sudoku-reveal: #60a5fa;
   --sudoku-modal-bg: #0f172a;
   --sudoku-modal-overlay: rgba(15, 23, 42, 0.55);
   --sudoku-gap: 10px;
@@ -45,6 +46,7 @@ body.sudoku[data-theme="light"] {
   --sudoku-key-text: #0f172a;
   --sudoku-key-active: rgba(37, 99, 235, 0.18);
   --sudoku-status: rgba(15, 23, 42, 0.75);
+  --sudoku-reveal: #1d4ed8;
   --sudoku-modal-bg: #ffffff;
   --sudoku-modal-overlay: rgba(148, 163, 184, 0.35);
 }
@@ -59,15 +61,16 @@ body.sudoku[data-theme="light"] {
 }
 
 #screen-title .menu {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 12px;
   margin: 22px auto 16px;
-  max-width: 520px;
+  max-width: 320px;
 }
 
 #screen-title .menu button {
-  width: 100%;
+  width: min(260px, 100%);
 }
 
 #screen-title .secondary {
@@ -79,6 +82,10 @@ body.sudoku[data-theme="light"] {
 
 .hud {
   margin-top: 12px;
+}
+
+.app-header {
+  align-items: center;
 }
 
 .game-layout {
@@ -93,7 +100,9 @@ body.sudoku[data-theme="light"] {
 .board.sudoku-board {
   display: grid;
   grid-template-columns: repeat(9, 1fr);
+  grid-auto-rows: 1fr;
   width: var(--sudoku-board-size);
+  min-height: var(--sudoku-board-size);
   aspect-ratio: 1 / 1;
   border: 3px solid var(--sudoku-board-border);
   background: var(--sudoku-board-bg);
@@ -108,6 +117,7 @@ body.sudoku[data-theme="light"] {
   display: grid;
   place-items: center;
   user-select: none;
+  min-height: calc(var(--sudoku-board-size) / 9);
 }
 
 .cell.r2,
@@ -124,6 +134,11 @@ body.sudoku[data-theme="light"] {
 
 .cell.fixed {
   background: var(--sudoku-soft);
+  font-weight: 700;
+}
+
+.cell.revealed .value {
+  color: var(--sudoku-reveal);
   font-weight: 700;
 }
 
@@ -227,6 +242,67 @@ body.sudoku[data-theme="light"] {
 
 .theme-toggle select {
   min-width: 120px;
+}
+
+.settings {
+  position: relative;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--sudoku-border);
+  background: var(--sudoku-panel);
+  color: inherit;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.icon-button:hover {
+  transform: translateY(-1px);
+}
+
+.settings-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: var(--sudoku-panel);
+  border: 1px solid var(--sudoku-border);
+  border-radius: 12px;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+  z-index: 20;
+  box-shadow: 0 16px 24px rgba(0, 0, 0, 0.3);
+}
+
+.settings-menu.hidden {
+  display: none;
+}
+
+.settings-menu button {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--sudoku-border);
+  padding: 8px 10px;
+  border-radius: 10px;
+  text-align: left;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.settings-menu button:hover {
+  background: var(--sudoku-key-active);
 }
 
 .modal {

@@ -24,14 +24,6 @@
         <button data-diff="easy">Easy</button>
       </div>
 
-      <div class="theme-toggle">
-        <label for="theme-select-title">Theme</label>
-        <select id="theme-select-title">
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
-        </select>
-      </div>
-
       <button id="btn-quit" class="secondary">Quit</button>
     </section>
 
@@ -40,6 +32,15 @@
         <div>
           <h1>Sudoku</h1>
           <p class="subtitle">Fill every row, column, and 3x3 box.</p>
+        </div>
+        <div class="settings">
+          <button id="settings-toggle" class="icon-button" aria-expanded="false" aria-controls="settings-menu" aria-label="Settings">⚙️</button>
+          <div id="settings-menu" class="settings-menu hidden">
+            <button type="button" data-action="reset">Reset</button>
+            <button type="button" data-action="solve">Solve</button>
+            <button type="button" data-action="hint">Hint</button>
+            <button type="button" id="settings-theme" data-action="theme">Light Theme</button>
+          </div>
         </div>
       </header>
 
@@ -57,13 +58,6 @@
           <div class="status-panel">
             <div>Difficulty: <span id="diff-label">-</span></div>
             <div>Mode: <span id="mode-label">Pen</span></div>
-            <label class="theme-toggle">
-              Theme
-              <select id="theme-select-game">
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
-              </select>
-            </label>
           </div>
         </aside>
       </div>
