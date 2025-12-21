@@ -280,6 +280,22 @@ function renderPaytableHighlight() {
   }
 }
 
+function isInteractiveTarget(target) {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  return target.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON';
+}
+
+function getHoldIndexFromKey(event) {
+  if (event.key >= '1' && event.key <= '5') {
+    return Number(event.key) - 1;
+  }
+  if (/^Numpad[1-5]$/.test(event.code)) {
+    return Number(event.code.slice(-1)) - 1;
+  }
+  return -1;
+}
+
 function render() {
   creditsEl.textContent = String(state.credits);
   betEl.textContent = String(BET);
@@ -327,6 +343,30 @@ function attachEvents() {
     toggleHold(idx);
     state.eval = evaluateHand(state.hand);
     render();
+  });
+
+  document.addEventListener('keydown', (ev) => {
+    if (ev.repeat) return;
+    if (isInteractiveTarget(ev.target)) return;
+
+    const holdIndex = getHoldIndexFromKey(ev);
+    if (holdIndex !== -1) {
+      ev.preventDefault();
+      toggleHold(holdIndex);
+      state.eval = evaluateHand(state.hand);
+      render();
+      return;
+    }
+
+    if (ev.key === ' ' || ev.key === 'Spacebar' || ev.key === 'Enter') {
+      ev.preventDefault();
+      if (state.roundEnded) {
+        dealNewHand();
+      } else {
+        drawReplacements();
+      }
+      render();
+    }
   });
 }
 
