@@ -3,13 +3,7 @@
 
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_SPIDER } from './card_sfx_banks.js';
-
-const SUITS = ['clubs', 'diamonds', 'hearts', 'spades'];
-const SUIT_SYMBOLS = { clubs: '\u2663\uFE0F', diamonds: '\u2666\uFE0F', hearts: '\u2665\uFE0F', spades: '\u2660\uFE0F' };
-const VALUE_LABELS = {
-  1: 'A', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7',
-  8: '8', 9: '9', 10: '10', 11: 'J', 12: 'Q', 13: 'K'
-};
+import { CardRenderer, SUITS } from './card_renderer.js';
 
 const TABLEAU_SPACING = 22;
 const MIN_TABLEAU_SPACING = 10;
@@ -42,6 +36,7 @@ const undoBtn = document.getElementById('undo');
 const difficultySelect = document.getElementById('difficulty');
 
 const sfx = new SfxEngine({ master: 0.6 });
+const cardRenderer = new CardRenderer();
 let audioUnlocked = false;
 
 let state;
@@ -50,10 +45,6 @@ let dragState = null;
 let ignoreClicksUntil = 0;
 let undoSnapshot = null;
 let winFx = null;
-
-function cardColor(suit) {
-  return suit === 'diamonds' || suit === 'hearts' ? 'red' : 'black';
-}
 
 function cloneState(value) {
   return JSON.parse(JSON.stringify(value));
@@ -102,30 +93,6 @@ function shuffle(deck) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
   }
-}
-
-function pipLayout(value) {
-  const defaults = {
-    1: [10],
-    2: [1, 19],
-    3: [1, 10, 19],
-    4: [0, 2, 18, 20],
-    5: [0, 2, 10, 18, 20],
-    6: [0, 2, 9, 11, 18, 20],
-    7: [0, 2, 3, 5, 6, 8, 4], // compact 3x4 grid indices (shifted via CSS)
-    8: [0, 2, 3, 5, 6, 8, 9, 11], // compact 3x4 grid indices
-  };
-  if (value === 9) {
-    return [0, 2, 3, 5, 6, 8, 9, 11, 4];
-  }
-  if (value === 10) {
-    return [0, 2, 3, 5, 6, 8, 9, 11, 4, 7];
-  }
-  return defaults[value] || [];
-}
-
-function formatCardLabel(card) {
-  return `${VALUE_LABELS[card.value]}${SUIT_SYMBOLS[card.suit]}`;
 }
 
 function dealInitial(difficulty) {
@@ -327,22 +294,6 @@ function startWinCelebration() {
   fx.rafId = requestAnimationFrame(step);
 }
 
-function formatPipElement(card, cell) {
-  const pip = document.createElement('div');
-  pip.className = 'pip';
-  if (card.value >= 9 && card.value <= 10) {
-    pip.classList.add('pip-xsmall');
-  } else if (card.value >= 5 && card.value <= 8) {
-    pip.classList.add('pip-small');
-  }
-  const row = Math.floor(cell / 3) + 1;
-  const col = (cell % 3) + 1;
-  pip.style.gridRow = String(row);
-  pip.style.gridColumn = String(col);
-  pip.textContent = SUIT_SYMBOLS[card.suit];
-  return pip;
-}
-
 function buildCardElement(card, colIndex, cardIndex) {
   const el = buildCardVisual(card);
   el.dataset.pile = 'tableau';
@@ -357,53 +308,7 @@ function buildCardElement(card, colIndex, cardIndex) {
 }
 
 function buildCardVisual(card) {
-  const el = document.createElement('div');
-  el.className = 'card';
-
-  if (!card.faceUp) {
-    el.classList.add('face-down');
-    return el;
-  }
-
-  if (cardColor(card.suit) === 'red') {
-    el.classList.add('red');
-  }
-
-  const content = document.createElement('div');
-  content.className = 'card-content';
-
-  const cornerTop = document.createElement('div');
-  cornerTop.className = 'corner top';
-  cornerTop.textContent = formatCardLabel(card);
-  content.appendChild(cornerTop);
-
-  const cornerBottom = document.createElement('div');
-  cornerBottom.className = 'corner bottom';
-  cornerBottom.textContent = formatCardLabel(card);
-  content.appendChild(cornerBottom);
-
-  if (card.value >= 11) {
-    const face = document.createElement('div');
-    face.className = 'face-label';
-    face.textContent = VALUE_LABELS[card.value];
-    content.appendChild(face);
-  } else {
-    const pips = document.createElement('div');
-    pips.className = 'pips';
-    if (card.value >= 7) {
-      pips.classList.add('pips-tight', 'pips-compact-4');
-    }
-    if (card.value === 7) {
-      pips.classList.add('pips-seven');
-    }
-    pipLayout(card.value).forEach((cell) => {
-      pips.appendChild(formatPipElement(card, cell));
-    });
-    content.appendChild(pips);
-  }
-
-  el.appendChild(content);
-  return el;
+  return cardRenderer.createCardElement(card);
 }
 
 function render() {

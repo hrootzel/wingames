@@ -1,0 +1,7 @@
+.pile.waste {
+  min-width: 120px;
+}
+
+.foundation.empty {
+  border-style: dashed;
+}
