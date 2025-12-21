@@ -32,6 +32,10 @@ const diffLabelEl = document.getElementById('diff-label');
 const modeLabelEl = document.getElementById('mode-label');
 const statusEl = document.getElementById('status');
 const quitBtn = document.getElementById('btn-quit');
+const themeSelectTitle = document.getElementById('theme-select-title');
+const themeSelectGame = document.getElementById('theme-select-game');
+
+const THEME_KEY = 'sudoku_theme';
 
 const cellEls = [];
 const keyEls = [];
@@ -85,6 +89,35 @@ function showScreen(name) {
 function setStatus(text) {
   if (!statusEl) return;
   statusEl.textContent = text;
+}
+
+function setTheme(theme, persist = true) {
+  const next = theme === 'light' ? 'light' : 'dark';
+  document.body.dataset.theme = next;
+  if (themeSelectTitle) themeSelectTitle.value = next;
+  if (themeSelectGame) themeSelectGame.value = next;
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch (err) {
+      // ignore theme save errors
+    }
+  }
+}
+
+function initTheme() {
+  let theme = 'dark';
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') {
+      theme = saved;
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      theme = 'light';
+    }
+  } catch (err) {
+    // ignore
+  }
+  setTheme(theme, false);
 }
 
 function updateLabels() {
@@ -297,7 +330,7 @@ function onKeypadClick(ev) {
   const key = ev.target.closest('.key');
   if (!key) return;
   if (key.dataset.digit) {
-    setDigit(Number(key.dataset.digit));
+    setDigit(Number(key.dataset.digit), false);
     return;
   }
   const tool = key.dataset.tool;
@@ -308,13 +341,7 @@ function onKeypadClick(ev) {
     return;
   }
   if (tool === 'eraser') {
-    gameState.input.mode = 'eraser';
-    gameState.input.digit = null;
-    updateLabels();
-    renderKeypad();
-    if (gameState.selection) {
-      applyInputToCell(gameState.selection.i, 0);
-    }
+    setEraser(false);
     return;
   }
   if (tool === 'back') {
@@ -322,7 +349,7 @@ function onKeypadClick(ev) {
   }
 }
 
-function setDigit(d) {
+function setDigit(d, applyNow) {
   if (!gameState) return;
   if (gameState.input.mode === 'eraser') {
     gameState.input.mode = 'pen';
@@ -330,8 +357,19 @@ function setDigit(d) {
   gameState.input.digit = d;
   updateLabels();
   renderKeypad();
-  if (gameState.selection) {
+  if (applyNow && gameState.selection) {
     applyInputToCell(gameState.selection.i, d);
+  }
+}
+
+function setEraser(applyNow) {
+  if (!gameState) return;
+  gameState.input.mode = 'eraser';
+  gameState.input.digit = null;
+  updateLabels();
+  renderKeypad();
+  if (applyNow && gameState.selection) {
+    applyInputToCell(gameState.selection.i, 0);
   }
 }
 
@@ -352,7 +390,7 @@ function handleKeyDown(ev) {
   const key = ev.key;
 
   if (key >= '1' && key <= '9') {
-    setDigit(Number(key));
+    setDigit(Number(key), true);
     ev.preventDefault();
     return;
   }
@@ -364,13 +402,7 @@ function handleKeyDown(ev) {
     return;
   }
   if (key === 'e' || key === 'E') {
-    gameState.input.mode = 'eraser';
-    gameState.input.digit = null;
-    updateLabels();
-    renderKeypad();
-    if (gameState.selection) {
-      applyInputToCell(gameState.selection.i, 0);
-    }
+    setEraser(true);
     ev.preventDefault();
     return;
   }
@@ -657,6 +689,16 @@ function attachEvents() {
   quitBtn.addEventListener('click', () => {
     window.location.href = 'index.html';
   });
+  if (themeSelectTitle) {
+    themeSelectTitle.addEventListener('change', () => {
+      setTheme(themeSelectTitle.value);
+    });
+  }
+  if (themeSelectGame) {
+    themeSelectGame.addEventListener('change', () => {
+      setTheme(themeSelectGame.value);
+    });
+  }
   const diffButtons = document.querySelectorAll('[data-diff]');
   diffButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -670,4 +712,5 @@ function attachEvents() {
 buildBoard();
 buildKeypad();
 attachEvents();
+initTheme();
 showScreen('title');

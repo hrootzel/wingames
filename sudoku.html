@@ -24,6 +24,14 @@
         <button data-diff="easy">Easy</button>
       </div>
 
+      <div class="theme-toggle">
+        <label for="theme-select-title">Theme</label>
+        <select id="theme-select-title">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
+
       <button id="btn-quit" class="secondary">Quit</button>
     </section>
 
@@ -49,6 +57,13 @@
           <div class="status-panel">
             <div>Difficulty: <span id="diff-label">-</span></div>
             <div>Mode: <span id="mode-label">Pen</span></div>
+            <label class="theme-toggle">
+              Theme
+              <select id="theme-select-game">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </label>
           </div>
         </aside>
       </div>
