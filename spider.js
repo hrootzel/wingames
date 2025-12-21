@@ -1,6 +1,9 @@
 ﻿// Spider Solitaire in plain JS, reusing the card rendering styles from solitaire.
 // Click or drag suited descending runs; deal adds one card to each column.
 
+import { SfxEngine } from './sfx_engine.js';
+import { BANK_SPIDER } from './card_sfx_banks.js';
+
 const SUITS = ['clubs', 'diamonds', 'hearts', 'spades'];
 const SUIT_SYMBOLS = { clubs: '\u2663\uFE0F', diamonds: '\u2666\uFE0F', hearts: '\u2665\uFE0F', spades: '\u2660\uFE0F' };
 const VALUE_LABELS = {
@@ -10,8 +13,8 @@ const VALUE_LABELS = {
 
 const TABLEAU_SPACING = 22;
 const MIN_TABLEAU_SPACING = 10;
-const TIGHTEN_START = 10;
-const TIGHTEN_END = 30;
+const TIGHTEN_START = 14;
+const TIGHTEN_END = 42;
 const CARD_WIDTH = 88;
 const CARD_HEIGHT = 120;
 const VIEWPORT_BOTTOM_MARGIN = 28;
@@ -37,6 +40,9 @@ const newBtn = document.getElementById('new-game');
 const dealBtn = document.getElementById('deal');
 const undoBtn = document.getElementById('undo');
 const difficultySelect = document.getElementById('difficulty');
+
+const sfx = new SfxEngine({ master: 0.6 });
+let audioUnlocked = false;
 
 let state;
 let selection = null;
@@ -65,6 +71,8 @@ function pushUndo() {
 
 function undo() {
   if (!undoSnapshot) return;
+  unlockAudio();
+  sfx.play(BANK_SPIDER, 'undo');
   stopWinCelebration();
   clearDragPreview();
   dragState = null;
@@ -165,6 +173,12 @@ function updateStatus(text) {
   checkForWin();
 }
 
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  sfx.unlock();
+}
+
 function checkForWin() {
   if (!state || state.won) return;
   if (state.completed !== 8) return;
@@ -172,6 +186,7 @@ function checkForWin() {
   undoSnapshot = null;
   updateUndoButton();
   statusEl.textContent = 'You win!';
+  sfx.play(BANK_SPIDER, 'win');
   startWinCelebration();
 }
 
@@ -467,7 +482,7 @@ function canDropOn(targetStack, movingBottom) {
   return top.value === movingBottom.value + 1;
 }
 
-function moveSelectionTo(colIdx) {
+function moveSelectionTo(colIdx, fromDrag = false) {
   if (!selection) return false;
   const { col, index } = selection;
   if (col === colIdx) {
@@ -478,14 +493,22 @@ function moveSelectionTo(colIdx) {
   const fromStack = state.tableau[col];
   const moving = fromStack.slice(index);
   if (moving.length === 0) return false;
-  if (!canDropOn(state.tableau[colIdx], moving[0])) return false;
+  if (!canDropOn(state.tableau[colIdx], moving[0])) {
+    if (!fromDrag) {
+      sfx.play(BANK_SPIDER, 'invalid');
+    }
+    return false;
+  }
 
   pushUndo();
   state.tableau[col] = fromStack.slice(0, index);
   state.tableau[colIdx] = state.tableau[colIdx].concat(moving);
 
   const newTop = state.tableau[col][state.tableau[col].length - 1];
-  if (newTop) newTop.faceUp = true;
+  if (newTop && !newTop.faceUp) {
+    newTop.faceUp = true;
+    sfx.play(BANK_SPIDER, 'flip');
+  }
 
   selection = null;
   const removedSuits = [];
@@ -497,10 +520,12 @@ function moveSelectionTo(colIdx) {
 
   render();
   if (removedSuits.length) {
+    removedSuits.forEach(() => sfx.play(BANK_SPIDER, 'stackComplete'));
     updateStatus(`Completed ${removedSuits.length} run${removedSuits.length === 1 ? '' : 's'}!`);
   } else {
     updateStatus('Moved');
   }
+  sfx.play(BANK_SPIDER, 'place');
   return true;
 }
 
@@ -534,20 +559,28 @@ function checkCompletedRuns(colIdx) {
 }
 
 function dealFromStock() {
+  unlockAudio();
   if (state.stock.length === 0) {
     updateStatus('No more deals.');
+    sfx.play(BANK_SPIDER, 'invalid');
     return;
   }
   if (state.tableau.some((col) => col.length === 0)) {
     updateStatus('Cannot deal: empty column present.');
+    sfx.play(BANK_SPIDER, 'invalid');
     return;
   }
   pushUndo();
+  let dealt = 0;
   for (let i = 0; i < 10; i++) {
     const card = state.stock.pop();
     if (!card) break;
     card.faceUp = true;
     state.tableau[i].push(card);
+    dealt += 1;
+  }
+  if (dealt > 0) {
+    sfx.play(BANK_SPIDER, 'dealRow', { count: dealt });
   }
 
   const removedSuits = [];
@@ -560,6 +593,7 @@ function dealFromStock() {
   }
 
   if (removedSuits.length) {
+    removedSuits.forEach(() => sfx.play(BANK_SPIDER, 'stackComplete'));
     updateStatus(`Dealt and completed ${removedSuits.length} run${removedSuits.length === 1 ? '' : 's'}!`);
   } else {
     updateStatus('Dealt one card to each column.');
@@ -568,6 +602,7 @@ function dealFromStock() {
 }
 
 function handlePointerDown(ev) {
+  unlockAudio();
   const cardEl = ev.target instanceof HTMLElement ? ev.target.closest('.card') : null;
   if (!cardEl || !tableauEl.contains(cardEl)) return;
   const col = Number(cardEl.dataset.pileindex || cardEl.dataset.col);
@@ -585,6 +620,7 @@ function handlePointerDown(ev) {
     stackSpacing: tableauSpacingForStack(state.tableau[col].length, tableauEl.getBoundingClientRect().top),
   };
   render();
+  sfx.play(BANK_SPIDER, 'pickup');
 }
 
 function buildDragPreview(cards, colIdx, startIndex, spacing) {
@@ -621,10 +657,13 @@ function attemptDrop(clientX, clientY) {
     const colEl = target.closest('.tableau-col');
     if (colEl) {
       const colIdx = Number(colEl.dataset.col);
-      handled = moveSelectionTo(colIdx);
+      handled = moveSelectionTo(colIdx, true);
     }
   }
   if (!handled) {
+    if (selection) {
+      sfx.play(BANK_SPIDER, 'invalid');
+    }
     selection = null;
     render();
   }
@@ -664,6 +703,7 @@ function handlePointerCancel() {
 
 function handleTableauClick(ev) {
   if (performance.now() < ignoreClicksUntil) return;
+  unlockAudio();
   const cardEl = ev.target instanceof HTMLElement ? ev.target.closest('.card') : null;
   const colEl = ev.target instanceof HTMLElement ? ev.target.closest('.tableau-col') : null;
   if (!colEl) return;
@@ -714,3 +754,4 @@ function attachEvents() {
 
 attachEvents();
 newGame();
+document.addEventListener('pointerdown', unlockAudio, { once: true });

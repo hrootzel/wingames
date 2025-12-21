@@ -1,0 +1,112 @@
+.plopplop {
+  --plop-panel: rgba(0, 0, 0, 0.2);
+  --plop-border: rgba(255, 255, 255, 0.12);
+  --plop-glow: rgba(34, 197, 94, 0.35);
+}
+
+.plopplop .plop-board {
+  padding: 16px;
+}
+
+.plopplop .plop-wrap {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 250px;
+  gap: 16px;
+  align-items: start;
+}
+
+.plopplop .plop-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  background: var(--plop-panel);
+  border-radius: 12px;
+  border: 1px solid var(--plop-border);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.plopplop #plop-canvas {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 24px var(--plop-glow);
+  background: #10191b;
+}
+
+.plopplop .plop-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.plopplop .panel-box {
+  background: var(--plop-panel);
+  border-radius: 12px;
+  border: 1px solid var(--plop-border);
+  padding: 12px;
+}
+
+.plopplop .panel-box h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.plopplop .preview-canvas {
+  display: block;
+  margin: 0 auto;
+}
+
+.plopplop .plop-stats {
+  text-align: left;
+}
+
+.plopplop .key-hints {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.plopplop .key-hints .key {
+  display: inline-block;
+  min-width: 84px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-weight: 700;
+  color: #a7f3d0;
+  text-align: center;
+  margin-right: 6px;
+}
+
+.plopplop .plop-controls {
+  margin-top: 12px;
+  justify-content: space-between;
+}
+
+@media (max-width: 900px) {
+  .plopplop .plop-wrap {
+    grid-template-columns: 1fr;
+  }
+
+  .plopplop .plop-panel {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .plopplop .panel-box {
+    flex: 1 1 220px;
+  }
+
+  .plopplop #plop-canvas {
+    max-width: 100%;
+  }
+}

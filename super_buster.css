@@ -1,0 +1,112 @@
+:root {
+  --buster-panel: rgba(4, 10, 22, 0.72);
+  --buster-border: rgba(148, 163, 184, 0.25);
+  --buster-glow: rgba(56, 189, 248, 0.25);
+  --buster-accent: #f97316;
+}
+
+body.superbuster {
+  background: linear-gradient(135deg, #0b1020, #132034);
+}
+
+.buster-board {
+  padding: 16px;
+}
+
+.buster-wrap {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) 260px;
+  gap: 16px;
+  align-items: start;
+}
+
+.buster-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  background: var(--buster-panel);
+  border-radius: 12px;
+  border: 1px solid var(--buster-border);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+
+#buster-canvas {
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 24px var(--buster-glow);
+  background: #0b1120;
+}
+
+.buster-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-box {
+  background: var(--buster-panel);
+  border-radius: 12px;
+  border: 1px solid var(--buster-border);
+  padding: 12px;
+}
+
+.panel-box h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(248, 250, 252, 0.8);
+}
+
+.panel-box .quick-stats {
+  text-align: left;
+}
+
+.key-hints {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.key-hints .key {
+  display: inline-block;
+  min-width: 96px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  font-weight: 700;
+  color: var(--buster-accent);
+  text-align: center;
+  margin-right: 6px;
+}
+
+.buster-controls {
+  margin-top: 12px;
+  justify-content: flex-start;
+}
+
+@media (max-width: 980px) {
+  .buster-wrap {
+    grid-template-columns: 1fr;
+  }
+
+  .buster-panel {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .panel-box {
+    flex: 1 1 240px;
+  }
+
+  #buster-canvas {
+    max-width: 100%;
+  }
+}
