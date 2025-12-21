@@ -17,6 +17,7 @@
   --sudoku-key-active: rgba(59, 130, 246, 0.2);
   --sudoku-status: rgba(226, 232, 240, 0.85);
   --sudoku-reveal: #60a5fa;
+  --sudoku-error: #f87171;
   --sudoku-modal-bg: #0f172a;
   --sudoku-modal-overlay: rgba(15, 23, 42, 0.55);
   --sudoku-gap: 10px;
@@ -47,6 +48,7 @@ body.sudoku[data-theme="light"] {
   --sudoku-key-active: rgba(37, 99, 235, 0.18);
   --sudoku-status: rgba(15, 23, 42, 0.75);
   --sudoku-reveal: #1d4ed8;
+  --sudoku-error: #dc2626;
   --sudoku-modal-bg: #ffffff;
   --sudoku-modal-overlay: rgba(148, 163, 184, 0.35);
 }
@@ -139,6 +141,11 @@ body.sudoku[data-theme="light"] {
 
 .cell.revealed .value {
   color: var(--sudoku-reveal);
+  font-weight: 700;
+}
+
+.cell.error .value {
+  color: var(--sudoku-error);
   font-weight: 700;
 }
 

@@ -615,6 +615,7 @@ function renderBoard() {
 
     cell.classList.toggle('fixed', fixed);
     cell.classList.toggle('revealed', gameState.revealed[i]);
+    cell.classList.toggle('error', gameState.errors[i]);
     cell.classList.toggle('selected', gameState.selection && gameState.selection.i === i);
 
     const valueEl = cell.querySelector('.value');
@@ -674,6 +675,7 @@ function applyInputToCell(i, d, modeOverride) {
   if (mode === 'eraser') {
     gameState.board[i] = 0;
     gameState.notes[i] = 0;
+    gameState.errors[i] = false;
     afterMove();
     return;
   }
@@ -683,6 +685,7 @@ function applyInputToCell(i, d, modeOverride) {
   if (mode === 'pen') {
     if (gameState.board[i] === d) {
       gameState.board[i] = 0;
+      gameState.errors[i] = false;
       afterMove();
       return;
     }
@@ -692,6 +695,7 @@ function applyInputToCell(i, d, modeOverride) {
     }
     gameState.board[i] = d;
     gameState.notes[i] = 0;
+    gameState.errors[i] = false;
     afterMove();
     return;
   }
@@ -807,6 +811,7 @@ function resetBoard() {
   gameState.board = gameState.puzzle.slice();
   gameState.notes = Array(81).fill(0);
   gameState.revealed = Array(81).fill(false);
+  gameState.errors = Array(81).fill(false);
   gameState.completed = false;
   gameState.selection = null;
   gameState.input.mode = 'pen';
@@ -823,6 +828,7 @@ function solvePuzzle() {
   gameState.board = gameState.solution.slice();
   gameState.notes = Array(81).fill(0);
   gameState.revealed = gameState.fixed.map((v) => !v);
+  gameState.errors = Array(81).fill(false);
   gameState.completed = true;
   gameState.selection = null;
   gameState.input.mode = 'pen';
@@ -849,6 +855,7 @@ function revealHint() {
   gameState.board[pick] = gameState.solution[pick];
   gameState.notes[pick] = 0;
   gameState.revealed[pick] = true;
+  gameState.errors[pick] = false;
   renderBoard();
   renderKeypad();
   saveGame(gameState.diff);
@@ -857,6 +864,32 @@ function revealHint() {
   } else {
     setStatus('Hint revealed.');
   }
+}
+
+function validateBoard() {
+  if (!gameState) return;
+  let hasErrors = false;
+  for (let i = 0; i < 81; i++) {
+    if (gameState.fixed[i]) {
+      gameState.errors[i] = false;
+      continue;
+    }
+    const v = gameState.board[i];
+    if (v === 0) {
+      gameState.errors[i] = false;
+      continue;
+    }
+    const wrong = v !== gameState.solution[i];
+    gameState.errors[i] = wrong;
+    if (wrong) hasErrors = true;
+  }
+  renderBoard();
+  if (hasErrors) {
+    setStatus('Puzzle has errors.');
+  } else {
+    setStatus('All guesses are valid!');
+  }
+  saveGame(gameState.diff);
 }
 
 function setSettingsOpen(open) {
@@ -946,6 +979,7 @@ function saveGame(diff) {
     fixed: gameState.fixed.map((v) => (v ? 1 : 0)),
     notes: gameState.notes,
     revealed: gameState.revealed,
+    errors: gameState.errors,
     completed: gameState.completed,
   };
   try {
@@ -976,6 +1010,9 @@ function resumeGame(saved) {
   const revealed = Array.isArray(saved.revealed) && saved.revealed.length === 81
     ? saved.revealed.map((v) => Boolean(v))
     : Array(81).fill(false);
+  const errors = Array.isArray(saved.errors) && saved.errors.length === 81
+    ? saved.errors.map((v) => Boolean(v))
+    : Array(81).fill(false);
   gameState = {
     diff: saved.diff,
     puzzle: saved.puzzle.slice(),
@@ -984,6 +1021,7 @@ function resumeGame(saved) {
     fixed: saved.fixed.map((v) => Boolean(v)),
     notes: saved.notes.slice(),
     revealed,
+    errors,
     selection: null,
     input: { mode: 'pen', digit: null },
     completed: Boolean(saved.completed),
@@ -1007,6 +1045,7 @@ function startNewGame(diff) {
     fixed: result.puzzle.map((v) => v !== 0),
     notes: Array(81).fill(0),
     revealed: Array(81).fill(false),
+    errors: Array(81).fill(false),
     selection: null,
     input: { mode: 'pen', digit: null },
     completed: false,
@@ -1230,6 +1269,10 @@ function attachEvents() {
         openModal('Do you want a Hint?', () => {
           revealHint();
         }, () => {});
+        return;
+      }
+      if (action === 'validate') {
+        validateBoard();
         return;
       }
       if (action === 'theme') {
