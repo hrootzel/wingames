@@ -1,24 +1,18 @@
 .freecell {
-  background: linear-gradient(180deg, #5a5f67, #3f434a);
-  color: #f8fafc;
-  font-family: 'Segoe UI', Tahoma, sans-serif;
-}
-
-.freecell-app {
   --fc-card-width: 88px;
   --fc-card-height: 120px;
   --fc-fan-spacing: 24px;
   --fc-card-gap: 12px;
 }
 
-.freecell-app[data-size="sm"] {
+.freecell[data-size="sm"] {
   --fc-card-width: 72px;
   --fc-card-height: 100px;
   --fc-fan-spacing: 20px;
   --fc-card-gap: 10px;
 }
 
-.freecell-app[data-size="lg"] {
+.freecell[data-size="lg"] {
   --fc-card-width: 104px;
   --fc-card-height: 144px;
   --fc-fan-spacing: 28px;
@@ -69,7 +63,7 @@
   position: relative;
 }
 
-.foundation-slot::after {
+.foundation-slot.empty::after {
   content: attr(data-suit);
   position: absolute;
   inset: 0;

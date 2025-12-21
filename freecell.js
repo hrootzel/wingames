@@ -162,6 +162,7 @@ function recordGameEnd(won) {
 
 function applyOptions() {
   appEl.dataset.size = options.cardSize;
+  document.body.dataset.size = options.cardSize;
   cardMetrics = getCardMetrics(options.cardSize);
   cardRenderer.size = options.cardSize;
   optDealMode.value = options.dealMode;
@@ -242,12 +243,16 @@ function resetState({ dealNumber, tableau }) {
   render();
 }
 
-function newGame({ dealNumber } = {}) {
+function newGame({ dealNumber, randomize } = {}) {
   if (state && state.started && !state.won) {
     recordGameEnd(false);
   }
   if (options.dealMode === 'microsoft') {
-    const safeNumber = Math.max(1, Math.min(DEAL_MAX, dealNumber ?? currentDealNumber));
+    let nextNumber = dealNumber ?? currentDealNumber ?? 1;
+    if (randomize) {
+      nextNumber = 1 + Math.floor(Math.random() * DEAL_MAX);
+    }
+    const safeNumber = Math.max(1, Math.min(DEAL_MAX, nextNumber));
     currentDealNumber = safeNumber;
     resetState({ dealNumber: safeNumber, tableau: dealMicrosoft(safeNumber) });
   } else {
@@ -378,6 +383,11 @@ function applyMove(source, dest, cards) {
 function moveSelectionToTableau(destIndex, fromDrag = false) {
   if (state.won) return false;
   if (!selection) return false;
+  if (selection.source.type === 'tableau' && selection.source.index === destIndex) {
+    selection = null;
+    render();
+    return false;
+  }
   const moving = peekSelectionCards(selection);
   if (moving.length === 0) return false;
   const destStack = state.tableau[destIndex];
@@ -551,6 +561,7 @@ function render() {
   renderFoundations();
   renderTableau();
   updateHud();
+  cleanupDanglingPreviews();
 }
 
 function cleanupDanglingPreviews() {
@@ -561,11 +572,12 @@ function cleanupDanglingPreviews() {
   });
 }
 
-function buildDragPreview(cards, spacing) {
+function buildDragPreview(cards, pileType, startIndex, pileIndex) {
   const wrap = document.createElement('div');
   wrap.className = 'drag-preview';
+  const spacing = dragState && typeof dragState.stackSpacing === 'number' ? dragState.stackSpacing : cardMetrics.spacing;
   cards.forEach((card, idx) => {
-    const el = cardRenderer.createCardElement(card);
+    const el = buildCardElement(card, pileType, pileIndex, startIndex + idx);
     el.style.position = 'absolute';
     el.style.top = `${idx * spacing}px`;
     wrap.appendChild(el);
@@ -662,11 +674,11 @@ function handlePointerMove(ev) {
   if (!dragState.dragging && dist < 4) return;
   if (!dragState.dragging) {
     const cards = peekSelectionCards(selection);
-    if (cards.length === 0) {
+    if (cards.length === 0 || !selection) {
       dragState = null;
       return;
     }
-    dragState.preview = buildDragPreview(cards, dragState.stackSpacing ?? cardMetrics.spacing);
+    dragState.preview = buildDragPreview(cards, selection.source.type, selection.cardIndex, selection.source.index);
     dragState.dragging = true;
   }
   ev.preventDefault();
@@ -775,7 +787,7 @@ function attachEvents() {
   freecellsEl.addEventListener('click', handleSlotClick);
   foundationsEl.addEventListener('click', handleSlotClick);
 
-  newBtn.addEventListener('click', () => newGame());
+  newBtn.addEventListener('click', () => newGame({ randomize: true }));
   selectGameBtn.addEventListener('click', () => {
     selectGameInput.value = String(currentDealNumber || 1);
     openModal(selectGameModal);
@@ -791,6 +803,8 @@ function attachEvents() {
     const value = Number(selectGameInput.value);
     const safeNumber = Number.isFinite(value) ? Math.max(1, Math.min(DEAL_MAX, value)) : 1;
     closeModal(selectGameModal);
+    options.dealMode = 'microsoft';
+    applyOptions();
     newGame({ dealNumber: safeNumber });
   });
   selectGameCancel.addEventListener('click', () => closeModal(selectGameModal));
@@ -826,7 +840,7 @@ function attachEvents() {
     }
     if (ev.key === 'F2') {
       ev.preventDefault();
-      newGame();
+      newGame({ randomize: true });
     } else if (ev.key === 'F3') {
       ev.preventDefault();
       selectGameInput.value = String(currentDealNumber || 1);
@@ -847,4 +861,4 @@ function attachEvents() {
 
 applyOptions();
 attachEvents();
-newGame();
+newGame({ randomize: true });
