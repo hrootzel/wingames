@@ -71,6 +71,10 @@ body.bombflagger #app {
   border: 2px solid var(--ms-panel-dark);
   background: var(--ms-panel-light);
   font-size: 24px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-shadow: inset 1px 1px 0 #ffffff,
     inset -1px -1px 0 var(--ms-panel-dark);
   cursor: pointer;
@@ -89,6 +93,8 @@ body.bombflagger #app {
   box-shadow: inset 1px 1px 0 var(--ms-panel-light),
     inset -1px -1px 0 var(--ms-panel-dark);
   overflow: auto;
+  display: flex;
+  justify-content: center;
 }
 
 #bomb-canvas {
