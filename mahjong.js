@@ -65,6 +65,12 @@ const Face = {
 };
 
 const SOLVABLE_ATTEMPTS = 200;
+const PULSE = {
+  hint: { color: '#fbbf24', duration: 1400, min: 0.18, max: 0.45, speed: 2.2 },
+  blocked: { color: '#f87171', duration: 900, min: 0.2, max: 0.5, speed: 3.2 },
+};
+
+let animationId = null;
 
 const canvas = document.getElementById('mahjong-canvas');
 const ctx = canvas.getContext('2d');
@@ -165,7 +171,7 @@ function makeType(group, rank, emoji, opts = {}) {
 }
 
 function buildTileTypes() {
-  const people = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊'];
+  const people = ['🧑‍⚕️', '🧑‍🚒', '🧟‍♂️', '🧑‍🏫', '🧑‍🔧', '🧑‍🍳', '🧑‍💻', '🧑‍🚀', '🧑‍🎨'];
   const animals = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨'];
   const foods = ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍒'];
 
@@ -426,8 +432,8 @@ function buildGame() {
     occ: deal.occ,
     drawOrder,
     selectedId: null,
-    hintIds: null,
-    hintTimer: null,
+    pulseHint: null,
+    pulseBlocked: null,
     undoStack: [],
     undoUsed: 0,
     moves: 0,
@@ -523,6 +529,37 @@ function computeLayout() {
   }
 }
 
+function startPulse(type, ids) {
+  const config = PULSE[type];
+  if (!config || !game) return;
+  const now = performance.now();
+  const pulse = { ids, start: now, end: now + config.duration, config };
+  if (type === 'hint') game.pulseHint = pulse;
+  if (type === 'blocked') game.pulseBlocked = pulse;
+  render();
+  ensureAnimation();
+}
+
+function pulseAlpha(pulse, now) {
+  const elapsed = Math.max(0, now - pulse.start) / 1000;
+  const wave = (Math.sin(elapsed * pulse.config.speed * Math.PI * 2) + 1) / 2;
+  return pulse.config.min + (pulse.config.max - pulse.config.min) * wave;
+}
+
+function ensureAnimation() {
+  if (animationId !== null) return;
+  animationId = requestAnimationFrame(renderLoop);
+}
+
+function renderLoop(time) {
+  render(time, true);
+  if (game && (game.pulseHint || game.pulseBlocked)) {
+    animationId = requestAnimationFrame(renderLoop);
+  } else {
+    animationId = null;
+  }
+}
+
 function roundRect(ctxRef, x, y, w, h, r) {
   const radius = Math.min(r, w / 2, h / 2);
   ctxRef.beginPath();
@@ -544,6 +581,8 @@ function drawTile(tile, highlight) {
   const y = tile.py;
   const radius = Math.max(4, Math.floor(tileW * 0.12));
   const base = tile.type.tint || '#f8f5ec';
+  const outline = highlight ? highlight.outline : null;
+  const pulse = highlight ? highlight.pulse : null;
 
   ctx.save();
   ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
@@ -553,6 +592,15 @@ function drawTile(tile, highlight) {
   ctx.fillStyle = base;
   roundRect(ctx, x, y, tileW, tileH, radius);
   ctx.fill();
+
+  if (pulse) {
+    ctx.save();
+    ctx.globalAlpha = pulse.alpha;
+    ctx.fillStyle = pulse.color;
+    roundRect(ctx, x, y, tileW, tileH, radius);
+    ctx.fill();
+    ctx.restore();
+  }
 
   ctx.strokeStyle = '#6b7280';
   ctx.lineWidth = 1.2;
@@ -566,8 +614,8 @@ function drawTile(tile, highlight) {
   ctx.lineTo(x + 1, y + tileH - radius);
   ctx.stroke();
 
-  if (highlight) {
-    ctx.strokeStyle = highlight;
+  if (outline) {
+    ctx.strokeStyle = outline;
     ctx.lineWidth = 3;
     roundRect(ctx, x + 1.5, y + 1.5, tileW - 3, tileH - 3, radius - 1);
     ctx.stroke();
@@ -598,22 +646,45 @@ function drawTile(tile, highlight) {
   ctx.restore();
 }
 
-function render() {
+function render(time, fromLoop = false) {
   if (!game) return;
+  const now = typeof time === 'number' ? time : performance.now();
+  if (game.pulseHint && now > game.pulseHint.end) game.pulseHint = null;
+  if (game.pulseBlocked && now > game.pulseBlocked.end) game.pulseBlocked = null;
+  const hasPulse = Boolean(game.pulseHint || game.pulseBlocked);
+
   updateFreeTiles();
   ctx.clearRect(0, 0, game.view.width, game.view.height);
   for (const id of game.drawOrder) {
     const tile = game.tiles[id];
     if (tile.removed) continue;
-    let outline = null;
-    if (tile.id === game.selectedId) {
-      outline = '#38bdf8';
-    } else if (game.hintIds && game.hintIds.includes(tile.id)) {
-      outline = '#fbbf24';
-    } else if (settings.highlightFree && tile.free) {
-      outline = 'rgba(56, 189, 248, 0.35)';
+    const isHint = game.pulseHint && game.pulseHint.ids.includes(tile.id);
+    const isBlocked = game.pulseBlocked && game.pulseBlocked.ids.includes(tile.id);
+    const pulseSource = isBlocked ? game.pulseBlocked : (isHint ? game.pulseHint : null);
+
+    const highlight = {};
+    if (pulseSource) {
+      highlight.pulse = {
+        color: pulseSource.config.color,
+        alpha: pulseAlpha(pulseSource, now),
+      };
     }
-    drawTile(tile, outline);
+
+    if (tile.id === game.selectedId) {
+      highlight.outline = '#38bdf8';
+    } else if (isBlocked) {
+      highlight.outline = '#f87171';
+    } else if (isHint) {
+      highlight.outline = '#fbbf24';
+    } else if (settings.highlightFree && tile.free) {
+      highlight.outline = 'rgba(56, 189, 248, 0.35)';
+    }
+
+    drawTile(tile, highlight);
+  }
+
+  if (hasPulse && !fromLoop) {
+    ensureAnimation();
   }
 }
 
@@ -660,6 +731,7 @@ function handleTileClick(tile) {
   if (!tile) return;
   if (!tile.free) {
     setStatus('Tile is blocked.');
+    startPulse('blocked', [tile.id]);
     return;
   }
   if (game.selectedId === null) {
@@ -714,13 +786,7 @@ function useHint() {
     return;
   }
   const ids = [match[0].id, match[1].id];
-  game.hintIds = ids;
-  render();
-  if (game.hintTimer) clearTimeout(game.hintTimer);
-  game.hintTimer = setTimeout(() => {
-    game.hintIds = null;
-    render();
-  }, 1200);
+  startPulse('hint', ids);
   setStatus('Hint highlighted.');
 }
 
