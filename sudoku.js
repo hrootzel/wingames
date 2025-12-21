@@ -550,6 +550,7 @@ function buildBoard() {
     }
   }
   boardEl.addEventListener('click', onBoardClick);
+  boardEl.addEventListener('auxclick', onBoardAuxClick);
 }
 
 function buildKeypad() {
@@ -662,14 +663,14 @@ function isValidPlacement(board, i, d) {
   return true;
 }
 
-function applyInputToCell(i, d) {
+function applyInputToCell(i, d, modeOverride) {
   if (!gameState || gameState.completed) return;
   if (gameState.fixed[i]) return;
   if (gameState.revealed[i]) {
     gameState.revealed[i] = false;
   }
 
-  const mode = gameState.input.mode;
+  const mode = modeOverride || gameState.input.mode;
   if (mode === 'eraser') {
     gameState.board[i] = 0;
     gameState.notes[i] = 0;
@@ -732,6 +733,25 @@ function onBoardClick(ev) {
   gameState.selection = { i };
   renderBoard();
   applyInputToCell(i, gameState.input.digit);
+}
+
+function onBoardAuxClick(ev) {
+  if (!gameState) return;
+  if (!modalEl.classList.contains('hidden')) return;
+  if (ev.button !== 1) return;
+  const cell = ev.target.closest('.cell');
+  if (!cell) return;
+  ev.preventDefault();
+  const i = Number(cell.dataset.i);
+  gameState.selection = { i };
+  renderBoard();
+  const d = gameState.input.digit;
+  if (!d) return;
+  if (gameState.input.mode === 'pen') {
+    applyInputToCell(i, d, 'pencil');
+  } else if (gameState.input.mode === 'pencil') {
+    applyInputToCell(i, d, 'pen');
+  }
 }
 
 function onKeypadClick(ev) {
