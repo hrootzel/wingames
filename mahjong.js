@@ -66,6 +66,12 @@ const Face = {
 
 const THEME_KEY = 'mahjong_theme';
 const SOLVABLE_ATTEMPTS = 200;
+const themeColors = {
+  tileBase: '#d7c6b0',
+  dragonRed: '#d9b3b0',
+  dragonGreen: '#b8d2b6',
+  dragonWhite: '#e6dacb',
+};
 const PULSE = {
   hint: { color: '#fbbf24', duration: 1400, min: 0.18, max: 0.45, speed: 2.2 },
   blocked: { color: '#f87171', duration: 900, min: 0.2, max: 0.5, speed: 3.2 },
@@ -121,6 +127,18 @@ function setFace(face) {
   faceBtn.textContent = face;
 }
 
+function refreshThemeColors() {
+  const styles = getComputedStyle(document.body);
+  const base = styles.getPropertyValue('--mj-tile-base').trim();
+  const red = styles.getPropertyValue('--mj-dragon-red').trim();
+  const green = styles.getPropertyValue('--mj-dragon-green').trim();
+  const white = styles.getPropertyValue('--mj-dragon-white').trim();
+  if (base) themeColors.tileBase = base;
+  if (red) themeColors.dragonRed = red;
+  if (green) themeColors.dragonGreen = green;
+  if (white) themeColors.dragonWhite = white;
+}
+
 function updateThemeButtonLabel() {
   if (!themeBtn) return;
   const current = document.body.dataset.theme === 'light' ? 'light' : 'dark';
@@ -131,6 +149,10 @@ function setTheme(theme, persist = true) {
   const next = theme === 'light' ? 'light' : 'dark';
   document.body.dataset.theme = next;
   updateThemeButtonLabel();
+  refreshThemeColors();
+  if (game) {
+    render();
+  }
   if (persist) {
     try {
       localStorage.setItem(THEME_KEY, next);
@@ -203,6 +225,7 @@ function makeType(group, rank, emoji, opts = {}) {
     rank,
     emoji,
     tint: opts.tint || null,
+    tintKey: opts.tintKey || null,
     badge: opts.badge || null,
     textColor: opts.textColor || null,
     isText: Boolean(opts.isText),
@@ -223,9 +246,9 @@ function buildTileTypes() {
     types.push(makeType(Group.WIND, wind, wind, { isText: true, textColor: '#1f2937' }));
   });
 
-  types.push(makeType(Group.DRAGON, 'R', '🀄', { tint: '#ffe1e1', badge: '🔴' }));
-  types.push(makeType(Group.DRAGON, 'G', '🀄', { tint: '#e1ffe9', badge: '🟢' }));
-  types.push(makeType(Group.DRAGON, 'W', '🀄', { tint: '#f5f0e6', badge: '⚪' }));
+  types.push(makeType(Group.DRAGON, 'R', '🀄', { tintKey: 'dragonRed', badge: '🔴' }));
+  types.push(makeType(Group.DRAGON, 'G', '🀄', { tintKey: 'dragonGreen', badge: '🟢' }));
+  types.push(makeType(Group.DRAGON, 'W', '🀄', { tintKey: 'dragonWhite', badge: '⚪' }));
 
   ['🌸', '🌼', '🌺', '🪷'].forEach((emoji, idx) => {
     types.push(makeType(Group.FLOWER, idx + 1, emoji));
@@ -621,7 +644,9 @@ function drawTile(tile, highlight) {
   const x = tile.px;
   const y = tile.py;
   const radius = Math.max(4, Math.floor(tileW * 0.12));
-  const base = tile.type.tint || '#f8f5ec';
+  const base = tile.type.tintKey
+    ? themeColors[tile.type.tintKey] || themeColors.tileBase
+    : (tile.type.tint || themeColors.tileBase);
   const outline = highlight ? highlight.outline : null;
   const outlineWidth = highlight && highlight.outlineWidth ? highlight.outlineWidth : 3;
   const pulse = highlight ? highlight.pulse : null;
