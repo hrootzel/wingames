@@ -68,9 +68,12 @@ const SOLVABLE_ATTEMPTS = 200;
 const PULSE = {
   hint: { color: '#fbbf24', duration: 1400, min: 0.18, max: 0.45, speed: 2.2 },
   blocked: { color: '#f87171', duration: 900, min: 0.2, max: 0.5, speed: 3.2 },
+  mismatch: { color: '#fb923c', duration: 900, min: 0.18, max: 0.48, speed: 2.8 },
 };
 
 let animationId = null;
+const activeTouches = new Map();
+let multiTouchActive = false;
 
 const canvas = document.getElementById('mahjong-canvas');
 const ctx = canvas.getContext('2d');
@@ -434,6 +437,7 @@ function buildGame() {
     selectedId: null,
     pulseHint: null,
     pulseBlocked: null,
+    pulseMismatch: null,
     undoStack: [],
     undoUsed: 0,
     moves: 0,
@@ -536,6 +540,7 @@ function startPulse(type, ids) {
   const pulse = { ids, start: now, end: now + config.duration, config };
   if (type === 'hint') game.pulseHint = pulse;
   if (type === 'blocked') game.pulseBlocked = pulse;
+  if (type === 'mismatch') game.pulseMismatch = pulse;
   render();
   ensureAnimation();
 }
@@ -553,7 +558,7 @@ function ensureAnimation() {
 
 function renderLoop(time) {
   render(time, true);
-  if (game && (game.pulseHint || game.pulseBlocked)) {
+  if (game && (game.pulseHint || game.pulseBlocked || game.pulseMismatch)) {
     animationId = requestAnimationFrame(renderLoop);
   } else {
     animationId = null;
@@ -651,7 +656,8 @@ function render(time, fromLoop = false) {
   const now = typeof time === 'number' ? time : performance.now();
   if (game.pulseHint && now > game.pulseHint.end) game.pulseHint = null;
   if (game.pulseBlocked && now > game.pulseBlocked.end) game.pulseBlocked = null;
-  const hasPulse = Boolean(game.pulseHint || game.pulseBlocked);
+  if (game.pulseMismatch && now > game.pulseMismatch.end) game.pulseMismatch = null;
+  const hasPulse = Boolean(game.pulseHint || game.pulseBlocked || game.pulseMismatch);
 
   updateFreeTiles();
   ctx.clearRect(0, 0, game.view.width, game.view.height);
@@ -660,7 +666,10 @@ function render(time, fromLoop = false) {
     if (tile.removed) continue;
     const isHint = game.pulseHint && game.pulseHint.ids.includes(tile.id);
     const isBlocked = game.pulseBlocked && game.pulseBlocked.ids.includes(tile.id);
-    const pulseSource = isBlocked ? game.pulseBlocked : (isHint ? game.pulseHint : null);
+    const isMismatch = game.pulseMismatch && game.pulseMismatch.ids.includes(tile.id);
+    const pulseSource = isBlocked
+      ? game.pulseBlocked
+      : (isMismatch ? game.pulseMismatch : (isHint ? game.pulseHint : null));
 
     const highlight = {};
     if (pulseSource) {
@@ -674,6 +683,8 @@ function render(time, fromLoop = false) {
       highlight.outline = '#38bdf8';
     } else if (isBlocked) {
       highlight.outline = '#f87171';
+    } else if (isMismatch) {
+      highlight.outline = '#fb923c';
     } else if (isHint) {
       highlight.outline = '#fbbf24';
     } else if (settings.highlightFree && tile.free) {
@@ -727,11 +738,13 @@ function removePair(a, b) {
   checkForMoves();
 }
 
-function handleTileClick(tile) {
+function handleTileClick(tile, options = {}) {
   if (!tile) return;
   if (!tile.free) {
     setStatus('Tile is blocked.');
-    startPulse('blocked', [tile.id]);
+    if (!options.suppressBlockedPulse) {
+      startPulse('blocked', [tile.id]);
+    }
     return;
   }
   if (game.selectedId === null) {
@@ -790,6 +803,42 @@ function useHint() {
   setStatus('Hint highlighted.');
 }
 
+function handleMultiTouch(points) {
+  if (!points || points.length < 2) return;
+  updateFreeTiles();
+  const tileA = pickTileAt(points[0].x, points[0].y);
+  const tileB = pickTileAt(points[1].x, points[1].y);
+  if (!tileA || !tileB) return;
+
+  if (tileA.id === tileB.id) {
+    handleTileClick(tileA);
+    return;
+  }
+
+  const freeA = tileA.free;
+  const freeB = tileB.free;
+  const matched = freeA && freeB && matchKey(tileA.type) === matchKey(tileB.type);
+
+  if (matched) {
+    removePair(tileA, tileB);
+    return;
+  }
+
+  if (freeA && freeB) {
+    startPulse('mismatch', [tileA.id, tileB.id]);
+  } else {
+    const blockedIds = [];
+    if (!freeA) blockedIds.push(tileA.id);
+    if (!freeB) blockedIds.push(tileB.id);
+    if (blockedIds.length > 0) {
+      startPulse('blocked', blockedIds);
+    }
+  }
+
+  handleTileClick(tileA, { suppressBlockedPulse: true });
+  handleTileClick(tileB, { suppressBlockedPulse: true });
+}
+
 function undoMove() {
   if (!settings.allowUndo) return;
   const limit = settings.undoLimit;
@@ -836,6 +885,49 @@ function onCanvasClick(ev) {
   const y = ev.clientY - rect.top;
   const tile = pickTileAt(x, y);
   handleTileClick(tile);
+}
+
+function touchPoint(touch) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: touch.clientX - rect.left,
+    y: touch.clientY - rect.top,
+  };
+}
+
+function onTouchStart(ev) {
+  ev.preventDefault();
+  for (const touch of ev.changedTouches) {
+    activeTouches.set(touch.identifier, touchPoint(touch));
+  }
+  if (activeTouches.size >= 2 && !multiTouchActive) {
+    const points = Array.from(activeTouches.values()).slice(0, 2);
+    multiTouchActive = true;
+    handleMultiTouch(points);
+  }
+}
+
+function onTouchMove(ev) {
+  for (const touch of ev.changedTouches) {
+    if (activeTouches.has(touch.identifier)) {
+      activeTouches.set(touch.identifier, touchPoint(touch));
+    }
+  }
+}
+
+function onTouchEnd(ev) {
+  ev.preventDefault();
+  for (const touch of ev.changedTouches) {
+    activeTouches.delete(touch.identifier);
+  }
+  if (activeTouches.size === 0) {
+    if (!multiTouchActive && ev.changedTouches.length > 0) {
+      const point = touchPoint(ev.changedTouches[0]);
+      const tile = pickTileAt(point.x, point.y);
+      handleTileClick(tile);
+    }
+    multiTouchActive = false;
+  }
 }
 
 function loadSettings() {
@@ -926,6 +1018,10 @@ function closeSettings() {
 function attachEvents() {
   canvas.addEventListener('click', onCanvasClick);
   canvas.addEventListener('contextmenu', (ev) => ev.preventDefault());
+  canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+  canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+  canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+  canvas.addEventListener('touchcancel', onTouchEnd, { passive: false });
 
   faceBtn.addEventListener('click', () => {
     buildGame();

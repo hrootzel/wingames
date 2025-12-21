@@ -107,6 +107,7 @@ body.mahjong #app {
   display: block;
   background: #cfd3d8;
   image-rendering: auto;
+  touch-action: none;
 }
 
 .controls {
