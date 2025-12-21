@@ -3,6 +3,8 @@
   --sudoku-border: rgba(148, 163, 184, 0.25);
   --sudoku-accent: #60a5fa;
   --sudoku-soft: rgba(255, 255, 255, 0.08);
+  --sudoku-gap: 10px;
+  --sudoku-board-size: min(70vmin, 540px);
 }
 
 body.sudoku {
@@ -43,16 +45,17 @@ body.sudoku {
 
 .game-layout {
   display: grid;
-  grid-template-columns: auto 260px;
-  gap: 24px;
+  grid-template-columns: auto minmax(180px, 220px);
+  gap: 12px;
   align-items: start;
   margin-top: 16px;
+  justify-content: center;
 }
 
 .board.sudoku-board {
   display: grid;
   grid-template-columns: repeat(9, 1fr);
-  width: min(70vmin, 540px);
+  width: var(--sudoku-board-size);
   aspect-ratio: 1 / 1;
   border: 3px solid rgba(226, 232, 240, 0.6);
   background: rgba(9, 15, 26, 0.9);
@@ -72,11 +75,13 @@ body.sudoku {
 .cell.r2,
 .cell.r5 {
   border-bottom-width: 3px;
+  border-bottom-color: rgba(226, 232, 240, 0.65);
 }
 
 .cell.c2,
 .cell.c5 {
   border-right-width: 3px;
+  border-right-color: rgba(226, 232, 240, 0.65);
 }
 
 .cell.fixed {
@@ -122,9 +127,12 @@ body.sudoku {
 
 .keypad {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  grid-template-rows: repeat(2, 56px);
-  gap: 10px;
+  --key-size: min(52px, calc((var(--sudoku-board-size) - (var(--sudoku-gap) * 5)) / 6));
+  grid-template-columns: repeat(2, var(--key-size));
+  gap: var(--sudoku-gap);
+  align-content: start;
+  justify-content: start;
+  justify-items: start;
 }
 
 .key {
@@ -132,12 +140,14 @@ body.sudoku {
   border-radius: 10px;
   display: grid;
   place-items: center;
-  font-size: 22px;
+  font-size: clamp(16px, 2.4vmin, 22px);
   cursor: pointer;
   user-select: none;
   background: rgba(15, 23, 42, 0.55);
   color: #e2e8f0;
   transition: transform 120ms ease, box-shadow 120ms ease;
+  aspect-ratio: 1 / 1;
+  width: 100%;
 }
 
 .key:hover {
@@ -146,7 +156,7 @@ body.sudoku {
 }
 
 .key.tool {
-  font-size: 16px;
+  font-size: clamp(14px, 2.1vmin, 18px);
 }
 
 .key.active {
@@ -208,11 +218,25 @@ body.sudoku {
 }
 
 @media (max-width: 900px) {
+  body.sudoku {
+    --sudoku-board-size: min(92vmin, 540px);
+  }
+
   .game-layout {
     grid-template-columns: 1fr;
   }
 
   .board.sudoku-board {
-    width: min(92vmin, 540px);
+    width: var(--sudoku-board-size);
+  }
+
+  .panel {
+    width: 100%;
+  }
+
+  .keypad {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    max-width: var(--sudoku-board-size);
+    margin: 0 auto;
   }
 }

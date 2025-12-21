@@ -129,9 +129,9 @@ function buildKeypad() {
   keyEls.length = 0;
   const keys = [
     1, 2, 3, 4, 5, 6, 7, 8, 9,
-    { tool: 'pencil', label: 'Pencil' },
-    { tool: 'eraser', label: 'Eraser' },
-    { tool: 'back', label: 'Back' },
+    { tool: 'pencil', label: '✏️' },
+    { tool: 'eraser', label: '🧽' },
+    { tool: 'back', label: '↩️' },
   ];
 
   for (const k of keys) {
