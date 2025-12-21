@@ -6,19 +6,50 @@
   --mj-panel-light: #f3f4f6;
   --mj-border: #6b7280;
   --mj-text: #111827;
+  --mj-page-text: #e2e8f0;
   --mj-shadow: rgba(0, 0, 0, 0.35);
   --mj-accent: #38bdf8;
+  --mj-modal-bg: #0f172a;
+  --mj-modal-text: #e2e8f0;
+  --mj-modal-border: rgba(148, 163, 184, 0.4);
+  --mj-modal-overlay: rgba(15, 23, 42, 0.55);
+  --mj-input-bg: rgba(15, 23, 42, 0.7);
+  --mj-input-border: rgba(148, 163, 184, 0.45);
+  --mj-icon-bg: rgba(15, 23, 42, 0.2);
+  --mj-icon-border: #6b7280;
+  --mj-canvas-bg: #cfd3d8;
 }
 
 body.mahjong {
   background: radial-gradient(circle at top, var(--mj-bg-top), var(--mj-bg-bottom));
-  color: #e2e8f0;
+  color: var(--mj-page-text);
 }
 
 body.mahjong #app {
   max-width: 1100px;
 }
 
+body.mahjong[data-theme="light"] {
+  --mj-bg-top: #f8fafc;
+  --mj-bg-bottom: #e2e8f0;
+  --mj-panel: #f3f4f6;
+  --mj-panel-dark: #9ca3af;
+  --mj-panel-light: #ffffff;
+  --mj-border: #9ca3af;
+  --mj-text: #111827;
+  --mj-page-text: #0f172a;
+  --mj-shadow: rgba(15, 23, 42, 0.2);
+  --mj-accent: #2563eb;
+  --mj-modal-bg: #ffffff;
+  --mj-modal-text: #0f172a;
+  --mj-modal-border: rgba(15, 23, 42, 0.2);
+  --mj-modal-overlay: rgba(148, 163, 184, 0.35);
+  --mj-input-bg: rgba(255, 255, 255, 0.9);
+  --mj-input-border: rgba(15, 23, 42, 0.2);
+  --mj-icon-bg: rgba(255, 255, 255, 0.8);
+  --mj-icon-border: rgba(15, 23, 42, 0.3);
+  --mj-canvas-bg: #e5e7eb;
+}
 .mahjong-board {
   background: var(--mj-panel);
   border: 2px solid var(--mj-panel-dark);
@@ -76,8 +107,8 @@ body.mahjong #app {
   width: 42px;
   height: 42px;
   border-radius: 10px;
-  border: 1px solid var(--mj-border);
-  background: rgba(15, 23, 42, 0.2);
+  border: 1px solid var(--mj-icon-border);
+  background: var(--mj-icon-bg);
   color: inherit;
   font-size: 20px;
   cursor: pointer;
@@ -105,7 +136,7 @@ body.mahjong #app {
 
 #mahjong-canvas {
   display: block;
-  background: #cfd3d8;
+  background: var(--mj-canvas-bg);
   image-rendering: auto;
   touch-action: none;
 }
@@ -128,17 +159,17 @@ body.mahjong #app {
 .ms-modal {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
+  background: var(--mj-modal-overlay);
   display: grid;
   place-items: center;
   z-index: 3000;
 }
 
 .ms-modal-card {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--mj-modal-bg);
+  color: var(--mj-modal-text);
   border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  border: 1px solid var(--mj-modal-border);
   width: min(92vw, 460px);
   padding: 16px;
   box-shadow: 0 24px 40px rgba(0, 0, 0, 0.45);
@@ -167,8 +198,8 @@ body.mahjong #app {
 .ms-field select {
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.45);
-  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--mj-input-border);
+  background: var(--mj-input-bg);
   color: inherit;
 }
 
@@ -186,6 +217,10 @@ body.mahjong #app {
 
 .ms-toggle input {
   accent-color: var(--mj-accent);
+}
+
+.ms-theme-button {
+  width: 100%;
 }
 
 .ms-error {

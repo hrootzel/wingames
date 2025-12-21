@@ -25,7 +25,7 @@ const PRESET_DEFAULTS = {
     allowUndo: true,
     undoLimit: 0,
     allowShuffle: true,
-    highlightFree: true,
+    highlightFree: false,
   },
   [Preset.INTERMEDIATE]: {
     layout: 'bridge',
@@ -34,7 +34,7 @@ const PRESET_DEFAULTS = {
     allowUndo: true,
     undoLimit: 25,
     allowShuffle: true,
-    highlightFree: true,
+    highlightFree: false,
   },
   [Preset.EXPERT]: {
     layout: 'cube',
@@ -64,6 +64,7 @@ const Face = {
   WIN: '😎',
 };
 
+const THEME_KEY = 'mahjong_theme';
 const SOLVABLE_ATTEMPTS = 200;
 const PULSE = {
   hint: { color: '#fbbf24', duration: 1400, min: 0.18, max: 0.45, speed: 2.2 },
@@ -102,6 +103,7 @@ const undoToggle = document.getElementById('undo-toggle');
 const undoLimitInput = document.getElementById('undo-limit');
 const shuffleToggle = document.getElementById('shuffle-toggle');
 const highlightToggle = document.getElementById('highlight-toggle');
+const themeBtn = document.getElementById('settings-theme');
 const settingsError = document.getElementById('settings-error');
 
 let settings = loadSettings();
@@ -117,6 +119,40 @@ function setStatus(text) {
 
 function setFace(face) {
   faceBtn.textContent = face;
+}
+
+function updateThemeButtonLabel() {
+  if (!themeBtn) return;
+  const current = document.body.dataset.theme === 'light' ? 'light' : 'dark';
+  themeBtn.textContent = current === 'dark' ? 'Light Theme' : 'Dark Theme';
+}
+
+function setTheme(theme, persist = true) {
+  const next = theme === 'light' ? 'light' : 'dark';
+  document.body.dataset.theme = next;
+  updateThemeButtonLabel();
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch (err) {
+      // ignore theme save errors
+    }
+  }
+}
+
+function initTheme() {
+  let theme = 'dark';
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') {
+      theme = saved;
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      theme = 'light';
+    }
+  } catch (err) {
+    // ignore
+  }
+  setTheme(theme, false);
 }
 
 function createRng(seed) {
@@ -587,6 +623,7 @@ function drawTile(tile, highlight) {
   const radius = Math.max(4, Math.floor(tileW * 0.12));
   const base = tile.type.tint || '#f8f5ec';
   const outline = highlight ? highlight.outline : null;
+  const outlineWidth = highlight && highlight.outlineWidth ? highlight.outlineWidth : 3;
   const pulse = highlight ? highlight.pulse : null;
 
   ctx.save();
@@ -621,7 +658,7 @@ function drawTile(tile, highlight) {
 
   if (outline) {
     ctx.strokeStyle = outline;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = outlineWidth;
     roundRect(ctx, x + 1.5, y + 1.5, tileW - 3, tileH - 3, radius - 1);
     ctx.stroke();
   }
@@ -681,14 +718,19 @@ function render(time, fromLoop = false) {
 
     if (tile.id === game.selectedId) {
       highlight.outline = '#38bdf8';
+      highlight.outlineWidth = 4.5;
     } else if (isBlocked) {
       highlight.outline = '#f87171';
+      highlight.outlineWidth = 4;
     } else if (isMismatch) {
       highlight.outline = '#fb923c';
+      highlight.outlineWidth = 4;
     } else if (isHint) {
       highlight.outline = '#fbbf24';
+      highlight.outlineWidth = 3.5;
     } else if (settings.highlightFree && tile.free) {
       highlight.outline = 'rgba(56, 189, 248, 0.35)';
+      highlight.outlineWidth = 2.5;
     }
 
     drawTile(tile, highlight);
@@ -943,7 +985,7 @@ function loadSettings() {
     allowUndo: localStorage.getItem(STORAGE.allowUndo) !== 'false',
     undoLimit: Number(localStorage.getItem(STORAGE.undoLimit) || presetDefaults.undoLimit || 0),
     allowShuffle: localStorage.getItem(STORAGE.allowShuffle) !== 'false',
-    highlightFree: localStorage.getItem(STORAGE.highlightFree) !== 'false',
+    highlightFree: localStorage.getItem(STORAGE.highlightFree) === 'true',
   };
 }
 
@@ -970,6 +1012,7 @@ function syncSettingsUI() {
   undoLimitInput.disabled = !settings.allowUndo;
   shuffleToggle.checked = settings.allowShuffle;
   highlightToggle.checked = settings.highlightFree;
+  updateThemeButtonLabel();
   settingsError.textContent = '';
 }
 
@@ -1045,6 +1088,13 @@ function attachEvents() {
     buildGame();
   });
 
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      const next = document.body.dataset.theme === 'light' ? 'dark' : 'light';
+      setTheme(next);
+    });
+  }
+
   presetSelect.addEventListener('change', () => {
     const preset = presetSelect.value;
     if (preset !== Preset.CUSTOM) {
@@ -1071,5 +1121,6 @@ function attachEvents() {
   });
 }
 
+initTheme();
 attachEvents();
 buildGame();
