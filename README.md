@@ -8,11 +8,14 @@ Local, dependency-free implementations of card, puzzle, and arcade games using J
 - **Spider**: 1/2/4-suit difficulty, 10 columns, suited descending moves, deal one card per column, auto-removal of completed K?A runs.
 - **Video Poker**: 9-6 Jacks or Better, hold/draw, pay table highlighting (fixed bet 5).
 - **Blackjack, M.D.**: Configurable deck count/rules (surrender, DAS, double restrictions, soft-17), split/double/surrender buttons, and a built-in basic-strategy hint.
+- **Bombflagger**: Minesweeper-style presets, custom boards, and emoji flags.
+- **Mahjong Solitaire**: Taipei layout with matching free pairs and solvable-by-construction deals.
+- **Hackerman**: Mastermind/Bulls & Cows hybrid with colors or digits mode.
+- **Sudoku**: Difficulty-based logic puzzle with notes, eraser, and resume support.
 - **Puzzle Puncher**: Drop gem pairs, build power blocks, detonate crash clears.
 - **Pill Popper**: Dr. Mario-style virus buster with falling capsules and chain clears.
 - **PlopPlop**: Puyo-style blob matching with chain scoring.
 - **Super Buster**: Pang-style harpoon action with bouncing balls that split.
-- **Sudoku**: Difficulty-based logic puzzle with notes, eraser, and resume support.
 - **Soundboard (prototype)**: Chiptune SFX tester for the shared sound banks.
 
 ## Run locally
@@ -25,6 +28,9 @@ Local, dependency-free implementations of card, puzzle, and arcade games using J
    - `http://localhost:8000/spider.html` (Spider)
    - `http://localhost:8000/videopoker.html` (Video Poker)
    - `http://localhost:8000/blackjackmd.html` (Dr. Blackjack)
+   - `http://localhost:8000/bombflagger.html` (Bombflagger)
+   - `http://localhost:8000/mahjong.html` (Mahjong Solitaire)
+   - `http://localhost:8000/hackerman.html` (Hackerman)
    - `http://localhost:8000/puzzle_puncher.html` (Puzzle Puncher)
    - `http://localhost:8000/pill_popper.html` (Pill Popper)
    - `http://localhost:8000/plop_plop.html` (PlopPlop)

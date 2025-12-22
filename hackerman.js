@@ -1,0 +1,683 @@
+﻿// Hackerman — Mastermind / Bulls & Cows (no external libs)
+// Assumptions:
+// - Code length fixed at 4 (classic Mastermind & common Bulls/Cows)
+// - Colors mode: 6 colors, repeats allowed (classic)
+// - Digits mode: digits 0-9, repeats NOT allowed (classic Bulls & Cows)
+
+const CODE_LEN = 4;
+
+const COLORS = [
+  { id: 0, name: "Neo Green", hex: "#38ff7d" },
+  { id: 1, name: "Cyan Leak", hex: "#43e3ff" },
+  { id: 2, name: "Laser Magenta", hex: "#ff5ce1" },
+  { id: 3, name: "Amber Trace", hex: "#ffb84d" },
+  { id: 4, name: "Red Flag", hex: "#ff4d6d" },
+  { id: 5, name: "Violet Cipher", hex: "#8b7cff" },
+];
+
+const DEFAULT_SETTINGS = {
+  mode: "colors",    // "colors" | "digits"
+  theme: "dark",     // "dark" | "light"
+  rows: 12,
+};
+
+const STORAGE_KEY = "hackerman_settings_v1";
+
+let settings = loadSettings();
+let state = null;
+
+// ---------- Utilities ----------
+function $(sel){ return document.querySelector(sel); }
+
+function popcount(x){
+  let c = 0;
+  while (x){ x &= x-1; c++; }
+  return c;
+}
+
+function randInt(n){ return Math.floor(Math.random()*n); }
+
+function shuffle(a){
+  for (let i=a.length-1;i>0;i--){
+    const j = randInt(i+1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function toast(msg){
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._tm);
+  toast._tm = setTimeout(()=>t.classList.remove("show"), 1400);
+}
+
+// ---------- Persistence ----------
+function loadSettings(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    const parsed = JSON.parse(raw);
+    return {
+      mode: (parsed.mode === "digits" ? "digits" : "colors"),
+      theme: (parsed.theme === "light" ? "light" : "dark"),
+      rows: clampInt(parsed.rows, 6, 20, DEFAULT_SETTINGS.rows),
+    };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+function saveSettings(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+}
+
+function clampInt(v, lo, hi, fallback){
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(lo, Math.min(hi, Math.round(n)));
+}
+
+// ---------- Game state ----------
+function newGame(){
+  const secret = (settings.mode === "colors")
+    ? genSecretColors()
+    : genSecretDigits();
+
+  state = {
+    secret,
+    guesses: Array.from({length: settings.rows}, () => Array(CODE_LEN).fill(null)),
+    feedback: Array.from({length: settings.rows}, () => null),
+    row: 0,
+    activePos: 0,
+    selectedInput: null, // colors: color id; digits: digit
+    ended: false,
+    won: false,
+  };
+
+  renderAll();
+  updateSecretDisplay(false);
+  updateStatus();
+  toast("NEW SESSION: CONNECTED");
+}
+
+function genSecretColors(){
+  const out = [];
+  for (let i=0;i<CODE_LEN;i++) out.push(COLORS[randInt(COLORS.length)].id);
+  return out;
+}
+
+function genSecretDigits(){
+  // Classic Bulls & Cows typically uses unique digits.
+  const digits = shuffle([0,1,2,3,4,5,6,7,8,9]);
+  return digits.slice(0, CODE_LEN);
+}
+
+// ---------- Evaluation ----------
+// Returns {bulls, cows} where:
+// - bulls = correct symbol in correct position
+// - cows  = correct symbol wrong position
+function evaluate(guess, secret){
+  let bulls = 0;
+  const gRem = [];
+  const sRem = [];
+
+  for (let i=0;i<CODE_LEN;i++){
+    if (guess[i] === secret[i]) bulls++;
+    else {
+      gRem.push(guess[i]);
+      sRem.push(secret[i]);
+    }
+  }
+
+  // Count cows via frequency
+  const freq = new Map();
+  for (const v of sRem) freq.set(v, (freq.get(v) || 0) + 1);
+
+  let cows = 0;
+  for (const v of gRem){
+    const n = freq.get(v) || 0;
+    if (n > 0){
+      cows++;
+      freq.set(v, n-1);
+    }
+  }
+
+  return { bulls, cows };
+}
+
+// Mastermind display: black pegs = bulls; white pegs = cows
+function feedbackToPegs({bulls, cows}){
+  const pegs = [];
+  for (let i=0;i<bulls;i++) pegs.push("black");
+  for (let i=0;i<cows;i++) pegs.push("white");
+  while (pegs.length < 4) pegs.push("empty");
+  return pegs;
+}
+
+// ---------- Input rules ----------
+function canEditRow(r){ return !state.ended && r === state.row; }
+
+function setActivePos(i){
+  if (state.ended) return;
+  state.activePos = i;
+  renderBoard();
+}
+
+function placeValue(value){
+  if (state.ended) return;
+  const r = state.row;
+  const pos = state.activePos;
+
+  if (!canEditRow(r)) return;
+
+  const rowArr = state.guesses[r];
+
+  // Toggle: if same already in position, remove
+  if (rowArr[pos] === value){
+    rowArr[pos] = null;
+    // advance to next empty
+    state.activePos = nextEditablePos(rowArr, pos);
+    renderBoard();
+    updateStatus();
+    return;
+  }
+
+  // Digits mode: prevent duplicate digits in the row (classic Bulls & Cows)
+  if (settings.mode === "digits"){
+    if (rowArr.includes(value)){
+      toast("DUPLICATE DIGIT BLOCKED");
+      return;
+    }
+  }
+
+  rowArr[pos] = value;
+  state.activePos = nextEditablePos(rowArr, pos);
+  renderBoard();
+  updateStatus();
+}
+
+function nextEditablePos(rowArr, from){
+  // Next empty slot after 'from', else first empty, else keep last
+  for (let i=from+1;i<CODE_LEN;i++) if (rowArr[i] == null) return i;
+  for (let i=0;i<CODE_LEN;i++) if (rowArr[i] == null) return i;
+  return from;
+}
+
+function backspace(){
+  if (state.ended) return;
+  const r = state.row;
+  const rowArr = state.guesses[r];
+  // Remove from active position if filled, else step backward to last filled
+  if (rowArr[state.activePos] != null){
+    rowArr[state.activePos] = null;
+  } else {
+    for (let i=state.activePos-1;i>=0;i--){
+      if (rowArr[i] != null){
+        rowArr[i] = null;
+        state.activePos = i;
+        break;
+      }
+    }
+  }
+  renderBoard();
+  updateStatus();
+}
+
+function clearRow(){
+  if (state.ended) return;
+  const r = state.row;
+  state.guesses[r] = Array(CODE_LEN).fill(null);
+  state.activePos = 0;
+  renderBoard();
+  updateStatus();
+}
+
+function rowComplete(rowArr){
+  return rowArr.every(v => v != null);
+}
+
+function submit(){
+  if (state.ended) return;
+
+  const r = state.row;
+  const g = state.guesses[r];
+  if (!rowComplete(g)){
+    toast("INCOMPLETE GUESS");
+    return;
+  }
+
+  const fb = evaluate(g, state.secret);
+  state.feedback[r] = fb;
+
+  if (fb.bulls === CODE_LEN){
+    state.ended = true;
+    state.won = true;
+    updateSecretDisplay(true);
+    renderBoard();
+    updateStatus();
+    toast("ACCESS GRANTED");
+    return;
+  }
+
+  if (r === settings.rows - 1){
+    state.ended = true;
+    state.won = false;
+    updateSecretDisplay(true);
+    renderBoard();
+    updateStatus();
+    toast("ACCESS DENIED");
+    return;
+  }
+
+  // advance row
+  state.row++;
+  state.activePos = nextEditablePos(state.guesses[state.row], 0);
+  renderBoard();
+  updateStatus();
+}
+
+function revealAndEnd(){
+  if (state.ended) return;
+  state.ended = true;
+  state.won = false;
+  updateSecretDisplay(true);
+  renderBoard();
+  updateStatus();
+  toast("SESSION TERMINATED");
+}
+
+// ---------- Rendering ----------
+function renderAll(){
+  applyTheme();
+  $("#modeLabel").textContent = `MODE: ${settings.mode.toUpperCase()}`;
+  $("#rowsLabel").textContent = String(settings.rows);
+  renderBoard();
+  renderControls();
+  updateHelp();
+}
+
+function renderBoard(){
+  const rowsEl = $("#rows");
+  rowsEl.innerHTML = "";
+
+  for (let r=0;r<settings.rows;r++){
+    const rowEl = document.createElement("div");
+    rowEl.className = "row" + (r < state.row || state.ended ? " locked" : "");
+
+    const slots = document.createElement("div");
+    slots.className = "slots";
+
+    for (let p=0;p<CODE_LEN;p++){
+      const slot = document.createElement("div");
+      slot.className = "slot";
+      const editable = canEditRow(r);
+
+      if (!editable) slot.classList.add("disabled");
+      if (editable && p === state.activePos) slot.classList.add("active");
+
+      const v = state.guesses[r][p];
+
+      if (settings.mode === "digits"){
+        const d = document.createElement("div");
+        d.className = "digit";
+        d.textContent = v == null ? "_" : String(v);
+        slot.appendChild(d);
+      } else {
+        const dot = document.createElement("div");
+        dot.className = "color";
+        if (v == null) {
+          dot.style.opacity = "0.25";
+          dot.style.background = "rgba(255,255,255,0.10)";
+          dot.style.borderColor = "rgba(255,255,255,0.10)";
+        } else {
+          dot.style.background = COLORS[v].hex;
+        }
+        slot.appendChild(dot);
+      }
+
+      slot.addEventListener("click", () => {
+        if (!editable) return;
+        setActivePos(p);
+      });
+
+      slots.appendChild(slot);
+    }
+
+    const fbEl = document.createElement("div");
+
+    if (settings.mode === "colors"){
+      fbEl.className = "feedback";
+      const fb = state.feedback[r];
+      const pegs = fb ? feedbackToPegs(fb) : ["empty","empty","empty","empty"];
+      for (const kind of pegs){
+        const peg = document.createElement("div");
+        peg.className = "peg";
+        if (kind === "black") peg.classList.add("black");
+        else if (kind === "white") peg.classList.add("white");
+        fbEl.appendChild(peg);
+      }
+    } else {
+      fbEl.className = "fbText";
+      const fb = state.feedback[r];
+      fbEl.innerHTML = fb ? `Bulls: <b>${fb.bulls}</b><br/>Cows: <b>${fb.cows}</b>` : "&nbsp;";
+    }
+
+    rowEl.appendChild(slots);
+    rowEl.appendChild(fbEl);
+    rowsEl.appendChild(rowEl);
+  }
+}
+
+function renderControls(){
+  const root = $("#controlsMain");
+  root.innerHTML = "";
+
+  if (settings.mode === "colors"){
+    const title = document.createElement("div");
+    title.className = "mini";
+    title.innerHTML = "Select a color, then tap a slot. Tap the same color in the same slot to remove.";
+    root.appendChild(title);
+
+    const pal = document.createElement("div");
+    pal.className = "palette";
+
+    for (const c of COLORS){
+      const sw = document.createElement("div");
+      sw.className = "swatch";
+      sw.title = c.name;
+      sw.style.background = `linear-gradient(180deg, ${c.hex}, rgba(0,0,0,0.18))`;
+
+      if (state.selectedInput === c.id) sw.classList.add("active");
+
+      sw.addEventListener("click", () => {
+        if (state.ended) return;
+        state.selectedInput = (state.selectedInput === c.id) ? null : c.id;
+        renderControls();
+        if (state.selectedInput != null){
+          // Place immediately into active position for speed.
+          placeValue(state.selectedInput);
+        }
+      });
+
+      pal.appendChild(sw);
+    }
+
+    root.appendChild(pal);
+
+  } else {
+    const title = document.createElement("div");
+    title.className = "mini";
+    title.innerHTML = "Enter digits using the keypad. Digits are unique (no repeats).";
+    root.appendChild(title);
+
+    const pad = document.createElement("div");
+    pad.className = "keypad";
+
+    const keys = [1,2,3,4,5,6,7,8,9,0];
+    for (const k of keys){
+      const el = document.createElement("div");
+      el.className = "key";
+      el.textContent = String(k);
+
+      const already = state.guesses[state.row].includes(k);
+      if (!state.ended && already) el.classList.add("disabled");
+
+      el.addEventListener("click", () => {
+        if (state.ended) return;
+        if (state.guesses[state.row].includes(k)){
+          toast("DUPLICATE DIGIT BLOCKED");
+          return;
+        }
+        placeValue(k);
+      });
+
+      pad.appendChild(el);
+    }
+
+    // Backspace key
+    const bs = document.createElement("div");
+    bs.className = "key";
+    bs.textContent = "⌫";
+    bs.title = "Backspace";
+    bs.addEventListener("click", backspace);
+    pad.appendChild(bs);
+
+    // Jump to next/previous slot keys
+    const prev = document.createElement("div");
+    prev.className = "key";
+    prev.textContent = "◀";
+    prev.title = "Move left";
+    prev.addEventListener("click", () => {
+      if (state.ended) return;
+      state.activePos = Math.max(0, state.activePos - 1);
+      renderBoard();
+    });
+    pad.appendChild(prev);
+
+    const next = document.createElement("div");
+    next.className = "key";
+    next.textContent = "▶";
+    next.title = "Move right";
+    next.addEventListener("click", () => {
+      if (state.ended) return;
+      state.activePos = Math.min(CODE_LEN - 1, state.activePos + 1);
+      renderBoard();
+    });
+    pad.appendChild(next);
+
+    root.appendChild(pad);
+  }
+
+  // Disable submit if ended
+  $("#btn-submit").disabled = !!state.ended;
+  $("#btn-clear").disabled = !!state.ended;
+  $("#btn-reveal").disabled = !!state.ended;
+}
+
+function updateSecretDisplay(reveal){
+  const el = $("#secretDisplay");
+  if (!reveal){
+    el.textContent = "•".repeat(CODE_LEN);
+    return;
+  }
+
+  if (settings.mode === "digits"){
+    el.textContent = state.secret.join("");
+  } else {
+    // Render as colored dots
+    el.innerHTML = "";
+    for (const id of state.secret){
+      const dot = document.createElement("span");
+      dot.style.display = "inline-block";
+      dot.style.width = "14px";
+      dot.style.height = "14px";
+      dot.style.borderRadius = "999px";
+      dot.style.background = COLORS[id].hex;
+      dot.style.border = "1px solid rgba(255,255,255,0.18)";
+      el.appendChild(dot);
+    }
+  }
+}
+
+function updateHelp(){
+  const help = $("#helpText");
+  if (settings.mode === "colors"){
+    help.innerHTML = "Feedback: <b>black</b> = correct color & position. <b>white</b> = correct color wrong position.";
+  } else {
+    help.innerHTML = "Feedback: <b>Bulls</b> = correct digit & position. <b>Cows</b> = correct digit wrong position.";
+  }
+}
+
+function updateStatus(){
+  const s = $("#status");
+  if (state.ended){
+    s.textContent = state.won ? "ACCESS GRANTED" : "ACCESS FAILED";
+    return;
+  }
+
+  const g = state.guesses[state.row];
+  const filled = g.filter(v => v != null).length;
+  s.textContent = `row ${state.row+1}/${settings.rows} // ${filled}/${CODE_LEN} locked`;
+}
+
+function applyTheme(){
+  document.body.dataset.theme = settings.theme;
+  $("#themeLabel").textContent = (settings.theme === "light") ? "Light" : "Dark";
+
+  // Hacker-ish tagline shifts by theme
+  $("#tagline").textContent = settings.theme === "dark"
+    ? "// trace route: localhost → mainframe"
+    : "// decrypt the pattern";
+}
+
+// ---------- Settings UI ----------
+function openSettings(){
+  syncSettingsFormFromState();
+  $("#modal").classList.add("show");
+}
+
+function closeSettings(){
+  $("#modal").classList.remove("show");
+}
+
+function syncSettingsFormFromState(){
+  $("#sel-mode").value = settings.mode;
+  $("#chk-theme").checked = (settings.theme === "light");
+  $("#rng-rows").value = String(settings.rows);
+  $("#rowsVal").textContent = String(settings.rows);
+  $("#themeLabel").textContent = (settings.theme === "light") ? "Light" : "Dark";
+}
+
+function readSettingsForm(){
+  const mode = $("#sel-mode").value === "digits" ? "digits" : "colors";
+  const theme = $("#chk-theme").checked ? "light" : "dark";
+  const rows = clampInt($("#rng-rows").value, 6, 20, DEFAULT_SETTINGS.rows);
+  return { mode, theme, rows };
+}
+
+function applySettings(next, startNew=false){
+  const modeChanged = next.mode !== settings.mode;
+  const rowsChanged = next.rows !== settings.rows;
+  const themeChanged = next.theme !== settings.theme;
+
+  settings = next;
+  saveSettings();
+  applyTheme();
+
+  if (themeChanged){
+    toast("THEME UPDATED");
+  }
+
+  // If mode/rows changed, the current board shape/secret changes. Start a new game.
+  if (startNew || modeChanged || rowsChanged){
+    newGame();
+  } else {
+    renderAll();
+  }
+}
+
+// ---------- Event wiring ----------
+function wireUI(){
+  $("#btn-settings").addEventListener("click", openSettings);
+  $("#btn-close").addEventListener("click", closeSettings);
+
+  $("#btn-new").addEventListener("click", () => newGame());
+  $("#btn-submit").addEventListener("click", submit);
+  $("#btn-clear").addEventListener("click", clearRow);
+  $("#btn-reveal").addEventListener("click", revealAndEnd);
+
+  // Modal background click closes
+  $("#modal").addEventListener("click", (e) => {
+    if (e.target.id === "modal") closeSettings();
+  });
+
+  $("#rng-rows").addEventListener("input", () => {
+    $("#rowsVal").textContent = String($("#rng-rows").value);
+  });
+
+  $("#chk-theme").addEventListener("change", () => {
+    $("#themeLabel").textContent = $("#chk-theme").checked ? "Light" : "Dark";
+  });
+
+  $("#btn-apply").addEventListener("click", () => {
+    const next = readSettingsForm();
+    applySettings(next, false);
+    closeSettings();
+  });
+
+  $("#btn-apply-new").addEventListener("click", () => {
+    const next = readSettingsForm();
+    applySettings(next, true);
+    closeSettings();
+  });
+
+  $("#btn-reset").addEventListener("click", () => {
+    settings = { ...DEFAULT_SETTINGS };
+    saveSettings();
+    applyTheme();
+    syncSettingsFormFromState();
+    newGame();
+    toast("DEFAULTS RESTORED");
+  });
+
+  // Keyboard support (nice on desktop)
+  window.addEventListener("keydown", (e) => {
+    if (!state || state.ended) return;
+    if ($("#modal").classList.contains("show")) return;
+
+    if (settings.mode === "digits"){
+      if (e.key >= "0" && e.key <= "9"){
+        const d = Number(e.key);
+        if (state.guesses[state.row].includes(d)) { toast("DUPLICATE DIGIT BLOCKED"); return; }
+        placeValue(d);
+        return;
+      }
+      if (e.key === "Backspace" || e.key === "Delete"){
+        backspace();
+        e.preventDefault();
+        return;
+      }
+    }
+
+    if (e.key === "Enter"){
+      submit();
+      return;
+    }
+
+    if (e.key === "Escape"){
+      clearRow();
+      return;
+    }
+
+    if (e.key === "ArrowLeft"){
+      state.activePos = Math.max(0, state.activePos - 1);
+      renderBoard();
+      return;
+    }
+
+    if (e.key === "ArrowRight"){
+      state.activePos = Math.min(CODE_LEN - 1, state.activePos + 1);
+      renderBoard();
+      return;
+    }
+  });
+}
+
+// ---------- Boot ----------
+function boot(){
+  applyTheme();
+  wireUI();
+
+  // Initialize modal form with settings
+  syncSettingsFormFromState();
+
+  // Label top bar
+  $("#rowsLabel").textContent = String(settings.rows);
+
+  newGame();
+}
+
+boot();
+
