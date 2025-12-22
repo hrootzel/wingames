@@ -294,6 +294,10 @@ main {
   box-shadow: 0 10px 20px rgba(0,0,0,0.35);
 }
 
+[data-theme="light"] .slot .color {
+  border-color: rgba(0,0,0,0.25);
+}
+
 .feedback {
   display: grid;
   grid-template-columns: repeat(2, var(--peg));
@@ -315,6 +319,12 @@ main {
 
 .peg.black { background: #0b0b0b; border-color: rgba(255,255,255,0.2); }
 .peg.white { background: #f2f2f2; border-color: rgba(0,0,0,0.15); }
+.peg.empty { background: transparent; }
+
+[data-theme="light"] .peg.empty {
+  border-style: dotted;
+  border-color: rgba(0,0,0,0.45);
+}
 
 .fbText {
   font-size: 12px;

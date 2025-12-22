@@ -7,12 +7,12 @@
 const CODE_LEN = 4;
 
 const COLORS = [
-  { id: 0, name: "Neo Green", hex: "#38ff7d" },
-  { id: 1, name: "Cyan Leak", hex: "#43e3ff" },
-  { id: 2, name: "Laser Magenta", hex: "#ff5ce1" },
-  { id: 3, name: "Amber Trace", hex: "#ffb84d" },
-  { id: 4, name: "Red Flag", hex: "#ff4d6d" },
-  { id: 5, name: "Violet Cipher", hex: "#8b7cff" },
+  { id: 0, name: "Red", hex: "#e53935" },
+  { id: 1, name: "Blue", hex: "#1e88e5" },
+  { id: 2, name: "Green", hex: "#43a047" },
+  { id: 3, name: "Yellow", hex: "#fdd835" },
+  { id: 4, name: "White", hex: "#f5f5f5" },
+  { id: 5, name: "Black", hex: "#1e1e1e" },
 ];
 
 const DEFAULT_SETTINGS = {
@@ -356,6 +356,7 @@ function renderBoard(){
         peg.className = "peg";
         if (kind === "black") peg.classList.add("black");
         else if (kind === "white") peg.classList.add("white");
+        else peg.classList.add("empty");
         fbEl.appendChild(peg);
       }
     } else {
@@ -383,23 +384,21 @@ function renderControls(){
     const pal = document.createElement("div");
     pal.className = "palette";
 
-    for (const c of COLORS){
-      const sw = document.createElement("div");
-      sw.className = "swatch";
-      sw.title = c.name;
-      sw.style.background = `linear-gradient(180deg, ${c.hex}, rgba(0,0,0,0.18))`;
+      for (const c of COLORS){
+        const sw = document.createElement("div");
+        sw.className = "swatch";
+        sw.title = c.name;
+        sw.style.background = `linear-gradient(180deg, ${c.hex}, rgba(0,0,0,0.18))`;
 
-      if (state.selectedInput === c.id) sw.classList.add("active");
+        if (state.selectedInput === c.id) sw.classList.add("active");
 
-      sw.addEventListener("click", () => {
-        if (state.ended) return;
-        state.selectedInput = (state.selectedInput === c.id) ? null : c.id;
-        renderControls();
-        if (state.selectedInput != null){
+        sw.addEventListener("click", () => {
+          if (state.ended) return;
+          state.selectedInput = c.id;
+          renderControls();
           // Place immediately into active position for speed.
-          placeValue(state.selectedInput);
-        }
-      });
+          placeValue(c.id);
+        });
 
       pal.appendChild(sw);
     }
