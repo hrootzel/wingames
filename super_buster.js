@@ -1,5 +1,6 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_SUPERBUSTER } from './sfx_bank_super_buster.js';
+import { drawBackground, drawHarpoon, drawBall, drawPlayer } from './super_buster_sprite.js';
 
 const WORLD_W = 640;
 const WORLD_H = 360;
@@ -372,86 +373,13 @@ function update(dt) {
   updatePlaying(dt);
 }
 
-function drawBackground() {
-  const grad = ctx.createLinearGradient(0, 0, 0, WORLD_H);
-  grad.addColorStop(0, '#111827');
-  grad.addColorStop(1, '#0b1120');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-
-  ctx.fillStyle = '#0b1d2a';
-  ctx.fillRect(0, FLOOR_Y, WORLD_W, WORLD_H - FLOOR_Y);
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(0, FLOOR_Y + 0.5);
-  ctx.lineTo(WORLD_W, FLOOR_Y + 0.5);
-  ctx.stroke();
-}
-
-function drawHarpoon() {
-  const h = game.harpoon;
-  if (!h.active) return;
-  ctx.strokeStyle = '#e2e8f0';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(h.x, h.yBottom);
-  ctx.lineTo(h.x, h.yTop);
-  ctx.stroke();
-}
-
-function drawBall(ball) {
-  const r = RADIUS[ball.size];
-  const palette = BALL_COLORS[ball.size % BALL_COLORS.length];
-  const grad = ctx.createRadialGradient(
-    ball.x - r * 0.35,
-    ball.y - r * 0.35,
-    r * 0.15,
-    ball.x,
-    ball.y,
-    r
-  );
-  grad.addColorStop(0, palette.highlight);
-  grad.addColorStop(0.55, palette.base);
-  grad.addColorStop(1, palette.shadow);
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(ball.x, ball.y, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(15, 23, 42, 0.35)';
-  ctx.lineWidth = Math.max(1, r * 0.08);
-  ctx.stroke();
-}
-
-function drawPlayer() {
-  const p = game.player;
-  const apexX = p.x;
-  const apexY = FLOOR_Y - p.h;
-  const leftX = p.x - p.w / 2;
-  const rightX = p.x + p.w / 2;
-  const baseY = FLOOR_Y;
-
-  ctx.fillStyle = '#f97316';
-  ctx.beginPath();
-  ctx.moveTo(apexX, apexY);
-  ctx.lineTo(rightX, baseY);
-  ctx.lineTo(leftX, baseY);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.strokeStyle = 'rgba(15, 23, 42, 0.4)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-}
-
 function render() {
-  drawBackground();
-  drawHarpoon();
+  drawBackground(ctx, WORLD_W, WORLD_H, FLOOR_Y);
+  drawHarpoon(ctx, game.harpoon);
   for (const ball of game.balls) {
-    drawBall(ball);
+    drawBall(ctx, ball, RADIUS, BALL_COLORS);
   }
-  drawPlayer();
+  drawPlayer(ctx, game.player, FLOOR_Y);
 }
 
 function updateHud() {

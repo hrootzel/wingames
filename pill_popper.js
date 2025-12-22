@@ -1,5 +1,7 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_PILLPOPPER } from './sfx_bank_pill_popper.js';
+import { roundRect } from './rendering_engine.js';
+import { drawSegment, drawVirus } from './pill_popper_sprite.js';
 
 const W = 8;
 const H = 18;
@@ -670,280 +672,6 @@ function cellToY(row) {
   return view.boardTop + (VISIBLE_H - 1 - row) * view.cellSize;
 }
 
-function roundRect(ctxRef, x, y, w, h, r, corners) {
-  const tl = corners.tl ? r : 0;
-  const tr = corners.tr ? r : 0;
-  const br = corners.br ? r : 0;
-  const bl = corners.bl ? r : 0;
-
-  ctxRef.beginPath();
-  ctxRef.moveTo(x + tl, y);
-  ctxRef.lineTo(x + w - tr, y);
-  if (tr) ctxRef.arcTo(x + w, y, x + w, y + tr, tr);
-  else ctxRef.lineTo(x + w, y);
-  ctxRef.lineTo(x + w, y + h - br);
-  if (br) ctxRef.arcTo(x + w, y + h, x + w - br, y + h, br);
-  else ctxRef.lineTo(x + w, y + h);
-  ctxRef.lineTo(x + bl, y + h);
-  if (bl) ctxRef.arcTo(x, y + h, x, y + h - bl, bl);
-  else ctxRef.lineTo(x, y + h);
-  ctxRef.lineTo(x, y + tl);
-  if (tl) ctxRef.arcTo(x, y, x + tl, y, tl);
-  else ctxRef.lineTo(x, y);
-  ctxRef.closePath();
-}
-
-function roundRectPath(x, y, w, h, radii) {
-  const maxR = Math.min(w, h) / 2;
-  const tl = Math.min(radii.tl, maxR);
-  const tr = Math.min(radii.tr, maxR);
-  const br = Math.min(radii.br, maxR);
-  const bl = Math.min(radii.bl, maxR);
-
-  const p = new Path2D();
-  p.moveTo(x + tl, y);
-  p.lineTo(x + w - tr, y);
-  p.arcTo(x + w, y, x + w, y + tr, tr);
-  p.lineTo(x + w, y + h - br);
-  p.arcTo(x + w, y + h, x + w - br, y + h, br);
-  p.lineTo(x + bl, y + h);
-  p.arcTo(x, y + h, x, y + h - bl, bl);
-  p.lineTo(x, y + tl);
-  p.arcTo(x, y, x + tl, y, tl);
-  p.closePath();
-  return p;
-}
-
-function hexToRgb(hex) {
-  const cleaned = hex.replace('#', '');
-  const full = cleaned.length === 3
-    ? cleaned.split('').map((c) => c + c).join('')
-    : cleaned;
-  const num = Number.parseInt(full, 16);
-  if (!Number.isFinite(num)) return null;
-  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
-}
-
-function shadeHex(hex, amount) {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return hex;
-  const t = amount < 0 ? 0 : 255;
-  const p = Math.min(1, Math.max(0, Math.abs(amount)));
-  const r = Math.round(rgb.r + (t - rgb.r) * p);
-  const g = Math.round(rgb.g + (t - rgb.g) * p);
-  const b = Math.round(rgb.b + (t - rgb.b) * p);
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function segmentInsets(link, s) {
-  if (link === Link.L || link === Link.R) {
-    return { padX: s * 0.06, padY: s * 0.14 };
-  }
-  if (link === Link.U || link === Link.D) {
-    return { padX: s * 0.14, padY: s * 0.06 };
-  }
-  return { padX: s * 0.1, padY: s * 0.1 };
-}
-
-function segmentRadii(link, baseR, flatR) {
-  const r = { tl: baseR, tr: baseR, br: baseR, bl: baseR };
-  if (link === Link.R) {
-    r.tr = flatR;
-    r.br = flatR;
-  } else if (link === Link.L) {
-    r.tl = flatR;
-    r.bl = flatR;
-  } else if (link === Link.U) {
-    r.tl = flatR;
-    r.tr = flatR;
-  } else if (link === Link.D) {
-    r.bl = flatR;
-    r.br = flatR;
-  }
-  return r;
-}
-
-function segmentCorners(link) {
-  const corners = { tl: true, tr: true, br: true, bl: true };
-  if (link === Link.R) {
-    corners.tr = false;
-    corners.br = false;
-  } else if (link === Link.L) {
-    corners.tl = false;
-    corners.bl = false;
-  } else if (link === Link.U) {
-    corners.tl = false;
-    corners.tr = false;
-  } else if (link === Link.D) {
-    corners.bl = false;
-    corners.br = false;
-  }
-  return corners;
-}
-
-function drawSegment(ctxRef, x, y, s, colorKey, link) {
-  const palette = PALETTE[colorKey];
-  const { padX, padY } = segmentInsets(link, s);
-  const w = s - padX * 2;
-  const h = s - padY * 2;
-  const x0 = x + padX;
-  const y0 = y + padY;
-  const baseR = Math.min(w, h) / 2;
-  const flatR = baseR * 0.28;
-  const radii = segmentRadii(link, baseR, flatR);
-  const path = roundRectPath(x0, y0, w, h, radii);
-
-  const gx = x0 + w * 0.32;
-  const gy = y0 + h * 0.25;
-  const r0 = Math.min(w, h) * 0.08;
-  const r1 = Math.max(w, h) * 0.95;
-  const grad = ctxRef.createRadialGradient(gx, gy, r0, gx, gy, r1);
-  grad.addColorStop(0, shadeHex(palette.light, 0.12));
-  grad.addColorStop(0.55, palette.base);
-  grad.addColorStop(1, palette.dark);
-  ctxRef.fillStyle = grad;
-  ctxRef.fill(path);
-
-  ctxRef.lineWidth = Math.max(1, s * 0.055);
-  ctxRef.strokeStyle = 'rgba(0, 0, 0, 0.22)';
-  ctxRef.stroke(path);
-
-  ctxRef.save();
-  ctxRef.clip(path);
-  ctxRef.globalAlpha = 0.25;
-  ctxRef.fillStyle = 'white';
-  ctxRef.beginPath();
-  ctxRef.ellipse(
-    x0 + w * 0.35,
-    y0 + h * 0.3,
-    w * 0.38,
-    h * 0.24,
-    -0.35,
-    0,
-    Math.PI * 2
-  );
-  ctxRef.fill();
-
-  ctxRef.globalAlpha = 0.38;
-  ctxRef.beginPath();
-  ctxRef.arc(x0 + w * 0.28, y0 + h * 0.22, Math.min(w, h) * 0.12, 0, Math.PI * 2);
-  ctxRef.fill();
-  ctxRef.restore();
-}
-
-function drawVirus(ctxRef, x, y, s, colorKey) {
-  const palette = PALETTE[colorKey];
-  const virusPalette = {
-    light: shadeHex(palette.light, -0.35),
-    base: shadeHex(palette.base, -0.3),
-    dark: shadeHex(palette.dark, -0.45),
-  };
-  const cx = x + s / 2;
-  const cy = y + s / 2;
-  const r = s * 0.42;
-  const gx = cx - r + 2 * r * 0.35;
-  const gy = cy - r + 2 * r * 0.3;
-  const r0 = 2 * r * 0.05;
-  const r1 = 2 * r * 0.85;
-  const grad = ctxRef.createRadialGradient(gx, gy, r0, gx, gy, r1);
-  grad.addColorStop(0, virusPalette.light);
-  grad.addColorStop(0.55, virusPalette.base);
-  grad.addColorStop(1, virusPalette.dark);
-
-  ctxRef.beginPath();
-  ctxRef.arc(cx, cy, r, 0, Math.PI * 2);
-  ctxRef.fillStyle = grad;
-  ctxRef.fill();
-
-  ctxRef.lineWidth = Math.max(1, s * 0.06);
-  ctxRef.strokeStyle = 'rgba(0, 0, 0, 0.25)';
-  ctxRef.stroke();
-
-  ctxRef.save();
-  ctxRef.globalAlpha = 0.22;
-  ctxRef.beginPath();
-  ctxRef.arc(cx, cy, r * 0.82, 0, Math.PI * 2);
-  ctxRef.lineWidth = Math.max(1, s * 0.03);
-  ctxRef.strokeStyle = virusPalette.light;
-  ctxRef.stroke();
-  ctxRef.restore();
-
-  ctxRef.save();
-  ctxRef.lineWidth = Math.max(1, s * 0.04);
-  ctxRef.strokeStyle = 'rgba(0, 0, 0, 0.38)';
-  ctxRef.stroke();
-  ctxRef.restore();
-
-  ctxRef.save();
-  ctxRef.beginPath();
-  ctxRef.arc(cx, cy, r, 0, Math.PI * 2);
-  ctxRef.clip();
-
-  ctxRef.globalAlpha = 0.22;
-  ctxRef.fillStyle = 'white';
-  ctxRef.beginPath();
-  ctxRef.ellipse(
-    cx - r * 0.28,
-    cy - r * 0.38,
-    r * 0.7,
-    r * 0.48,
-    -0.35,
-    0,
-    Math.PI * 2
-  );
-  ctxRef.fill();
-
-  ctxRef.globalAlpha = 0.35;
-  ctxRef.beginPath();
-  ctxRef.arc(cx - r * 0.38, cy - r * 0.48, r * 0.12, 0, Math.PI * 2);
-  ctxRef.fill();
-  ctxRef.restore();
-
-  ctxRef.save();
-  const eyeOffsetX = r * 0.22;
-  const eyeOffsetY = r * 0.08;
-  const eyeR = r * 0.14;
-  ctxRef.fillStyle = 'rgba(255, 255, 255, 0.9)';
-  ctxRef.beginPath();
-  ctxRef.arc(cx - eyeOffsetX, cy - eyeOffsetY, eyeR, 0, Math.PI * 2);
-  ctxRef.arc(cx + eyeOffsetX, cy - eyeOffsetY, eyeR, 0, Math.PI * 2);
-  ctxRef.fill();
-  ctxRef.fillStyle = 'rgba(10, 10, 10, 0.9)';
-  ctxRef.beginPath();
-  ctxRef.arc(cx - eyeOffsetX + r * 0.04, cy - eyeOffsetY, eyeR * 0.42, 0, Math.PI * 2);
-  ctxRef.arc(cx + eyeOffsetX + r * 0.04, cy - eyeOffsetY, eyeR * 0.42, 0, Math.PI * 2);
-  ctxRef.fill();
-  ctxRef.restore();
-
-  ctxRef.save();
-  ctxRef.strokeStyle = 'rgba(10, 10, 10, 0.75)';
-  ctxRef.lineWidth = Math.max(1, s * 0.035);
-  ctxRef.lineCap = 'round';
-  const browY = cy - eyeOffsetY - eyeR * 0.9;
-  ctxRef.beginPath();
-  ctxRef.moveTo(cx - eyeOffsetX - eyeR * 0.6, browY - eyeR * 0.2);
-  ctxRef.lineTo(cx - eyeOffsetX + eyeR * 0.4, browY + eyeR * 0.2);
-  ctxRef.moveTo(cx + eyeOffsetX - eyeR * 0.4, browY + eyeR * 0.2);
-  ctxRef.lineTo(cx + eyeOffsetX + eyeR * 0.6, browY - eyeR * 0.2);
-  ctxRef.stroke();
-
-  ctxRef.beginPath();
-  ctxRef.arc(cx, cy + r * 0.24, r * 0.2, 1.1 * Math.PI, 1.9 * Math.PI);
-  ctxRef.stroke();
-  ctxRef.restore();
-
-  ctxRef.save();
-  ctxRef.globalAlpha = 0.16;
-  ctxRef.fillStyle = virusPalette.dark;
-  for (let i = 0; i < 3; i++) {
-    const a = i * 2.1;
-    ctxRef.beginPath();
-    ctxRef.arc(cx + Math.cos(a) * r * 0.35, cy + Math.sin(a) * r * 0.25, r * 0.12, 0, Math.PI * 2);
-    ctxRef.fill();
-  }
-  ctxRef.restore();
-}
-
 function drawBoard(alpha) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -993,9 +721,9 @@ function drawBoard(alpha) {
       const x = cellToX(c);
       const y = cellToY(r);
       if (cell.kind === Kind.VIRUS) {
-        drawVirus(ctx, x, y, view.cellSize, cell.color);
+        drawVirus(ctx, x, y, view.cellSize, cell.color, PALETTE);
       } else {
-        drawSegment(ctx, x, y, view.cellSize, cell.color, cell.link);
+        drawSegment(ctx, x, y, view.cellSize, cell.color, cell.link, PALETTE);
       }
     }
   }
@@ -1009,7 +737,7 @@ function drawBoard(alpha) {
       const y = cellToY(cell.r) + offset;
       const { aLink, bLink } = linksForOrient(game.active.orient);
       const link = cell.which === 'A' ? aLink : bLink;
-      drawSegment(ctx, x, y, view.cellSize, cell.color, link);
+      drawSegment(ctx, x, y, view.cellSize, cell.color, link, PALETTE);
     }
   }
 
@@ -1037,8 +765,8 @@ function drawNextCapsule() {
   const size = 32;
   const x = nextCanvas.width / 2 - size;
   const y = nextCanvas.height / 2 - size / 2;
-  drawSegment(nextCtx, x, y, size, game.nextSpec.aColor, Link.R);
-  drawSegment(nextCtx, x + size, y, size, game.nextSpec.bColor, Link.L);
+  drawSegment(nextCtx, x, y, size, game.nextSpec.aColor, Link.R, PALETTE);
+  drawSegment(nextCtx, x + size, y, size, game.nextSpec.bColor, Link.L, PALETTE);
 }
 
 function getFallOffset(alpha) {
