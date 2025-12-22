@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hackerman</title>
+  <link rel="stylesheet" href="hackerman.css">
+</head>
+<body data-theme="dark">
+  <div class="app">
+    <header>
+      <div class="brand">
+        <h1>Hackerman</h1>
+        <div class="tag" id="tagline">// crack the code</div>
+      </div>
+      <div class="hdr-actions">
+        <button class="btn danger" id="btn-reveal" title="Reveal (ends game)">Reveal & End</button>
+        <button class="btn" id="btn-new" title="New game">New</button>
+        <button class="btn icon" id="btn-settings" title="Settings">⚙</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="layout">
+
+        <!-- BOARD CARD -->
+        <section class="card boardWrap" aria-label="Game board">
+          <div class="boardTop">
+            <div class="secret">
+              <span id="modeLabel">MODE: COLORS</span>
+              <span style="opacity:.55">|</span>
+              <span>ROWS: <span id="rowsLabel"></span></span>
+            </div>
+            <div class="secret">
+              <span>ACCESS CODE</span>
+              <span class="code" id="secretDisplay" aria-label="Secret code" title="Revealed on win/lose">••••</span>
+            </div>
+          </div>
+          <div class="scroll">
+            <div class="rows" id="rows"></div>
+          </div>
+        </section>
+
+        <!-- CONTROLS CARD -->
+        <aside class="card controls" aria-label="Controls">
+          <div class="card-hdr">
+            <div class="title">Input</div>
+            <div class="sub" id="status">awaiting input</div>
+          </div>
+
+          <div class="section" id="controlsMain">
+            <!-- populated by JS depending on mode -->
+          </div>
+
+          <div class="section">
+            <div class="mini" id="helpText"></div>
+            <div class="actions">
+              <button class="btn primary" id="btn-submit">Submit</button>
+              <button class="btn" id="btn-clear">Clear</button>
+            </div>
+            <div style="height:10px"></div>
+          </div>
+        </aside>
+
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modalCard">
+      <div class="modalHdr">
+        <div class="t" id="settingsTitle">Settings</div>
+        <button class="btn icon" id="btn-close" title="Close">✕</button>
+      </div>
+      <div class="modalBody">
+        <div class="form">
+          <div class="field">
+            <label for="sel-mode">Mode</label>
+            <select id="sel-mode">
+              <option value="colors">Colors (Mastermind: 6 colors)</option>
+              <option value="digits">Digits (Bulls & Cows)</option>
+            </select>
+            <div class="fine">Both modes use a 4-slot code. Digits mode uses unique digits by default (classic Bulls & Cows).</div>
+            <div class="fine">Keyboard: 1-6 selects colors (red, blue, green, yellow, white, black). Digits mode uses 0-9. Backspace deletes. Enter submits.</div>
+          </div>
+
+          <div class="field">
+            <div class="rowFlex">
+              <div>
+                <label>Theme</label>
+                <div class="fine">Dark mode uses a Matrix-like terminal palette.</div>
+              </div>
+              <select id="sel-theme" aria-label="Theme">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="rng-rows">Guess rows: <span id="rowsVal"></span></label>
+            <input id="rng-rows" type="range" min="6" max="20" step="1" />
+          </div>
+
+          <div class="field">
+            <label>Quick actions</label>
+            <div class="rowFlex">
+              <button class="btn" id="btn-apply">Apply</button>
+              <button class="btn primary" id="btn-apply-new">Apply & New Game</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footerBtns">
+        <button class="btn" id="btn-reset">Reset Defaults</button>
+      </div>
+    </div>
+  </div>
+  <script src="hackerman.js"></script>
+</body>
+</html>
+
