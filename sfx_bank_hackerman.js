@@ -39,9 +39,10 @@ export const BANK_HACKERMAN = {
     sfx.tone({ freq: 520, type: 'square', duty: 0.5, duration: 0.018, volume: 0.045, jitter: 2 });
   },
   placeSymbol: (sfx) => {
-    // placing a digit/color into a slot
-    sfx.tone({ freq: 740, type: 'square', duty: 0.25, duration: 0.03, volume: 0.075, jitter: 4 });
-    sfx.tone({ freq: 370, type: 'triangle', duration: 0.025, volume: 0.045, delay: 0.01 });
+    // placing a digit/color into a slot (terminal keyboard click)
+    sfx.noise({ duration: 0.012, volume: 0.035, tint: 0.35 });
+    sfx.tone({ freq: 1400, type: 'square', duty: 0.125, duration: 0.012, volume: 0.05, jitter: 6 });
+    sfx.tone({ freq: 240, type: 'triangle', duration: 0.02, volume: 0.03, delay: 0.004 });
   },
   removeSymbol: (sfx) => {
     // toggling off a symbol

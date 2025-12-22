@@ -98,6 +98,11 @@ function setDotColorVars(el, hex){
 function toast(msg){
   const t = $("#toast");
   t.textContent = msg;
+  const denied = msg === "ACCESS DENIED";
+  const granted = msg === "ACCESS GRANTED";
+  t.classList.toggle("denied", denied);
+  t.classList.toggle("granted", granted);
+  t.classList.toggle("banner", denied || granted);
   t.classList.add("show");
   clearTimeout(toast._tm);
   toast._tm = setTimeout(()=>t.classList.remove("show"), 1400);
