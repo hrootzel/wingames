@@ -345,6 +345,7 @@ function updateSpeedUps() {
   if (game.speedUps >= SPEED_UP_MAX) return;
   if (game.pillsPlaced === 8 || (game.pillsPlaced > 8 && (game.pillsPlaced - 8) % 10 === 0)) {
     game.speedUps = Math.min(SPEED_UP_MAX, game.speedUps + 1);
+    sfx.play(BANK_PILLPOPPER, 'speedUp');
   }
 }
 
@@ -654,6 +655,9 @@ function resolveBoard(dt) {
     resolve.settleTimer += dt;
     while (resolve.settleTimer >= RESOLVE_DROP_INTERVAL) {
       const moved = settleOnce(game.board);
+      if (moved) {
+        sfx.play(BANK_PILLPOPPER, 'settle');
+      }
       resolve.settleTimer -= RESOLVE_DROP_INTERVAL;
       if (!moved) {
         resolve.settling = false;
@@ -685,12 +689,11 @@ function resolveBoard(dt) {
   if (resolve.chain >= 2) {
     sfx.play(BANK_PILLPOPPER, 'chain', { chain: resolve.chain, chainIndex: resolve.chain });
   }
-  sfx.play(BANK_PILLPOPPER, 'clear', {
-    viruses: lastViruses,
-    cleared: matches.size,
-    chain: resolve.chain,
-    chainIndex: resolve.chain,
-  });
+  if (lastViruses > 0) {
+    sfx.play(BANK_PILLPOPPER, 'clearVirus', { viruses: lastViruses, chain: resolve.chain });
+  } else {
+    sfx.play(BANK_PILLPOPPER, 'clearPill', { chain: resolve.chain });
+  }
   if (lastViruses > 0) {
     const points = scoreVirusesCleared(lastViruses);
     game.score += points;
