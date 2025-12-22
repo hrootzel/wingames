@@ -91,6 +91,8 @@ header {
   display: flex;
   gap: 10px;
   align-items: center;
+  margin-left: auto;
+  justify-content: flex-end;
 }
 
 .btn {
@@ -141,12 +143,18 @@ main {
   height: 100%;
   display: grid;
   gap: var(--gap);
-  grid-template-columns: minmax(280px, 1fr) 320px;
+  grid-template-columns: minmax(220px, 1fr) 300px;
   grid-template-rows: 1fr;
   align-items: stretch;
 }
 
 @media (max-width: 860px) {
+  header {
+    flex-wrap: wrap;
+  }
+  header .hdr-actions {
+    flex: 1 1 100%;
+  }
   .layout {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr auto;
@@ -158,6 +166,37 @@ main {
   }
   .palette-wrap .key {
     width: 100%;
+  }
+  .controls .section {
+    padding: 10px 12px;
+  }
+  .card .card-hdr {
+    padding: 10px 12px;
+  }
+  .card .card-hdr .title,
+  .card .card-hdr .sub {
+    font-size: 11px;
+  }
+  .mini {
+    font-size: 11px;
+  }
+  .palette {
+    gap: 8px;
+  }
+  .swatch {
+    height: 36px;
+    border-radius: 12px;
+  }
+  .palette-wrap {
+    margin-top: 8px;
+  }
+  .controls .key,
+  .controls .btn {
+    height: 38px;
+  }
+  .actions {
+    gap: 8px;
+    margin-top: 10px;
   }
 }
 
