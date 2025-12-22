@@ -177,8 +177,6 @@ function placeValue(value){
   // Toggle: if same already in position, remove
   if (rowArr[pos] === value){
     rowArr[pos] = null;
-    // advance to next empty
-    state.activePos = nextEditablePos(rowArr, pos);
     renderBoard();
     updateStatus();
     return;
@@ -381,11 +379,14 @@ function renderControls(){
     title.innerHTML = "Select a color, then tap a slot. Tap the same color in the same slot to remove.";
     root.appendChild(title);
 
+    const palWrap = document.createElement("div");
+    palWrap.className = "palette-wrap";
+
     const pal = document.createElement("div");
     pal.className = "palette";
 
-      for (const c of COLORS){
-        const sw = document.createElement("div");
+    for (const c of COLORS){
+      const sw = document.createElement("div");
         sw.className = "swatch";
         sw.title = c.name;
         sw.style.setProperty("--swatch-color", c.hex);
@@ -403,7 +404,16 @@ function renderControls(){
       pal.appendChild(sw);
     }
 
-    root.appendChild(pal);
+    palWrap.appendChild(pal);
+
+    const back = document.createElement("div");
+    back.className = "key";
+    back.textContent = "⌫";
+    back.title = "Backspace";
+    back.addEventListener("click", backspace);
+    palWrap.appendChild(back);
+
+    root.appendChild(palWrap);
 
   } else {
     const title = document.createElement("div");

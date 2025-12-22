@@ -151,6 +151,14 @@ main {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr auto;
   }
+  .palette-wrap {
+    grid-template-columns: 1fr 64px;
+    align-items: center;
+    justify-items: stretch;
+  }
+  .palette-wrap .key {
+    width: 100%;
+  }
 }
 
 .card {
@@ -353,11 +361,26 @@ main {
   line-height: 1.25;
 }
 
+.palette-wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  justify-items: center;
+  margin-top: 12px;
+}
+
+.palette-wrap .palette {
+  width: 100%;
+}
+
+.palette-wrap .key {
+  width: 80%;
+}
+
 .palette {
   display: grid;
   grid-template-columns: repeat(6, minmax(40px, 1fr));
   gap: 10px;
-  margin-top: 12px;
 }
 
 .swatch {
