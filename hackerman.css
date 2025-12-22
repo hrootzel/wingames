@@ -369,12 +369,21 @@ main {
   position: relative;
   -webkit-tap-highlight-color: transparent;
   overflow: hidden;
-  background-clip: padding-box;
+  background-color: var(--swatch-color, #37ff7c);
 }
 
 .swatch.active {
   outline: 3px solid rgba(55,255,124,0.55);
   outline-offset: 2px;
+}
+
+.swatch::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(0,0,0,0.28));
+  pointer-events: none;
 }
 
 .keypad {

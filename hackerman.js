@@ -388,7 +388,7 @@ function renderControls(){
         const sw = document.createElement("div");
         sw.className = "swatch";
         sw.title = c.name;
-        sw.style.background = `linear-gradient(180deg, ${c.hex}, rgba(0,0,0,0.18))`;
+        sw.style.setProperty("--swatch-color", c.hex);
 
         if (state.selectedInput === c.id) sw.classList.add("active");
 
