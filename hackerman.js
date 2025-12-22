@@ -570,7 +570,7 @@ function updateSecretDisplay(reveal){
 function updateHelp(){
   const help = $("#helpText");
   if (settings.mode === "colors"){
-    help.innerHTML = "Feedback: <b>black</b> = correct color & position. <b>white</b> = correct color wrong position.";
+    help.innerHTML = "Feedback: <b>black</b> ⚫ = correct color & position. <b>white</b> ⚪ = correct color wrong position.";
   } else {
     help.innerHTML = "Feedback: <b>Bulls</b> = correct digit & position. <b>Cows</b> = correct digit wrong position.";
   }
@@ -774,6 +774,5 @@ function boot(){
 }
 
 boot();
-
 
 
