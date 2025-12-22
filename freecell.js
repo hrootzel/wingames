@@ -23,6 +23,7 @@ const movesEl = document.getElementById('moves');
 const timeEl = document.getElementById('time');
 const statusEl = document.getElementById('status');
 const newBtn = document.getElementById('new-game');
+const autoMoveBtn = document.getElementById('auto-move');
 const selectGameBtn = document.getElementById('select-game');
 const statsBtn = document.getElementById('stats');
 const undoBtn = document.getElementById('undo');
@@ -67,6 +68,7 @@ let timerId = null;
 let clickTracker = { cardKey: null, time: 0 };
 let ignoreClicksUntil = 0;
 let currentDealNumber = 1;
+let winOverlay = null;
 
 function getCardMetrics(sizeKey) {
   return SIZE_PRESETS[sizeKey] || SIZE_PRESETS.md;
@@ -138,6 +140,26 @@ function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function stopWinPopup() {
+  if (!winOverlay) return;
+  if (winOverlay.parentElement) {
+    winOverlay.parentElement.removeChild(winOverlay);
+  }
+  winOverlay = null;
+}
+
+function showWinPopup() {
+  stopWinPopup();
+  const overlay = document.createElement('div');
+  overlay.className = 'win-overlay';
+  const msg = document.createElement('div');
+  msg.className = 'win-message';
+  msg.textContent = `You win! Time: ${formatTime(state.timeSeconds)} Moves: ${state.moves} (New Game to restart)`;
+  overlay.appendChild(msg);
+  document.body.appendChild(overlay);
+  winOverlay = overlay;
 }
 
 function openModal(modalEl) {
@@ -247,6 +269,7 @@ function dealRoundRobin(cards) {
 }
 
 function resetState({ dealNumber, tableau }) {
+  stopWinPopup();
   state = {
     tableau,
     freecells: Array.from({ length: FREECELL_SLOTS }, () => []),
@@ -506,6 +529,42 @@ function moveSelectionToAutoFoundation() {
   return moveSelectionToFoundation(destIndex, true);
 }
 
+function autoMoveOnce() {
+  if (!state || state.won) return false;
+
+  for (let i = 0; i < TABLEAU_COLS; i++) {
+    const stack = state.tableau[i];
+    if (!stack.length) continue;
+    const card = stack[stack.length - 1];
+    const destIndex = SUITS.indexOf(card.suit);
+    if (destIndex < 0) continue;
+    if (!canPlaceOnFoundation(card, state.foundations[destIndex], destIndex)) continue;
+    const removed = [stack.pop()];
+    applyMove({ type: 'tableau', index: i }, { type: 'foundation', index: destIndex }, removed);
+    return true;
+  }
+
+  return false;
+}
+
+function autoMoveAll() {
+  if (!state || state.won) return;
+  selection = null;
+  clearDragPreview();
+  dragState = null;
+
+  let movedAny = false;
+  let moved = false;
+  do {
+    moved = autoMoveOnce();
+    movedAny = movedAny || moved;
+  } while (moved && !state.won);
+
+  if (!movedAny) {
+    render();
+  }
+}
+
 function undo() {
   if (state.won) return;
   const move = undoStack.pop();
@@ -529,6 +588,7 @@ function checkForWin() {
   recordGameEnd(true);
   updateStatus('You win! Click New Game to play again.');
   updateHud();
+  showWinPopup();
 }
 
 function buildCardElement(card, pileType, pileIndex, cardIndex) {
@@ -963,6 +1023,7 @@ function attachEvents() {
   });
   undoBtn.addEventListener('click', () => undo());
   optionsBtn.addEventListener('click', () => openModal(optionsModal));
+  autoMoveBtn.addEventListener('click', () => autoMoveAll());
 
   selectGameOk.addEventListener('click', () => {
     const value = Number(selectGameInput.value);

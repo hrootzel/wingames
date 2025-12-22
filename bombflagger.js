@@ -446,10 +446,16 @@ function newGame() {
 
 function resizeCanvas() {
   const wrap = canvas.parentElement;
-  const available = wrap ? wrap.clientWidth - 4 : 640;
+  let available = 640;
+  if (wrap) {
+    const styles = window.getComputedStyle(wrap);
+    const padLeft = Number.parseFloat(styles.paddingLeft) || 0;
+    const padRight = Number.parseFloat(styles.paddingRight) || 0;
+    const contentWidth = wrap.clientWidth - padLeft - padRight;
+    available = Math.max(0, Math.floor(contentWidth - 1));
+  }
   const maxTile = 30;
-  const minTile = 16;
-  tileSize = clamp(Math.floor(available / game.cols), minTile, maxTile);
+  tileSize = clamp(Math.floor(available / game.cols), 1, maxTile);
 
   const width = game.cols * tileSize;
   const height = game.rows * tileSize;

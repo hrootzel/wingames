@@ -82,6 +82,17 @@ body.sudoku[data-theme="light"] {
   box-shadow: none;
 }
 
+#screen-title .title-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  margin-top: 4px;
+}
+
+#screen-title .title-actions button {
+  width: min(220px, 100%);
+}
+
 .hud {
   margin-top: 12px;
 }
@@ -328,6 +339,17 @@ body.sudoku[data-theme="light"] {
   color: #e2e8f0;
   border: 1px solid var(--sudoku-border);
   box-shadow: none;
+}
+
+.instructions-body {
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--sudoku-status);
+}
+
+.instructions-body p {
+  margin: 0;
 }
 
 @keyframes shake {
