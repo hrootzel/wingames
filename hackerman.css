@@ -368,6 +368,8 @@ main {
   cursor: pointer;
   position: relative;
   -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+  background-clip: padding-box;
 }
 
 .swatch.active {

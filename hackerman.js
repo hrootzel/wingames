@@ -523,8 +523,6 @@ function updateStatus(){
 
 function applyTheme(){
   document.body.dataset.theme = settings.theme;
-  $("#themeLabel").textContent = (settings.theme === "light") ? "Light" : "Dark";
-
   // Hacker-ish tagline shifts by theme
   $("#tagline").textContent = settings.theme === "dark"
     ? "// trace route: localhost → mainframe"
@@ -543,15 +541,14 @@ function closeSettings(){
 
 function syncSettingsFormFromState(){
   $("#sel-mode").value = settings.mode;
-  $("#chk-theme").checked = (settings.theme === "light");
+  $("#sel-theme").value = settings.theme;
   $("#rng-rows").value = String(settings.rows);
   $("#rowsVal").textContent = String(settings.rows);
-  $("#themeLabel").textContent = (settings.theme === "light") ? "Light" : "Dark";
 }
 
 function readSettingsForm(){
   const mode = $("#sel-mode").value === "digits" ? "digits" : "colors";
-  const theme = $("#chk-theme").checked ? "light" : "dark";
+  const theme = $("#sel-theme").value === "light" ? "light" : "dark";
   const rows = clampInt($("#rng-rows").value, 6, 20, DEFAULT_SETTINGS.rows);
   return { mode, theme, rows };
 }
@@ -594,10 +591,6 @@ function wireUI(){
 
   $("#rng-rows").addEventListener("input", () => {
     $("#rowsVal").textContent = String($("#rng-rows").value);
-  });
-
-  $("#chk-theme").addEventListener("change", () => {
-    $("#themeLabel").textContent = $("#chk-theme").checked ? "Light" : "Dark";
   });
 
   $("#btn-apply").addEventListener("click", () => {
