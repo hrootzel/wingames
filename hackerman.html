@@ -101,6 +101,17 @@
           </div>
 
           <div class="field">
+            <div class="rowFlex">
+              <label for="toggle-sound">Sound</label>
+              <label class="toggle">
+                <input id="toggle-sound" type="checkbox">
+                <span>Enable sound effects</span>
+              </label>
+            </div>
+            <div class="fine">Tap or press a key once to unlock audio.</div>
+          </div>
+
+          <div class="field">
             <label for="rng-rows">Guess rows: <span id="rowsVal"></span></label>
             <input id="rng-rows" type="range" min="6" max="20" step="1" />
           </div>
@@ -119,7 +130,6 @@
       </div>
     </div>
   </div>
-  <script src="hackerman.js"></script>
+  <script type="module" src="hackerman.js"></script>
 </body>
 </html>
-
