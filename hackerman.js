@@ -97,6 +97,7 @@ function newGame(){
   };
 
   renderAll();
+  scrollToTopRow();
   updateSecretDisplay(false);
   updateStatus();
   toast("NEW SESSION: CONNECTED");
@@ -271,8 +272,9 @@ function submit(){
 
   // advance row
   state.row++;
-  state.activePos = nextEditablePos(state.guesses[state.row], 0);
+  state.activePos = 0;
   renderBoard();
+  ensureActiveRowVisible();
   updateStatus();
 }
 
@@ -366,6 +368,24 @@ function renderBoard(){
     rowEl.appendChild(slots);
     rowEl.appendChild(fbEl);
     rowsEl.appendChild(rowEl);
+  }
+}
+
+function scrollToTopRow(){
+  const scrollEl = document.querySelector(".scroll");
+  if (scrollEl) scrollEl.scrollTop = 0;
+}
+
+function ensureActiveRowVisible(){
+  const scrollEl = document.querySelector(".scroll");
+  const rowsEl = $("#rows");
+  if (!scrollEl || !rowsEl) return;
+  const rowEl = rowsEl.children[state.row];
+  if (!rowEl) return;
+  const rowBottom = rowEl.offsetTop + rowEl.offsetHeight;
+  const viewBottom = scrollEl.scrollTop + scrollEl.clientHeight;
+  if (rowBottom > viewBottom - 4){
+    scrollEl.scrollTop = rowBottom - scrollEl.clientHeight;
   }
 }
 
@@ -589,7 +609,12 @@ function wireUI(){
   $("#btn-settings").addEventListener("click", openSettings);
   $("#btn-close").addEventListener("click", closeSettings);
 
-  $("#btn-new").addEventListener("click", () => newGame());
+  $("#btn-new").addEventListener("click", () => {
+    newGame();
+    if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
+  });
   $("#btn-submit").addEventListener("click", submit);
   $("#btn-clear").addEventListener("click", clearRow);
   $("#btn-reveal").addEventListener("click", revealAndEnd);
@@ -641,10 +666,26 @@ function wireUI(){
         e.preventDefault();
         return;
       }
+    } else {
+      if (e.key >= "1" && e.key <= "6"){
+        const idx = Number(e.key) - 1;
+        if (COLORS[idx]){
+          state.selectedInput = idx;
+          renderControls();
+          placeValue(idx);
+        }
+        return;
+      }
+      if (e.key === "Backspace" || e.key === "Delete"){
+        backspace();
+        e.preventDefault();
+        return;
+      }
     }
 
     if (e.key === "Enter"){
       submit();
+      e.preventDefault();
       return;
     }
 
