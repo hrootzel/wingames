@@ -603,6 +603,16 @@ main {
   text-align: center;
 }
 
+.toast.banner {
+  top: 18px;
+  bottom: auto;
+  font-size: 24px;
+  padding: 14px 18px;
+}
+
+.toast.denied { border-color: rgba(255,77,109,0.7); }
+.toast.granted { border-color: rgba(60,255,192,0.7); }
+
 [data-theme="light"] .toast { background: rgba(255,255,255,0.78); }
 
 .toast.show { opacity: 1; }

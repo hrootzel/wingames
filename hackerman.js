@@ -4,6 +4,9 @@
 // - Colors mode: 6 colors, repeats allowed (classic)
 // - Digits mode: digits 0-9, repeats NOT allowed (classic Bulls & Cows)
 
+import { SfxEngine } from "./sfx_engine.js";
+import { BANK_HACKERMAN } from "./sfx_bank_hackerman.js";
+
 const CODE_LEN = 4;
 
 const COLORS = [
@@ -19,17 +22,35 @@ const DEFAULT_SETTINGS = {
   mode: "colors",    // "colors" | "digits"
   theme: "dark",     // "dark" | "light"
   rows: 12,
+  sound: true,
 };
 
 const STORAGE_KEY = "hackerman_settings_v1";
 
+const sfx = new SfxEngine({ master: 0.6 });
+let audioUnlocked = false;
+
 let settings = loadSettings();
+sfx.setEnabled(settings.sound);
 let state = null;
 let lastStatusEnded = false;
 let lastSecretRevealed = false;
+let hasBooted = false;
 
 // ---------- Utilities ----------
 function $(sel){ return document.querySelector(sel); }
+
+function unlockAudio(){
+  if (audioUnlocked || !sfx.enabled) return;
+  sfx.unlock();
+  audioUnlocked = true;
+}
+
+function playSfx(name, payload){
+  if (!settings.sound) return;
+  unlockAudio();
+  sfx.play(BANK_HACKERMAN, name, payload);
+}
 
 function popcount(x){
   let c = 0;
@@ -77,6 +98,11 @@ function setDotColorVars(el, hex){
 function toast(msg){
   const t = $("#toast");
   t.textContent = msg;
+  const denied = msg === "ACCESS DENIED";
+  const granted = msg === "ACCESS GRANTED";
+  t.classList.toggle("denied", denied);
+  t.classList.toggle("granted", granted);
+  t.classList.toggle("banner", denied || granted);
   t.classList.add("show");
   clearTimeout(toast._tm);
   toast._tm = setTimeout(()=>t.classList.remove("show"), 1400);
@@ -99,6 +125,7 @@ function loadSettings(){
       mode: (parsed.mode === "digits" ? "digits" : "colors"),
       theme: (parsed.theme === "light" ? "light" : "dark"),
       rows: clampInt(parsed.rows, 6, 20, DEFAULT_SETTINGS.rows),
+      sound: (parsed.sound !== undefined ? !!parsed.sound : DEFAULT_SETTINGS.sound),
     };
   } catch {
     return { ...DEFAULT_SETTINGS };
@@ -136,6 +163,7 @@ function newGame(){
   scrollToTopRow();
   updateSecretDisplay(false);
   updateStatus();
+  if (hasBooted) playSfx("newSession");
   toast("NEW SESSION: CONNECTED");
 }
 
@@ -198,8 +226,10 @@ function canEditRow(r){ return !state.ended && r === state.row; }
 
 function setActivePos(i){
   if (state.ended) return;
+  if (state.activePos === i) return;
   state.activePos = i;
   renderBoard();
+  playSfx("slotSelect");
 }
 
 function placeValue(value){
@@ -216,6 +246,7 @@ function placeValue(value){
     rowArr[pos] = null;
     renderBoard();
     updateStatus();
+    playSfx("removeSymbol");
     return;
   }
 
@@ -223,6 +254,7 @@ function placeValue(value){
   if (settings.mode === "digits"){
     if (rowArr.includes(value)){
       toast("DUPLICATE DIGIT BLOCKED");
+      playSfx("duplicateBlocked");
       return;
     }
   }
@@ -231,6 +263,7 @@ function placeValue(value){
   state.activePos = nextEditablePos(rowArr, pos);
   renderBoard();
   updateStatus();
+  playSfx("placeSymbol");
 }
 
 function nextEditablePos(rowArr, from){
@@ -244,29 +277,35 @@ function backspace(){
   if (state.ended) return;
   const r = state.row;
   const rowArr = state.guesses[r];
+  let removed = false;
   // Remove from active position if filled, else step backward to last filled
   if (rowArr[state.activePos] != null){
     rowArr[state.activePos] = null;
+    removed = true;
   } else {
     for (let i=state.activePos-1;i>=0;i--){
       if (rowArr[i] != null){
         rowArr[i] = null;
         state.activePos = i;
+        removed = true;
         break;
       }
     }
   }
   renderBoard();
   updateStatus();
+  if (removed) playSfx("backspace");
 }
 
 function clearRow(){
   if (state.ended) return;
   const r = state.row;
+  const hadAny = state.guesses[r].some(v => v != null);
   state.guesses[r] = Array(CODE_LEN).fill(null);
   state.activePos = 0;
   renderBoard();
   updateStatus();
+  if (hadAny) playSfx("clearRow");
 }
 
 function rowComplete(rowArr){
@@ -279,12 +318,15 @@ function submit(){
   const r = state.row;
   const g = state.guesses[r];
   if (!rowComplete(g)){
+    playSfx("incompleteGuess");
     toast("INCOMPLETE GUESS");
     return;
   }
 
+  playSfx("submit");
   const fb = evaluate(g, state.secret);
   state.feedback[r] = fb;
+  playSfx("feedback", fb);
 
   if (fb.bulls === CODE_LEN){
     state.ended = true;
@@ -292,6 +334,7 @@ function submit(){
     updateSecretDisplay(true);
     renderBoard();
     updateStatus();
+    playSfx("accessGranted");
     toast("ACCESS GRANTED");
     return;
   }
@@ -302,6 +345,7 @@ function submit(){
     updateSecretDisplay(true);
     renderBoard();
     updateStatus();
+    playSfx("accessDenied");
     toast("ACCESS DENIED");
     return;
   }
@@ -312,6 +356,7 @@ function submit(){
   renderBoard();
   ensureActiveRowVisible();
   updateStatus();
+  playSfx("rowAdvance");
 }
 
 function revealAndEnd(){
@@ -321,6 +366,8 @@ function revealAndEnd(){
   updateSecretDisplay(true);
   renderBoard();
   updateStatus();
+  playSfx("reveal");
+  playSfx("sessionTerminated");
   toast("SESSION TERMINATED");
 }
 
@@ -491,6 +538,7 @@ function renderControls(){
         if (state.ended) return;
         if (state.guesses[state.row].includes(k)){
           toast("DUPLICATE DIGIT BLOCKED");
+          playSfx("duplicateBlocked");
           return;
         }
         placeValue(k);
@@ -614,10 +662,12 @@ function applyTheme(){
 function openSettings(){
   syncSettingsFormFromState();
   $("#modal").classList.add("show");
+  playSfx("openSettings");
 }
 
 function closeSettings(){
   $("#modal").classList.remove("show");
+  playSfx("closeSettings");
 }
 
 function syncSettingsFormFromState(){
@@ -625,26 +675,39 @@ function syncSettingsFormFromState(){
   $("#sel-theme").value = settings.theme;
   $("#rng-rows").value = String(settings.rows);
   $("#rowsVal").textContent = String(settings.rows);
+  $("#toggle-sound").checked = !!settings.sound;
 }
 
 function readSettingsForm(){
   const mode = $("#sel-mode").value === "digits" ? "digits" : "colors";
   const theme = $("#sel-theme").value === "light" ? "light" : "dark";
   const rows = clampInt($("#rng-rows").value, 6, 20, DEFAULT_SETTINGS.rows);
-  return { mode, theme, rows };
+  const sound = !!$("#toggle-sound").checked;
+  return { mode, theme, rows, sound };
 }
 
 function applySettings(next, startNew=false){
   const modeChanged = next.mode !== settings.mode;
   const rowsChanged = next.rows !== settings.rows;
   const themeChanged = next.theme !== settings.theme;
+  const soundChanged = next.sound !== settings.sound;
+
+  if (soundChanged && !next.sound) {
+    playSfx("uiClick");
+  }
 
   settings = next;
   saveSettings();
   applyTheme();
+  sfx.setEnabled(settings.sound);
 
   if (themeChanged){
     toast("THEME UPDATED");
+    playSfx("toggleTheme");
+  }
+
+  if (soundChanged && settings.sound) {
+    playSfx("uiClick");
   }
 
   // If mode/rows changed, the current board shape/secret changes. Start a new game.
@@ -695,6 +758,7 @@ function wireUI(){
     settings = { ...DEFAULT_SETTINGS };
     saveSettings();
     applyTheme();
+    sfx.setEnabled(settings.sound);
     syncSettingsFormFromState();
     newGame();
     toast("DEFAULTS RESTORED");
@@ -708,7 +772,11 @@ function wireUI(){
     if (settings.mode === "digits"){
       if (e.key >= "0" && e.key <= "9"){
         const d = Number(e.key);
-        if (state.guesses[state.row].includes(d)) { toast("DUPLICATE DIGIT BLOCKED"); return; }
+        if (state.guesses[state.row].includes(d)) {
+          toast("DUPLICATE DIGIT BLOCKED");
+          playSfx("duplicateBlocked");
+          return;
+        }
         placeValue(d);
         return;
       }
@@ -748,12 +816,14 @@ function wireUI(){
     if (e.key === "ArrowLeft"){
       state.activePos = Math.max(0, state.activePos - 1);
       renderBoard();
+      playSfx("slotSelect");
       return;
     }
 
     if (e.key === "ArrowRight"){
       state.activePos = Math.min(CODE_LEN - 1, state.activePos + 1);
       renderBoard();
+      playSfx("slotSelect");
       return;
     }
   });
@@ -771,8 +841,8 @@ function boot(){
   $("#rowsLabel").textContent = String(settings.rows);
 
   newGame();
+  hasBooted = true;
 }
 
 boot();
-
-
+document.addEventListener("pointerdown", unlockAudio, { once: true });
