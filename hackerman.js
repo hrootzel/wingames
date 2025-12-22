@@ -25,6 +25,8 @@ const STORAGE_KEY = "hackerman_settings_v1";
 
 let settings = loadSettings();
 let state = null;
+let lastStatusEnded = false;
+let lastSecretRevealed = false;
 
 // ---------- Utilities ----------
 function $(sel){ return document.querySelector(sel); }
@@ -45,12 +47,46 @@ function shuffle(a){
   return a;
 }
 
+function hexToRgb(hex){
+  const cleaned = hex.replace('#', '');
+  const full = cleaned.length === 3
+    ? cleaned.split('').map((c) => c + c).join('')
+    : cleaned;
+  const num = Number.parseInt(full, 16);
+  if (!Number.isFinite(num)) return null;
+  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+}
+
+function shadeHex(hex, amount){
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  const t = amount < 0 ? 0 : 255;
+  const p = Math.min(1, Math.max(0, Math.abs(amount)));
+  const r = Math.round(rgb.r + (t - rgb.r) * p);
+  const g = Math.round(rgb.g + (t - rgb.g) * p);
+  const b = Math.round(rgb.b + (t - rgb.b) * p);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function setDotColorVars(el, hex){
+  el.style.setProperty('--dot-base', hex);
+  el.style.setProperty('--dot-light', shadeHex(hex, 0.45));
+  el.style.setProperty('--dot-dark', shadeHex(hex, -0.35));
+}
+
 function toast(msg){
   const t = $("#toast");
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(toast._tm);
   toast._tm = setTimeout(()=>t.classList.remove("show"), 1400);
+}
+
+function pulseElement(el){
+  if (!el) return;
+  el.classList.remove("pulse");
+  void el.offsetWidth;
+  el.classList.add("pulse");
 }
 
 // ---------- Persistence ----------
@@ -328,11 +364,9 @@ function renderBoard(){
         const dot = document.createElement("div");
         dot.className = "color";
         if (v == null) {
-          dot.style.opacity = "0.25";
-          dot.style.background = "rgba(255,255,255,0.10)";
-          dot.style.borderColor = "rgba(255,255,255,0.10)";
+          dot.classList.add("empty");
         } else {
-          dot.style.background = COLORS[v].hex;
+          setDotColorVars(dot, COLORS[v].hex);
         }
         slot.appendChild(dot);
       }
@@ -508,7 +542,9 @@ function renderControls(){
 function updateSecretDisplay(reveal){
   const el = $("#secretDisplay");
   if (!reveal){
-    el.textContent = "•".repeat(CODE_LEN);
+    el.textContent = "\u2022".repeat(CODE_LEN);
+    el.classList.remove("pulse");
+    lastSecretRevealed = false;
     return;
   }
 
@@ -519,14 +555,15 @@ function updateSecretDisplay(reveal){
     el.innerHTML = "";
     for (const id of state.secret){
       const dot = document.createElement("span");
-      dot.style.display = "inline-block";
-      dot.style.width = "14px";
-      dot.style.height = "14px";
-      dot.style.borderRadius = "999px";
-      dot.style.background = COLORS[id].hex;
-      dot.style.border = "1px solid rgba(255,255,255,0.18)";
+      dot.className = "secret-dot";
+      setDotColorVars(dot, COLORS[id].hex);
       el.appendChild(dot);
     }
+  }
+
+  if (!lastSecretRevealed){
+    pulseElement(el);
+    lastSecretRevealed = true;
   }
 }
 
@@ -542,10 +579,24 @@ function updateHelp(){
 function updateStatus(){
   const s = $("#status");
   if (state.ended){
-    s.textContent = state.won ? "ACCESS GRANTED" : "ACCESS FAILED";
+    if (state.won){
+      s.textContent = "ACCESS GRANTED";
+      s.classList.add("status-end", "status-win");
+      s.classList.remove("status-lose");
+    } else {
+      s.textContent = "ACCESS DENIED";
+      s.classList.add("status-end", "status-lose");
+      s.classList.remove("status-win");
+    }
+    if (!lastStatusEnded){
+      pulseElement(s);
+      lastStatusEnded = true;
+    }
     return;
   }
 
+  s.classList.remove("status-end", "status-win", "status-lose", "pulse");
+  lastStatusEnded = false;
   const g = state.guesses[state.row];
   const filled = g.filter(v => v != null).length;
   s.textContent = `row ${state.row+1}/${settings.rows} // ${filled}/${CODE_LEN} locked`;
@@ -723,4 +774,6 @@ function boot(){
 }
 
 boot();
+
+
 
