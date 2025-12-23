@@ -78,6 +78,23 @@ export function drawSegment(ctx, x, y, s, colorKey, link, paletteMap) {
   ctx.restore();
 }
 
+function spikyPath(ctx, cx, cy, r, spikes = 14, spikeDepth = 0.22, wobble = 0.08, phase = 0) {
+  const steps = spikes * 2;
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const a = phase + t * Math.PI * 2;
+    const isPeak = (i % 2) === 0;
+    const base = isPeak ? 1.0 : (1.0 - spikeDepth);
+    const w = 1 + wobble * Math.sin(a * 3.0 + phase * 1.7);
+    const rr = r * base * w;
+    const x = cx + Math.cos(a) * rr;
+    const y = cy + Math.sin(a) * rr;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+}
+
 export function drawVirus(ctx, x, y, s, colorKey, paletteMap) {
   const palette = paletteMap[colorKey];
   const virusPalette = {
@@ -85,9 +102,11 @@ export function drawVirus(ctx, x, y, s, colorKey, paletteMap) {
     base: shadeHex(palette.base, -0.3),
     dark: shadeHex(palette.dark, -0.45),
   };
+
   const cx = x + s / 2;
   const cy = y + s / 2;
   const r = s * 0.42;
+
   const gx = cx - r + 2 * r * 0.35;
   const gy = cy - r + 2 * r * 0.3;
   const r0 = 2 * r * 0.05;
@@ -97,8 +116,9 @@ export function drawVirus(ctx, x, y, s, colorKey, paletteMap) {
   grad.addColorStop(0.55, virusPalette.base);
   grad.addColorStop(1, virusPalette.dark);
 
+  // SHAPE: spiky silhouette instead of circle
   ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  spikyPath(ctx, cx, cy, r, 14, 0.22, 0.08, 0.35);
   ctx.fillStyle = grad;
   ctx.fill();
 
@@ -106,10 +126,11 @@ export function drawVirus(ctx, x, y, s, colorKey, paletteMap) {
   ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
   ctx.stroke();
 
+  // SHAPE: inner ring follows the spiky silhouette
   ctx.save();
   ctx.globalAlpha = 0.22;
   ctx.beginPath();
-  ctx.arc(cx, cy, r * 0.82, 0, Math.PI * 2);
+  spikyPath(ctx, cx, cy, r * 0.82, 14, 0.18, 0.06, 0.35);
   ctx.lineWidth = Math.max(1, s * 0.03);
   ctx.strokeStyle = virusPalette.light;
   ctx.stroke();
@@ -121,23 +142,16 @@ export function drawVirus(ctx, x, y, s, colorKey, paletteMap) {
   ctx.stroke();
   ctx.restore();
 
+  // SHAPE: clip to spiky silhouette for highlight
   ctx.save();
   ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  spikyPath(ctx, cx, cy, r, 14, 0.22, 0.08, 0.35);
   ctx.clip();
 
   ctx.globalAlpha = 0.22;
   ctx.fillStyle = 'white';
   ctx.beginPath();
-  ctx.ellipse(
-    cx - r * 0.28,
-    cy - r * 0.38,
-    r * 0.7,
-    r * 0.48,
-    -0.35,
-    0,
-    Math.PI * 2
-  );
+  ctx.ellipse(cx - r * 0.28, cy - r * 0.38, r * 0.7, r * 0.48, -0.35, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.globalAlpha = 0.35;
@@ -146,6 +160,7 @@ export function drawVirus(ctx, x, y, s, colorKey, paletteMap) {
   ctx.fill();
   ctx.restore();
 
+  // Face + details unchanged from your original
   ctx.save();
   const eyeOffsetX = r * 0.22;
   const eyeOffsetY = r * 0.08;
@@ -190,3 +205,4 @@ export function drawVirus(ctx, x, y, s, colorKey, paletteMap) {
   }
   ctx.restore();
 }
+
