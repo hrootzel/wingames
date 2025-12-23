@@ -1,5 +1,6 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_PLOPPLOP } from './sfx_bank_plop_plop.js';
+import { createPlopPlopSprite } from './plop_plop_sprite.js';
 
 const W = 6;
 const H = 14;
@@ -66,6 +67,7 @@ const BRIDGE_PINCH = 0.62;
 const BRIDGE_STEPS = 8;
 
 const game = makeGame();
+const { drawPuyo, drawBridge } = createPlopPlopSprite(PALETTE, BRIDGE_PINCH, BRIDGE_STEPS);
 
 function makeRng(seed) {
   let t = seed >>> 0;
@@ -571,78 +573,6 @@ function cellToX(col) {
 
 function cellToY(row) {
   return view.boardTop + (H - 1 - row) * view.cellSize;
-}
-
-function drawPuyo(ctxRef, x, y, s, colorKey) {
-  const palette = PALETTE[colorKey];
-  const cx = x + s / 2;
-  const cy = y + s / 2;
-  const r = s * 0.42;
-  const grad = ctxRef.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.1, cx, cy, r);
-  grad.addColorStop(0, palette.light);
-  grad.addColorStop(0.55, palette.base);
-  grad.addColorStop(1, palette.dark);
-  ctxRef.fillStyle = grad;
-  ctxRef.beginPath();
-  ctxRef.arc(cx, cy, r, 0, Math.PI * 2);
-  ctxRef.fill();
-  ctxRef.lineWidth = Math.max(1, s * 0.06);
-  ctxRef.strokeStyle = 'rgba(0, 0, 0, 0.25)';
-  ctxRef.stroke();
-}
-
-function addTaperBridge(path, ax, ay, bx, by, r, pinch, steps) {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const len = Math.hypot(dx, dy);
-  if (len < 1e-6) return;
-
-  const ux = dx / len;
-  const uy = dy / len;
-  const px = -uy;
-  const py = ux;
-
-  function w(t) {
-    const s = Math.sin(Math.PI * t);
-    const s2 = s * s;
-    return r * (1 - (1 - pinch) * s2);
-  }
-
-  const top = [];
-  const bot = [];
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const wt = w(t);
-    const x = ax + dx * t;
-    const y = ay + dy * t;
-    top.push({ x: x + px * wt, y: y + py * wt });
-    bot.push({ x: x - px * wt, y: y - py * wt });
-  }
-
-  path.moveTo(top[0].x, top[0].y);
-  for (let i = 1; i < top.length; i++) path.lineTo(top[i].x, top[i].y);
-  for (let i = bot.length - 1; i >= 0; i--) path.lineTo(bot[i].x, bot[i].y);
-  path.closePath();
-}
-
-function drawBridge(ctxRef, ax, ay, bx, by, colorKey, s) {
-  const palette = PALETTE[colorKey];
-  const r = s * 0.42;
-  const path = new Path2D();
-  addTaperBridge(path, ax, ay, bx, by, r, BRIDGE_PINCH, BRIDGE_STEPS);
-
-  const mx = (ax + bx) * 0.5;
-  const my = (ay + by) * 0.5;
-  const grad = ctxRef.createRadialGradient(mx - r * 0.25, my - r * 0.25, r * 0.15, mx, my, r * 1.2);
-  grad.addColorStop(0, palette.light);
-  grad.addColorStop(0.55, palette.base);
-  grad.addColorStop(1, palette.dark);
-  ctxRef.fillStyle = grad;
-  ctxRef.fill(path);
-
-  ctxRef.lineWidth = Math.max(1, s * 0.05);
-  ctxRef.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-  ctxRef.stroke(path);
 }
 
 function drawBoard(alpha) {

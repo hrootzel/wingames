@@ -1,8 +1,10 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_PILLPOPPER } from './sfx_bank_pill_popper.js';
+import { roundRect } from './rendering_engine.js';
+import { drawSegment, drawVirus } from './pill_popper_sprite.js';
 
 const W = 8;
-const H = 18;
+const H = 16;
 const VISIBLE_H = 16;
 
 const Kind = {
@@ -33,28 +35,58 @@ const GameState = {
   GAME_OVER: 'GAME_OVER',
 };
 
-const COLORS = ['R', 'B', 'Y'];
+const ORIENT_OFFSETS = [
+  { a: { dr: 0, dc: 0 }, b: { dr: 0, dc: 1 } },
+  { a: { dr: 1, dc: 0 }, b: { dr: 0, dc: 0 } },
+  { a: { dr: 0, dc: 1 }, b: { dr: 0, dc: 0 } },
+  { a: { dr: 0, dc: 0 }, b: { dr: 1, dc: 0 } },
+];
+
 const PALETTE = {
   R: { base: '#ef4444', light: '#fecaca', dark: '#b91c1c' },
   B: { base: '#3b82f6', light: '#bfdbfe', dark: '#1d4ed8' },
   Y: { base: '#facc15', light: '#fef3c7', dark: '#d97706' },
 };
 
-const VIRUS_POINTS = {
-  LOW: [0, 100, 200, 400, 800, 1600, 3200],
-  MED: [0, 200, 400, 800, 1600, 3200, 6400],
-  HI: [0, 300, 600, 1200, 2400, 4800, 9600],
+const COLOR_KEYS = ['Y', 'R', 'B'];
+const COLOR_TO_INDEX = { Y: 0, R: 1, B: 2 };
+
+const COARSE_SPEED = {
+  LOW: 15,
+  MED: 25,
+  HI: 31,
 };
 
-const GRAVITY_BASE = {
-  LOW: 720,
-  MED: 460,
-  HI: 260,
-};
+const SPEED_TABLE_NTSC = [
+  69, 67, 65, 63, 61, 59, 57, 55, 53, 51, 49, 47, 45, 43, 41, 39,
+  37, 35, 33, 31, 29, 27, 25, 23, 21, 19, 18, 17, 16, 15, 14, 13,
+  12, 11, 10, 9, 9, 8, 8, 7, 7, 6, 6, 5, 5, 5, 5, 5,
+  5, 5, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 3, 3, 3, 3,
+  3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  0,
+];
 
-const SOFT_DROP_MULT = 8;
-const DAS = 160;
-const ARR = 60;
+const SPEED_UP_MAX = 49;
+const DAS_FRAMES = 16;
+const ARR_FRAMES = 6;
+const FAST_DROP_MASK = 1;
+
+const PILL_RESERVE_SIZE = 128;
+const PILL_COMBO_LEFT = [0, 0, 0, 1, 1, 1, 2, 2, 2];
+const PILL_COMBO_RIGHT = [0, 1, 2, 0, 1, 2, 0, 1, 2];
+const VIRUS_COLOR_RANDOM = [0, 1, 2, 2, 1, 0, 0, 1, 2, 2, 1, 0, 0, 1, 2, 1];
+const VIRUS_COLOR_BITS = [1, 2, 4];
+const VIRUS_MAX_HEIGHT = [
+  9, 9, 9, 9, 9, 9, 9, 9,
+  9, 9, 9, 9, 9, 9, 9, 10,
+  10, 11, 11, 12, 12, 12, 12, 12,
+  12, 12, 12, 12, 12, 12, 12, 12,
+  12, 12, 12,
+];
+
+const SCORE_MULTIPLIER = [1, 2, 4, 8, 16, 32, 32, 32, 32, 32, 32];
+const BASE_SCORE = { LOW: 100, MED: 200, HI: 300 };
+
 const FIXED_DT = 1000 / 60;
 const RESOLVE_DROP_INTERVAL = 60;
 
@@ -145,19 +177,26 @@ function makeGame() {
     rng: makeRng(seed),
     board: makeBoard(),
     input: makeInput(),
-    repeat: { left: -DAS, right: -DAS },
+    horVelocity: 0,
     state: GameState.SPAWN,
     paused: false,
     active: null,
     nextSpec: null,
     pillId: 1,
+    pillReserve: [],
+    pillReserveIndex: 0,
+    pillsPlaced: 0,
+    speedUps: 0,
+    speedCounter: 0,
+    frame: 0,
+    scoreMultiplier: 0,
     score: 0,
     virusLevel: 0,
     virusesRemaining: 0,
     speed: Speed.MED,
     status: 'Ready.',
     statusBeforePause: 'Ready.',
-    timers: { gravityElapsed: 0, stageClearRemaining: 0 },
+    timers: { stageClearRemaining: 0 },
     resolve: null,
   };
 }
@@ -170,17 +209,40 @@ function resetBoard() {
   }
 }
 
-function rollColor3(rng) {
-  return COLORS[rng.int(COLORS.length)];
+function colorKeyFromIndex(index) {
+  return COLOR_KEYS[index] ?? COLOR_KEYS[0];
 }
 
-function rollCapsuleSpec(rng) {
-  return { aColor: rollColor3(rng), bColor: rollColor3(rng) };
+function colorIndexFromKey(key) {
+  return COLOR_TO_INDEX[key] ?? 0;
+}
+
+function generatePillReserve(rng) {
+  const reserve = Array(PILL_RESERVE_SIZE);
+  let pillId = 0;
+  for (let i = PILL_RESERVE_SIZE - 1; i >= 0; i--) {
+    pillId = (pillId + (rng.int(256) & 0x0f)) % PILL_COMBO_LEFT.length;
+    reserve[i] = pillId;
+  }
+  return reserve;
+}
+
+function nextCapsuleSpec() {
+  if (!game.pillReserve || game.pillReserve.length !== PILL_RESERVE_SIZE) {
+    game.pillReserve = generatePillReserve(game.rng);
+    game.pillReserveIndex = 0;
+  }
+  const id = game.pillReserve[game.pillReserveIndex];
+  game.pillReserveIndex = (game.pillReserveIndex + 1) % PILL_RESERVE_SIZE;
+  return {
+    aColor: colorKeyFromIndex(PILL_COMBO_LEFT[id]),
+    bColor: colorKeyFromIndex(PILL_COMBO_RIGHT[id]),
+  };
 }
 
 function makeActiveCapsule(spec) {
   return {
-    aRow: 17,
+    aRow: H - 1,
     aCol: 3,
     orient: 0,
     aColor: spec.aColor,
@@ -188,31 +250,16 @@ function makeActiveCapsule(spec) {
   };
 }
 
-function orientOffset(orient) {
-  switch (orient & 3) {
-    case 0:
-      return { dr: 0, dc: 1 };
-    case 1:
-      return { dr: 1, dc: 0 };
-    case 2:
-      return { dr: 0, dc: -1 };
-    case 3:
-      return { dr: -1, dc: 0 };
-    default:
-      return { dr: 0, dc: 1 };
-  }
-}
-
 function linksForOrient(orient) {
   switch (orient & 3) {
     case 0:
       return { aLink: Link.R, bLink: Link.L };
     case 1:
-      return { aLink: Link.U, bLink: Link.D };
+      return { aLink: Link.D, bLink: Link.U };
     case 2:
       return { aLink: Link.L, bLink: Link.R };
     case 3:
-      return { aLink: Link.D, bLink: Link.U };
+      return { aLink: Link.U, bLink: Link.D };
     default:
       return { aLink: Link.R, bLink: Link.L };
   }
@@ -222,9 +269,11 @@ function activeCells(active, orientOverride, colOverride, rowOverride) {
   const orient = orientOverride === undefined ? active.orient : orientOverride;
   const aRow = rowOverride === undefined ? active.aRow : rowOverride;
   const aCol = colOverride === undefined ? active.aCol : colOverride;
-  const offset = orientOffset(orient);
-  const a = { r: aRow, c: aCol, color: active.aColor, which: 'A' };
-  return [a, { r: aRow + offset.dr, c: aCol + offset.dc, color: active.bColor, which: 'B' }];
+  const choice = ORIENT_OFFSETS[orient & 3] || ORIENT_OFFSETS[0];
+  return [
+    { r: aRow + choice.a.dr, c: aCol + choice.a.dc, color: active.aColor, which: 'A' },
+    { r: aRow + choice.b.dr, c: aCol + choice.b.dc, color: active.bColor, which: 'B' },
+  ];
 }
 
 function canPlaceActive(aRow, aCol, orient) {
@@ -236,24 +285,48 @@ function canPlaceActive(aRow, aCol, orient) {
   return true;
 }
 
-function tryMoveActive(dr, dc) {
-  if (!game.active) return false;
+function tryMoveActiveWithReason(dr, dc) {
+  if (!game.active) return { ok: false, blockedByWall: false };
   const nextRow = game.active.aRow + dr;
   const nextCol = game.active.aCol + dc;
-  if (!canPlaceActive(nextRow, nextCol, game.active.orient)) return false;
+  const cells = activeCells(game.active, game.active.orient, nextCol, nextRow);
+  for (const cell of cells) {
+    if (!game.board.inBounds(cell.r, cell.c)) return { ok: false, blockedByWall: true };
+    if (!game.board.isEmpty(cell.r, cell.c)) return { ok: false, blockedByWall: false };
+  }
   game.active.aRow = nextRow;
   game.active.aCol = nextCol;
-  return true;
+  return { ok: true, blockedByWall: false };
+}
+
+function tryMoveActive(dr, dc) {
+  return tryMoveActiveWithReason(dr, dc).ok;
 }
 
 function tryRotate(dir) {
   if (!game.active) return false;
-  const nextOrient = (game.active.orient + dir + 4) & 3;
-  const kicks = [0, -1, 1];
-  for (const kick of kicks) {
-    const nextCol = game.active.aCol + kick;
-    if (canPlaceActive(game.active.aRow, nextCol, nextOrient)) {
-      game.active.aCol = nextCol;
+  const prevOrient = game.active.orient;
+  const nextOrient = (prevOrient + dir + 4) & 3;
+  const nextRow = game.active.aRow;
+  const nextCol = game.active.aCol;
+  const wasVertical = (prevOrient & 1) === 1;
+  const willBeHorizontal = (nextOrient & 1) === 0;
+
+  if (canPlaceActive(nextRow, nextCol, nextOrient)) {
+    game.active.orient = nextOrient;
+    if (wasVertical && willBeHorizontal && game.input.held.left) {
+      const leftCol = nextCol - 1;
+      if (canPlaceActive(nextRow, leftCol, nextOrient)) {
+        game.active.aCol = leftCol;
+      }
+    }
+    return true;
+  }
+
+  if (wasVertical && willBeHorizontal) {
+    const kickCol = nextCol - 1;
+    if (canPlaceActive(nextRow, kickCol, nextOrient)) {
+      game.active.aCol = kickCol;
       game.active.orient = nextOrient;
       return true;
     }
@@ -261,19 +334,25 @@ function tryRotate(dir) {
   return false;
 }
 
-function gravityInterval() {
-  const base = GRAVITY_BASE[game.speed] ?? GRAVITY_BASE.MED;
-  const scaled = Math.max(90, base - game.virusLevel * 12);
-  if (game.input.held.down) {
-    return Math.max(20, Math.floor(scaled / SOFT_DROP_MULT));
+function gravityFrames() {
+  const coarse = COARSE_SPEED[game.speed] ?? COARSE_SPEED.MED;
+  const fine = Math.min(SPEED_UP_MAX, game.speedUps);
+  const index = Math.min(SPEED_TABLE_NTSC.length - 1, coarse + fine);
+  return SPEED_TABLE_NTSC[index];
+}
+
+function updateSpeedUps() {
+  if (game.speedUps >= SPEED_UP_MAX) return;
+  if (game.pillsPlaced === 8 || (game.pillsPlaced > 8 && (game.pillsPlaced - 8) % 10 === 0)) {
+    game.speedUps = Math.min(SPEED_UP_MAX, game.speedUps + 1);
+    sfx.play(BANK_PILLPOPPER, 'speedUp');
   }
-  return scaled;
 }
 
 function spawnCapsule() {
-  game.nextSpec = game.nextSpec || rollCapsuleSpec(game.rng);
+  game.nextSpec = game.nextSpec || nextCapsuleSpec();
   game.active = makeActiveCapsule(game.nextSpec);
-  game.nextSpec = rollCapsuleSpec(game.rng);
+  game.nextSpec = nextCapsuleSpec();
   if (!canPlaceActive(game.active.aRow, game.active.aCol, game.active.orient)) {
     game.state = GameState.GAME_OVER;
     game.status = 'Game over. Press R to restart.';
@@ -281,7 +360,8 @@ function spawnCapsule() {
     return;
   }
   game.state = GameState.FALLING;
-  game.timers.gravityElapsed = 0;
+  game.speedCounter = 0;
+  game.horVelocity = 0;
 }
 
 function lockCapsule() {
@@ -305,50 +385,56 @@ function lockCapsule() {
     link: bLink,
   });
 
+  game.pillsPlaced += 1;
+  updateSpeedUps();
+  game.scoreMultiplier = 0;
   game.active = null;
   game.state = GameState.RESOLVE;
   game.resolve = { chain: 0, settling: false, settleTimer: 0 };
 }
 
-function handleHorizontalRepeat(dt) {
-  const held = game.input.held;
-  if (held.left && !held.right) {
-    game.repeat.left += dt;
-    while (game.repeat.left >= 0) {
-      if (tryMoveActive(0, -1)) {
-        sfx.play(BANK_PILLPOPPER, 'move');
-      }
-      game.repeat.left -= ARR;
-    }
-  } else {
-    game.repeat.left = -DAS;
+function handleHorizontalRepeat() {
+  const heldLeft = game.input.held.left;
+  const heldRight = game.input.held.right;
+  if (!heldLeft && !heldRight) {
+    game.horVelocity = 0;
+    return;
   }
 
-  if (held.right && !held.left) {
-    game.repeat.right += dt;
-    while (game.repeat.right >= 0) {
-      if (tryMoveActive(0, 1)) {
-        sfx.play(BANK_PILLPOPPER, 'move');
-      }
-      game.repeat.right -= ARR;
+  game.horVelocity += 1;
+  if (game.horVelocity < DAS_FRAMES) return;
+
+  game.horVelocity = DAS_FRAMES - ARR_FRAMES;
+  let blockedByPiece = false;
+  if (heldRight) {
+    const result = tryMoveActiveWithReason(0, 1);
+    if (result.ok) {
+      sfx.play(BANK_PILLPOPPER, 'move');
+    } else if (!result.blockedByWall) {
+      blockedByPiece = true;
     }
-  } else {
-    game.repeat.right = -DAS;
+  }
+  if (heldLeft) {
+    const result = tryMoveActiveWithReason(0, -1);
+    if (result.ok) {
+      sfx.play(BANK_PILLPOPPER, 'move');
+    } else if (!result.blockedByWall) {
+      blockedByPiece = true;
+    }
+  }
+
+  if (blockedByPiece) {
+    game.horVelocity = DAS_FRAMES - 1;
   }
 }
 
-function stepFalling(dt) {
+function stepFalling() {
   if (!game.active) {
     game.state = GameState.SPAWN;
     return;
   }
 
-  if (game.input.pressed.rotate || game.input.pressed.rotateCCW) {
-    const dir = game.input.pressed.rotate ? 1 : -1;
-    if (tryRotate(dir)) {
-      sfx.play(BANK_PILLPOPPER, 'rotate');
-    }
-  }
+  game.frame = (game.frame + 1) | 0;
 
   if (game.input.pressed.hardDrop) {
     let guard = 0;
@@ -360,16 +446,35 @@ function stepFalling(dt) {
     return;
   }
 
-  handleHorizontalRepeat(dt);
-
-  const interval = gravityInterval();
-  game.timers.gravityElapsed += dt;
-  while (game.timers.gravityElapsed >= interval) {
+  const downOnly = game.input.held.down && !game.input.held.left && !game.input.held.right;
+  const checkFastDrop = (game.frame & FAST_DROP_MASK) !== 0;
+  if (checkFastDrop && downOnly) {
     if (!tryMoveActive(-1, 0)) {
       lockCapsule();
       return;
     }
-    game.timers.gravityElapsed -= interval;
+    game.speedCounter = 0;
+  } else {
+    game.speedCounter += 1;
+    const frames = gravityFrames();
+    if (game.speedCounter > frames) {
+      if (!tryMoveActive(-1, 0)) {
+        lockCapsule();
+        return;
+      }
+      game.speedCounter = 0;
+    }
+  }
+
+  handleHorizontalRepeat();
+
+  if (game.input.pressed.rotate) {
+    sfx.play(BANK_PILLPOPPER, 'rotate');
+    tryRotate(-1);
+  }
+  if (game.input.pressed.rotateCCW) {
+    sfx.play(BANK_PILLPOPPER, 'rotate');
+    tryRotate(1);
   }
 }
 
@@ -532,9 +637,15 @@ function settleAll(board) {
   }
 }
 
-function scoreViruses(speed, virusCount) {
-  const v = Math.max(0, Math.min(6, virusCount | 0));
-  return VIRUS_POINTS[speed][v];
+function scoreVirusesCleared(virusCount) {
+  let points = 0;
+  const base = BASE_SCORE[game.speed] ?? BASE_SCORE.MED;
+  for (let i = 0; i < virusCount; i++) {
+    const index = Math.min(game.scoreMultiplier, SCORE_MULTIPLIER.length - 1);
+    points += base * SCORE_MULTIPLIER[index];
+    game.scoreMultiplier += 1;
+  }
+  return points;
 }
 
 function resolveBoard(dt) {
@@ -544,6 +655,9 @@ function resolveBoard(dt) {
     resolve.settleTimer += dt;
     while (resolve.settleTimer >= RESOLVE_DROP_INTERVAL) {
       const moved = settleOnce(game.board);
+      if (moved) {
+        sfx.play(BANK_PILLPOPPER, 'settle');
+      }
       resolve.settleTimer -= RESOLVE_DROP_INTERVAL;
       if (!moved) {
         resolve.settling = false;
@@ -575,14 +689,13 @@ function resolveBoard(dt) {
   if (resolve.chain >= 2) {
     sfx.play(BANK_PILLPOPPER, 'chain', { chain: resolve.chain, chainIndex: resolve.chain });
   }
-  sfx.play(BANK_PILLPOPPER, 'clear', {
-    viruses: lastViruses,
-    cleared: matches.size,
-    chain: resolve.chain,
-    chainIndex: resolve.chain,
-  });
   if (lastViruses > 0) {
-    const points = scoreViruses(game.speed, lastViruses);
+    sfx.play(BANK_PILLPOPPER, 'clearVirus', { viruses: lastViruses, chain: resolve.chain });
+  } else {
+    sfx.play(BANK_PILLPOPPER, 'clearPill', { chain: resolve.chain });
+  }
+  if (lastViruses > 0) {
+    const points = scoreVirusesCleared(lastViruses);
     game.score += points;
     game.virusesRemaining = Math.max(0, game.virusesRemaining - lastViruses);
     game.status = `Cleared ${lastViruses} virus${lastViruses === 1 ? '' : 'es'} +${points}`;
@@ -594,21 +707,67 @@ function resolveBoard(dt) {
   game.resolve = resolve;
 }
 
+function virusNeighborMask(board, r, c) {
+  const offsets = [
+    { dr: 2, dc: 0 },
+    { dr: -2, dc: 0 },
+    { dr: 0, dc: 2 },
+    { dr: 0, dc: -2 },
+  ];
+  let mask = 0;
+  for (const { dr, dc } of offsets) {
+    const cell = board.get(r + dr, c + dc);
+    if (!cell || cell.kind !== Kind.VIRUS) continue;
+    const index = colorIndexFromKey(cell.color);
+    mask |= VIRUS_COLOR_BITS[index] || 0;
+  }
+  return mask;
+}
+
+function pickVirusColorIndex(remaining) {
+  const forced = remaining & 3;
+  if (forced < 3) return forced;
+  return VIRUS_COLOR_RANDOM[game.rng.int(VIRUS_COLOR_RANDOM.length)];
+}
+
+function adjustVirusColorIndex(colorIndex, mask) {
+  let current = colorIndex;
+  for (let i = 0; i < 3; i++) {
+    if ((mask & (VIRUS_COLOR_BITS[current] || 0)) === 0) return current;
+    current = (current + 2) % 3;
+  }
+  return null;
+}
+
 function generateViruses(count) {
-  const maxRow = Math.min(VISIBLE_H - 1, 6 + Math.floor(count / 6));
-  let placed = 0;
+  const maxRow = VIRUS_MAX_HEIGHT[Math.min(game.virusLevel, VIRUS_MAX_HEIGHT.length - 1)];
+  let remaining = count;
   let guard = 0;
-  while (placed < count && guard++ < 20000) {
-    const r = game.rng.int(maxRow + 1);
+  while (remaining > 0 && guard++ < 20000) {
+    const r = game.rng.int(H);
+    if (r > maxRow) continue;
     const c = game.rng.int(W);
-    if (!game.board.isEmpty(r, c)) continue;
-    const color = rollColor3(game.rng);
-    game.board.set(r, c, { kind: Kind.VIRUS, color, pillId: null, link: Link.NONE });
-    if (findMatches(game.board).size > 0) {
-      game.board.set(r, c, makeEmptyCell());
-      continue;
+    const startPos = r * W + c;
+    let placed = false;
+    for (let pos = startPos; pos < W * H; pos++) {
+      const row = Math.floor(pos / W);
+      const col = pos % W;
+      if (!game.board.isEmpty(row, col)) continue;
+      const mask = virusNeighborMask(game.board, row, col);
+      if (mask === 0b111) continue;
+      const initialColor = pickVirusColorIndex(remaining);
+      const finalColor = adjustVirusColorIndex(initialColor, mask);
+      if (finalColor === null) continue;
+      game.board.set(row, col, {
+        kind: Kind.VIRUS,
+        color: colorKeyFromIndex(finalColor),
+        pillId: null,
+        link: Link.NONE,
+      });
+      placed = true;
+      break;
     }
-    placed += 1;
+    if (placed) remaining -= 1;
   }
 }
 
@@ -617,14 +776,21 @@ function startStage(level) {
   game.active = null;
   game.pillId = 1;
   game.state = GameState.SPAWN;
-  game.timers.gravityElapsed = 0;
+  game.horVelocity = 0;
+  game.speedCounter = 0;
+  game.speedUps = 0;
+  game.pillsPlaced = 0;
+  game.frame = 0;
+  game.scoreMultiplier = 0;
   game.timers.stageClearRemaining = 0;
   game.resolve = null;
+  game.pillReserve = generatePillReserve(game.rng);
+  game.pillReserveIndex = 0;
   const virusCount = Math.min(84, (level + 1) * 4);
   game.virusLevel = level;
   game.virusesRemaining = virusCount;
   generateViruses(virusCount);
-  game.nextSpec = rollCapsuleSpec(game.rng);
+  game.nextSpec = nextCapsuleSpec();
   game.status = `Stage ${level + 1}`;
   sfx.play(BANK_PILLPOPPER, 'stageStart');
 }
@@ -640,8 +806,7 @@ function newGame() {
   game.input.held.right = false;
   game.input.held.down = false;
   game.input.clearPressed();
-  game.repeat.left = -DAS;
-  game.repeat.right = -DAS;
+  game.horVelocity = 0;
   pauseBtn.textContent = 'Pause';
   game.speed = speedSelect.value;
   startStage(0);
@@ -668,280 +833,6 @@ function cellToX(col) {
 
 function cellToY(row) {
   return view.boardTop + (VISIBLE_H - 1 - row) * view.cellSize;
-}
-
-function roundRect(ctxRef, x, y, w, h, r, corners) {
-  const tl = corners.tl ? r : 0;
-  const tr = corners.tr ? r : 0;
-  const br = corners.br ? r : 0;
-  const bl = corners.bl ? r : 0;
-
-  ctxRef.beginPath();
-  ctxRef.moveTo(x + tl, y);
-  ctxRef.lineTo(x + w - tr, y);
-  if (tr) ctxRef.arcTo(x + w, y, x + w, y + tr, tr);
-  else ctxRef.lineTo(x + w, y);
-  ctxRef.lineTo(x + w, y + h - br);
-  if (br) ctxRef.arcTo(x + w, y + h, x + w - br, y + h, br);
-  else ctxRef.lineTo(x + w, y + h);
-  ctxRef.lineTo(x + bl, y + h);
-  if (bl) ctxRef.arcTo(x, y + h, x, y + h - bl, bl);
-  else ctxRef.lineTo(x, y + h);
-  ctxRef.lineTo(x, y + tl);
-  if (tl) ctxRef.arcTo(x, y, x + tl, y, tl);
-  else ctxRef.lineTo(x, y);
-  ctxRef.closePath();
-}
-
-function roundRectPath(x, y, w, h, radii) {
-  const maxR = Math.min(w, h) / 2;
-  const tl = Math.min(radii.tl, maxR);
-  const tr = Math.min(radii.tr, maxR);
-  const br = Math.min(radii.br, maxR);
-  const bl = Math.min(radii.bl, maxR);
-
-  const p = new Path2D();
-  p.moveTo(x + tl, y);
-  p.lineTo(x + w - tr, y);
-  p.arcTo(x + w, y, x + w, y + tr, tr);
-  p.lineTo(x + w, y + h - br);
-  p.arcTo(x + w, y + h, x + w - br, y + h, br);
-  p.lineTo(x + bl, y + h);
-  p.arcTo(x, y + h, x, y + h - bl, bl);
-  p.lineTo(x, y + tl);
-  p.arcTo(x, y, x + tl, y, tl);
-  p.closePath();
-  return p;
-}
-
-function hexToRgb(hex) {
-  const cleaned = hex.replace('#', '');
-  const full = cleaned.length === 3
-    ? cleaned.split('').map((c) => c + c).join('')
-    : cleaned;
-  const num = Number.parseInt(full, 16);
-  if (!Number.isFinite(num)) return null;
-  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
-}
-
-function shadeHex(hex, amount) {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return hex;
-  const t = amount < 0 ? 0 : 255;
-  const p = Math.min(1, Math.max(0, Math.abs(amount)));
-  const r = Math.round(rgb.r + (t - rgb.r) * p);
-  const g = Math.round(rgb.g + (t - rgb.g) * p);
-  const b = Math.round(rgb.b + (t - rgb.b) * p);
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function segmentInsets(link, s) {
-  if (link === Link.L || link === Link.R) {
-    return { padX: s * 0.06, padY: s * 0.14 };
-  }
-  if (link === Link.U || link === Link.D) {
-    return { padX: s * 0.14, padY: s * 0.06 };
-  }
-  return { padX: s * 0.1, padY: s * 0.1 };
-}
-
-function segmentRadii(link, baseR, flatR) {
-  const r = { tl: baseR, tr: baseR, br: baseR, bl: baseR };
-  if (link === Link.R) {
-    r.tr = flatR;
-    r.br = flatR;
-  } else if (link === Link.L) {
-    r.tl = flatR;
-    r.bl = flatR;
-  } else if (link === Link.U) {
-    r.tl = flatR;
-    r.tr = flatR;
-  } else if (link === Link.D) {
-    r.bl = flatR;
-    r.br = flatR;
-  }
-  return r;
-}
-
-function segmentCorners(link) {
-  const corners = { tl: true, tr: true, br: true, bl: true };
-  if (link === Link.R) {
-    corners.tr = false;
-    corners.br = false;
-  } else if (link === Link.L) {
-    corners.tl = false;
-    corners.bl = false;
-  } else if (link === Link.U) {
-    corners.tl = false;
-    corners.tr = false;
-  } else if (link === Link.D) {
-    corners.bl = false;
-    corners.br = false;
-  }
-  return corners;
-}
-
-function drawSegment(ctxRef, x, y, s, colorKey, link) {
-  const palette = PALETTE[colorKey];
-  const { padX, padY } = segmentInsets(link, s);
-  const w = s - padX * 2;
-  const h = s - padY * 2;
-  const x0 = x + padX;
-  const y0 = y + padY;
-  const baseR = Math.min(w, h) / 2;
-  const flatR = baseR * 0.28;
-  const radii = segmentRadii(link, baseR, flatR);
-  const path = roundRectPath(x0, y0, w, h, radii);
-
-  const gx = x0 + w * 0.32;
-  const gy = y0 + h * 0.25;
-  const r0 = Math.min(w, h) * 0.08;
-  const r1 = Math.max(w, h) * 0.95;
-  const grad = ctxRef.createRadialGradient(gx, gy, r0, gx, gy, r1);
-  grad.addColorStop(0, shadeHex(palette.light, 0.12));
-  grad.addColorStop(0.55, palette.base);
-  grad.addColorStop(1, palette.dark);
-  ctxRef.fillStyle = grad;
-  ctxRef.fill(path);
-
-  ctxRef.lineWidth = Math.max(1, s * 0.055);
-  ctxRef.strokeStyle = 'rgba(0, 0, 0, 0.22)';
-  ctxRef.stroke(path);
-
-  ctxRef.save();
-  ctxRef.clip(path);
-  ctxRef.globalAlpha = 0.25;
-  ctxRef.fillStyle = 'white';
-  ctxRef.beginPath();
-  ctxRef.ellipse(
-    x0 + w * 0.35,
-    y0 + h * 0.3,
-    w * 0.38,
-    h * 0.24,
-    -0.35,
-    0,
-    Math.PI * 2
-  );
-  ctxRef.fill();
-
-  ctxRef.globalAlpha = 0.38;
-  ctxRef.beginPath();
-  ctxRef.arc(x0 + w * 0.28, y0 + h * 0.22, Math.min(w, h) * 0.12, 0, Math.PI * 2);
-  ctxRef.fill();
-  ctxRef.restore();
-}
-
-function drawVirus(ctxRef, x, y, s, colorKey) {
-  const palette = PALETTE[colorKey];
-  const virusPalette = {
-    light: shadeHex(palette.light, -0.35),
-    base: shadeHex(palette.base, -0.3),
-    dark: shadeHex(palette.dark, -0.45),
-  };
-  const cx = x + s / 2;
-  const cy = y + s / 2;
-  const r = s * 0.42;
-  const gx = cx - r + 2 * r * 0.35;
-  const gy = cy - r + 2 * r * 0.3;
-  const r0 = 2 * r * 0.05;
-  const r1 = 2 * r * 0.85;
-  const grad = ctxRef.createRadialGradient(gx, gy, r0, gx, gy, r1);
-  grad.addColorStop(0, virusPalette.light);
-  grad.addColorStop(0.55, virusPalette.base);
-  grad.addColorStop(1, virusPalette.dark);
-
-  ctxRef.beginPath();
-  ctxRef.arc(cx, cy, r, 0, Math.PI * 2);
-  ctxRef.fillStyle = grad;
-  ctxRef.fill();
-
-  ctxRef.lineWidth = Math.max(1, s * 0.06);
-  ctxRef.strokeStyle = 'rgba(0, 0, 0, 0.25)';
-  ctxRef.stroke();
-
-  ctxRef.save();
-  ctxRef.globalAlpha = 0.22;
-  ctxRef.beginPath();
-  ctxRef.arc(cx, cy, r * 0.82, 0, Math.PI * 2);
-  ctxRef.lineWidth = Math.max(1, s * 0.03);
-  ctxRef.strokeStyle = virusPalette.light;
-  ctxRef.stroke();
-  ctxRef.restore();
-
-  ctxRef.save();
-  ctxRef.lineWidth = Math.max(1, s * 0.04);
-  ctxRef.strokeStyle = 'rgba(0, 0, 0, 0.38)';
-  ctxRef.stroke();
-  ctxRef.restore();
-
-  ctxRef.save();
-  ctxRef.beginPath();
-  ctxRef.arc(cx, cy, r, 0, Math.PI * 2);
-  ctxRef.clip();
-
-  ctxRef.globalAlpha = 0.22;
-  ctxRef.fillStyle = 'white';
-  ctxRef.beginPath();
-  ctxRef.ellipse(
-    cx - r * 0.28,
-    cy - r * 0.38,
-    r * 0.7,
-    r * 0.48,
-    -0.35,
-    0,
-    Math.PI * 2
-  );
-  ctxRef.fill();
-
-  ctxRef.globalAlpha = 0.35;
-  ctxRef.beginPath();
-  ctxRef.arc(cx - r * 0.38, cy - r * 0.48, r * 0.12, 0, Math.PI * 2);
-  ctxRef.fill();
-  ctxRef.restore();
-
-  ctxRef.save();
-  const eyeOffsetX = r * 0.22;
-  const eyeOffsetY = r * 0.08;
-  const eyeR = r * 0.14;
-  ctxRef.fillStyle = 'rgba(255, 255, 255, 0.9)';
-  ctxRef.beginPath();
-  ctxRef.arc(cx - eyeOffsetX, cy - eyeOffsetY, eyeR, 0, Math.PI * 2);
-  ctxRef.arc(cx + eyeOffsetX, cy - eyeOffsetY, eyeR, 0, Math.PI * 2);
-  ctxRef.fill();
-  ctxRef.fillStyle = 'rgba(10, 10, 10, 0.9)';
-  ctxRef.beginPath();
-  ctxRef.arc(cx - eyeOffsetX + r * 0.04, cy - eyeOffsetY, eyeR * 0.42, 0, Math.PI * 2);
-  ctxRef.arc(cx + eyeOffsetX + r * 0.04, cy - eyeOffsetY, eyeR * 0.42, 0, Math.PI * 2);
-  ctxRef.fill();
-  ctxRef.restore();
-
-  ctxRef.save();
-  ctxRef.strokeStyle = 'rgba(10, 10, 10, 0.75)';
-  ctxRef.lineWidth = Math.max(1, s * 0.035);
-  ctxRef.lineCap = 'round';
-  const browY = cy - eyeOffsetY - eyeR * 0.9;
-  ctxRef.beginPath();
-  ctxRef.moveTo(cx - eyeOffsetX - eyeR * 0.6, browY - eyeR * 0.2);
-  ctxRef.lineTo(cx - eyeOffsetX + eyeR * 0.4, browY + eyeR * 0.2);
-  ctxRef.moveTo(cx + eyeOffsetX - eyeR * 0.4, browY + eyeR * 0.2);
-  ctxRef.lineTo(cx + eyeOffsetX + eyeR * 0.6, browY - eyeR * 0.2);
-  ctxRef.stroke();
-
-  ctxRef.beginPath();
-  ctxRef.arc(cx, cy + r * 0.24, r * 0.2, 1.1 * Math.PI, 1.9 * Math.PI);
-  ctxRef.stroke();
-  ctxRef.restore();
-
-  ctxRef.save();
-  ctxRef.globalAlpha = 0.16;
-  ctxRef.fillStyle = virusPalette.dark;
-  for (let i = 0; i < 3; i++) {
-    const a = i * 2.1;
-    ctxRef.beginPath();
-    ctxRef.arc(cx + Math.cos(a) * r * 0.35, cy + Math.sin(a) * r * 0.25, r * 0.12, 0, Math.PI * 2);
-    ctxRef.fill();
-  }
-  ctxRef.restore();
 }
 
 function drawBoard(alpha) {
@@ -993,9 +884,9 @@ function drawBoard(alpha) {
       const x = cellToX(c);
       const y = cellToY(r);
       if (cell.kind === Kind.VIRUS) {
-        drawVirus(ctx, x, y, view.cellSize, cell.color);
+        drawVirus(ctx, x, y, view.cellSize, cell.color, PALETTE);
       } else {
-        drawSegment(ctx, x, y, view.cellSize, cell.color, cell.link);
+        drawSegment(ctx, x, y, view.cellSize, cell.color, cell.link, PALETTE);
       }
     }
   }
@@ -1009,7 +900,7 @@ function drawBoard(alpha) {
       const y = cellToY(cell.r) + offset;
       const { aLink, bLink } = linksForOrient(game.active.orient);
       const link = cell.which === 'A' ? aLink : bLink;
-      drawSegment(ctx, x, y, view.cellSize, cell.color, link);
+      drawSegment(ctx, x, y, view.cellSize, cell.color, link, PALETTE);
     }
   }
 
@@ -1037,16 +928,16 @@ function drawNextCapsule() {
   const size = 32;
   const x = nextCanvas.width / 2 - size;
   const y = nextCanvas.height / 2 - size / 2;
-  drawSegment(nextCtx, x, y, size, game.nextSpec.aColor, Link.R);
-  drawSegment(nextCtx, x + size, y, size, game.nextSpec.bColor, Link.L);
+  drawSegment(nextCtx, x, y, size, game.nextSpec.aColor, Link.R, PALETTE);
+  drawSegment(nextCtx, x + size, y, size, game.nextSpec.bColor, Link.L, PALETTE);
 }
 
 function getFallOffset(alpha) {
   if (!game.active || game.state !== GameState.FALLING) return 0;
-  const interval = gravityInterval();
   if (!canPlaceActive(game.active.aRow - 1, game.active.aCol, game.active.orient)) return 0;
   const blend = alpha === undefined ? 0 : alpha;
-  const t = Math.min(1, (game.timers.gravityElapsed + blend * FIXED_DT) / interval);
+  const interval = gravityFrames() + 1;
+  const t = Math.min(1, (game.speedCounter + blend) / interval);
   return t * view.cellSize;
 }
 
@@ -1087,7 +978,7 @@ function stepGame(dt) {
   if (game.state === GameState.SPAWN) {
     spawnCapsule();
   } else if (game.state === GameState.FALLING) {
-    stepFalling(dt);
+    stepFalling();
   } else if (game.state === GameState.RESOLVE) {
     resolveBoard(dt);
   }
@@ -1122,10 +1013,11 @@ function handleKeyDown(ev) {
   if (key === 'arrowleft' || key === 'a') {
     if (!game.input.held.left) {
       game.input.held.left = true;
-      if (tryMoveActive(0, -1)) {
+      game.horVelocity = 0;
+      if (game.active) {
+        tryMoveActive(0, -1);
         sfx.play(BANK_PILLPOPPER, 'move');
       }
-      game.repeat.left = -DAS;
     }
     ev.preventDefault();
     return;
@@ -1133,10 +1025,11 @@ function handleKeyDown(ev) {
   if (key === 'arrowright' || key === 'd') {
     if (!game.input.held.right) {
       game.input.held.right = true;
-      if (tryMoveActive(0, 1)) {
+      game.horVelocity = 0;
+      if (game.active) {
+        tryMoveActive(0, 1);
         sfx.play(BANK_PILLPOPPER, 'move');
       }
-      game.repeat.right = -DAS;
     }
     ev.preventDefault();
     return;
@@ -1182,12 +1075,16 @@ function handleKeyUp(ev) {
   const key = ev.key.toLowerCase();
   if (key === 'arrowleft' || key === 'a') {
     game.input.held.left = false;
-    game.repeat.left = -DAS;
+    if (!game.input.held.left && !game.input.held.right) {
+      game.horVelocity = 0;
+    }
     ev.preventDefault();
   }
   if (key === 'arrowright' || key === 'd') {
     game.input.held.right = false;
-    game.repeat.right = -DAS;
+    if (!game.input.held.left && !game.input.held.right) {
+      game.horVelocity = 0;
+    }
     ev.preventDefault();
   }
   if (key === 'arrowdown' || key === 's') {

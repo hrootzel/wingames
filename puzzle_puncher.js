@@ -1,5 +1,7 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_PUZZLEPUNCHER } from './sfx_bank_puzzle_puncher.js';
+import { roundRect } from './rendering_engine.js';
+import { drawGemFill, drawGemBorder, drawPowerEdges, drawCrashOverlay, drawDiamond } from './puzzle_puncher_sprite.js';
 
 const W = 6;
 const H = 13;
@@ -770,115 +772,6 @@ function cellToX(col) {
 
 function cellToY(row) {
   return view.boardTop + (H - 1 - row) * view.cellSize;
-}
-
-function roundRect(ctxRef, x, y, w, h, r) {
-  const radius = Math.min(r, w / 2, h / 2);
-  ctxRef.beginPath();
-  ctxRef.moveTo(x + radius, y);
-  ctxRef.arcTo(x + w, y, x + w, y + h, radius);
-  ctxRef.arcTo(x + w, y + h, x, y + h, radius);
-  ctxRef.arcTo(x, y + h, x, y, radius);
-  ctxRef.arcTo(x, y, x + w, y, radius);
-  ctxRef.closePath();
-}
-
-function drawGemFill(ctxRef, x, y, s, palette) {
-  const r = s * 0.2;
-  const grad = ctxRef.createLinearGradient(x, y, x + s, y + s);
-  grad.addColorStop(0, palette.light);
-  grad.addColorStop(0.5, palette.base);
-  grad.addColorStop(1, palette.dark);
-  ctxRef.fillStyle = grad;
-  roundRect(ctxRef, x + 1, y + 1, s - 2, s - 2, r);
-  ctxRef.fill();
-
-  ctxRef.save();
-  ctxRef.globalAlpha = 0.35;
-  ctxRef.fillStyle = '#ffffff';
-  ctxRef.beginPath();
-  ctxRef.ellipse(x + s * 0.34, y + s * 0.28, s * 0.25, s * 0.18, -0.4, 0, Math.PI * 2);
-  ctxRef.fill();
-  ctxRef.restore();
-}
-
-function drawGemBorder(ctxRef, x, y, s, stroke) {
-  const r = s * 0.2;
-  ctxRef.strokeStyle = stroke;
-  ctxRef.lineWidth = 2;
-  roundRect(ctxRef, x + 1, y + 1, s - 2, s - 2, r);
-  ctxRef.stroke();
-}
-
-function drawPowerEdges(ctxRef, x, y, s, edges, stroke) {
-  ctxRef.strokeStyle = stroke;
-  ctxRef.lineWidth = 2.2;
-  ctxRef.lineCap = 'round';
-  const inset = 2;
-  if (edges.top) {
-    ctxRef.beginPath();
-    ctxRef.moveTo(x + inset, y + inset);
-    ctxRef.lineTo(x + s - inset, y + inset);
-    ctxRef.stroke();
-  }
-  if (edges.bottom) {
-    ctxRef.beginPath();
-    ctxRef.moveTo(x + inset, y + s - inset);
-    ctxRef.lineTo(x + s - inset, y + s - inset);
-    ctxRef.stroke();
-  }
-  if (edges.left) {
-    ctxRef.beginPath();
-    ctxRef.moveTo(x + inset, y + inset);
-    ctxRef.lineTo(x + inset, y + s - inset);
-    ctxRef.stroke();
-  }
-  if (edges.right) {
-    ctxRef.beginPath();
-    ctxRef.moveTo(x + s - inset, y + inset);
-    ctxRef.lineTo(x + s - inset, y + s - inset);
-    ctxRef.stroke();
-  }
-}
-
-function drawCrashOverlay(ctxRef, x, y, s) {
-  ctxRef.save();
-  ctxRef.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-  ctxRef.lineWidth = Math.max(2, s * 0.1);
-  ctxRef.lineCap = 'round';
-  ctxRef.beginPath();
-  ctxRef.moveTo(x + s * 0.24, y + s * 0.24);
-  ctxRef.lineTo(x + s * 0.76, y + s * 0.76);
-  ctxRef.moveTo(x + s * 0.76, y + s * 0.24);
-  ctxRef.lineTo(x + s * 0.24, y + s * 0.76);
-  ctxRef.stroke();
-  ctxRef.globalAlpha = 0.8;
-  ctxRef.beginPath();
-  ctxRef.arc(x + s * 0.5, y + s * 0.5, s * 0.16, 0, Math.PI * 2);
-  ctxRef.stroke();
-  ctxRef.restore();
-}
-
-function drawDiamond(ctxRef, x, y, s) {
-  const size = s * 0.6;
-  ctxRef.save();
-  ctxRef.translate(x + s / 2, y + s / 2);
-  ctxRef.rotate(Math.PI / 4);
-  const grad = ctxRef.createLinearGradient(-size / 2, -size / 2, size / 2, size / 2);
-  grad.addColorStop(0, '#f9fafb');
-  grad.addColorStop(1, '#94a3b8');
-  ctxRef.fillStyle = grad;
-  ctxRef.fillRect(-size / 2, -size / 2, size, size);
-  const rainbow = ctxRef.createLinearGradient(-size / 2, 0, size / 2, 0);
-  rainbow.addColorStop(0, '#f43f5e');
-  rainbow.addColorStop(0.25, '#f59e0b');
-  rainbow.addColorStop(0.5, '#22c55e');
-  rainbow.addColorStop(0.75, '#3b82f6');
-  rainbow.addColorStop(1, '#a855f7');
-  ctxRef.strokeStyle = rainbow;
-  ctxRef.lineWidth = s * 0.12;
-  ctxRef.strokeRect(-size / 2, -size / 2, size, size);
-  ctxRef.restore();
 }
 
 function drawCell(ctxRef, cell, col, row) {
