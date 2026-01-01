@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
+  <title>Golf Solitaire</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="golf.css">
+</head>
+<body class="golf">
+  <div id="app" class="golf-app">
+    <header class="app-header compact-header golf-header">
+      <div>
+        <h1>Golf Solitaire</h1>
+        <p class="subtitle">Clear the tableau by building up or down on the waste.</p>
+      </div>
+      <div class="quick-stats golf-stats">
+        <div><span id="score-label">Strokes</span>: <span id="score">0</span></div>
+        <div>Moves: <span id="moves">0</span></div>
+        <div>Time: <span id="time">0:00</span></div>
+        <div id="hole-row">Hole: <span id="hole">1</span></div>
+        <div id="total-row">Total: <span id="total">0</span></div>
+      </div>
+      <button id="options" class="icon-button" aria-label="Options" title="Options">&#9881;</button>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Ready</span>
+      </div>
+    </div>
+
+    <div class="board golf-board">
+      <div class="top-row golf-top">
+        <div class="pile-wrap">
+          <div class="label">Stock</div>
+          <div id="stock" class="pile stock"></div>
+        </div>
+        <div class="pile-wrap">
+          <div class="label">Waste</div>
+          <div id="waste" class="pile waste"></div>
+        </div>
+        <div class="golf-legend">
+          <div class="label">Rules</div>
+          <div class="golf-rule">Play any top card that is one rank higher or lower.</div>
+          <div class="golf-rule">Flip stock when stuck. No tableau moves.</div>
+        </div>
+      </div>
+      <div class="tableau-wrap">
+        <div class="label">Tableau (7 columns)</div>
+        <div id="tableau" class="tableau golf-tableau"></div>
+      </div>
+    </div>
+
+    <div class="control-group bottom-controls golf-controls">
+      <button id="new-game">New Game</button>
+      <button id="flip-stock">Flip Stock</button>
+      <button id="undo" disabled>Undo</button>
+    </div>
+
+    <p class="tips">
+      Click a top card to move it onto the waste. Click the stock (or Flip Stock) to draw a new waste card.
+      Clear all tableau cards to win the hole.
+    </p>
+  </div>
+
+  <div id="options-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="options-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="options-title">Options</h2>
+      </header>
+      <div class="ms-modal-body">
+        <label class="checkbox">
+          <input type="checkbox" id="opt-wrap-ak" checked> Turning the corner (A-K wrap)
+        </label>
+        <label>King rule
+          <select id="opt-king-rule">
+            <option value="STRICT">Strict (nothing on K)</option>
+            <option value="Q_ONLY">Q only</option>
+            <option value="Q_AND_A" selected>Q + A</option>
+          </select>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="opt-start-empty"> Start waste empty
+        </label>
+        <label>Scoring
+          <select id="opt-scoring">
+            <option value="STROKES" selected>Strokes</option>
+            <option value="ARCADE">Arcade</option>
+            <option value="CARDS_LEFT">Cards left</option>
+          </select>
+        </label>
+        <label>Holes
+          <select id="opt-holes">
+            <option value="1" selected>1</option>
+            <option value="9">9</option>
+          </select>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="opt-auto-flip"> Auto flip when no moves
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="opt-show-hints" checked> Show playable hints
+        </label>
+      </div>
+      <div class="ms-modal-actions">
+        <button id="options-close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="result-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="result-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="result-title">Hole Complete</h2>
+      </header>
+      <div class="ms-modal-body">
+        <p id="result-message" class="result-message"></p>
+        <div id="scorecard" class="scorecard-grid"></div>
+      </div>
+      <div class="ms-modal-actions">
+        <button id="result-next">Next Hole</button>
+        <button id="result-restart" class="secondary">Restart</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="golf.js"></script>
+</body>
+</html>
