@@ -2,7 +2,7 @@ import { CardRenderer, SUITS } from './card_renderer.js';
 
 const TABLEAU_COLS = 7;
 const TABLEAU_ROWS = 5;
-const TABLEAU_SPACING = 18;
+const TABLEAU_SPACING = 24;
 const WASTE_SPACING = 16;
 
 const STORAGE_KEY = 'golfOptions';
@@ -13,7 +13,7 @@ const DEFAULT_OPTIONS = {
   scoringMode: 'STROKES',
   holes: 1,
   autoFlipWhenNoMoves: false,
-  showHints: true,
+  showHints: false,
 };
 
 const stockEl = document.getElementById('stock');
@@ -69,7 +69,7 @@ function loadOptions() {
       scoringMode: ['STROKES', 'ARCADE', 'CARDS_LEFT'].includes(parsed.scoringMode) ? parsed.scoringMode : DEFAULT_OPTIONS.scoringMode,
       holes: parsed.holes === 9 ? 9 : 1,
       autoFlipWhenNoMoves: parsed.autoFlipWhenNoMoves === true,
-      showHints: parsed.showHints !== false,
+      showHints: typeof parsed.showHints === 'boolean' ? parsed.showHints : DEFAULT_OPTIONS.showHints,
     };
   } catch {
     return { ...DEFAULT_OPTIONS };
