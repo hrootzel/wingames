@@ -21,11 +21,31 @@ const DEFAULT_LAYOUT_CLASSES = {
   stack: 'card-stack',
 };
 
+const PIP_LAYOUT_DEFAULTS = {
+  1: [10],
+  2: [1, 19],
+  3: [1, 10, 19],
+  4: [0, 2, 18, 20],
+  5: [0, 2, 10, 18, 20],
+  6: [0, 2, 9, 11, 18, 20],
+  7: [0, 2, 3, 5, 6, 8, 4], // compact 3x4 grid indices (shifted via CSS)
+  8: [0, 2, 3, 5, 6, 8, 9, 11], // compact 3x4 grid indices
+};
+const PIP_LAYOUT_9 = [0, 2, 3, 5, 6, 8, 9, 11, 4];
+const PIP_LAYOUT_10 = [0, 2, 3, 5, 6, 8, 9, 11, 4, 7];
+
 const readScaleFromCSS = (root = document.documentElement) => {
   if (!root || typeof getComputedStyle !== 'function') return null;
   const styles = getComputedStyle(root);
   const scaleValue = parseFloat(styles.getPropertyValue('--card-scale'));
   return Number.isFinite(scaleValue) ? scaleValue : null;
+};
+
+const getNow = () => {
+  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    return performance.now();
+  }
+  return Date.now();
 };
 
 const normalizeClassTokens = (value) => {
@@ -81,14 +101,14 @@ const defaultGetPipSizeClass = (value, context = {}) => {
   const scale = typeof context.scale === 'number' ? context.scale : 1;
   const shrink = scale < 0.95;
   const shrinkHard = scale < 0.8;
-  if (value >= 9 && value <= 10) return 'pip-xsmall';
-  if (value >= 5 && value <= 8) {
-    if (shrinkHard && value <= 8) return 'pip-xsmall';
+  if (value >= 9) return 'pip-xsmall';
+  if (value >= 5) {
+    if (shrinkHard) return 'pip-xsmall';
     if (shrink && value <= 7) return 'pip-xsmall';
     return 'pip-small';
   }
-  if (shrinkHard && value <= 7) return 'pip-xsmall';
-  if (shrink && value <= 7) return 'pip-small';
+  if (shrinkHard) return 'pip-xsmall';
+  if (shrink) return 'pip-small';
   return '';
 };
 
@@ -121,25 +141,15 @@ export function cardColor(suit) {
 
 export function pipLayout(value) {
   // Default positions mapped to a 3x7 grid (indices 0..20)
-  const defaults = {
-    1: [10],
-    2: [1, 19],
-    3: [1, 10, 19],
-    4: [0, 2, 18, 20],
-    5: [0, 2, 10, 18, 20],
-    6: [0, 2, 9, 11, 18, 20],
-    7: [0, 2, 3, 5, 6, 8, 4], // compact 3x4 grid indices (shifted via CSS)
-    8: [0, 2, 3, 5, 6, 8, 9, 11], // compact 3x4 grid indices
-  };
   if (value === 9) {
     // 3x4 grid (indices 0..11): 8 on sides + 1 center
-    return [0, 2, 3, 5, 6, 8, 9, 11, 4];
+    return PIP_LAYOUT_9;
   }
   if (value === 10) {
     // 3x4 grid: 8 on sides + 2 centers
-    return [0, 2, 3, 5, 6, 8, 9, 11, 4, 7];
+    return PIP_LAYOUT_10;
   }
-  return defaults[value] || [];
+  return PIP_LAYOUT_DEFAULTS[value] || [];
 }
 
 export function formatCardLabel(card, valueLabels = VALUE_LABELS, suitSymbols = SUIT_SYMBOLS) {
@@ -162,19 +172,29 @@ export class CardRenderer {
     this.layoutClasses = { ...DEFAULT_LAYOUT_CLASSES, ...(options.layoutClasses || {}) };
     this.dataset = { ...(options.dataset || {}) };
     this.getDataset = typeof options.getDataset === 'function' ? options.getDataset : null;
+    this._cardPool = new Map();
   }
 
   updateScaleFromCSS(root = document.documentElement) {
     const scaleValue = readScaleFromCSS(root);
-    if (scaleValue !== null) this.scale = scaleValue;
+    if (scaleValue !== null) {
+      this.scale = scaleValue;
+      this._scaleCache = { root, value: scaleValue, time: getNow() };
+    }
   }
 
   resolveScale(options = {}) {
     if (typeof options.scale === 'number') return options.scale;
     if (typeof this.scale === 'number') return this.scale;
-    const scaleValue = readScaleFromCSS();
-    if (scaleValue !== null) return scaleValue;
-    return 1;
+    const root = options.root || document.documentElement;
+    const now = getNow();
+    if (this._scaleCache && this._scaleCache.root === root && now - this._scaleCache.time < 16) {
+      return this._scaleCache.value;
+    }
+    const scaleValue = readScaleFromCSS(root);
+    const resolved = scaleValue !== null ? scaleValue : 1;
+    this._scaleCache = { root, value: resolved, time: now };
+    return resolved;
   }
 
   formatCardLabel(card) {
@@ -319,30 +339,66 @@ export class CardRenderer {
     return scale;
   }
 
-  createCardElement(card, options = {}) {
+  clearCardPool() {
+    this._cardPool.clear();
+  }
+
+  getCardElement(card, options = {}) {
+    if (!card || card.id == null) return this.createCardElement(card, options);
+    let el = this._cardPool.get(card.id);
+    if (!el) {
+      el = this.createCardElement(card, options);
+      this._cardPool.set(card.id, el);
+    } else {
+      this.updateCardElement(el, card, options);
+    }
+    return el;
+  }
+
+  resetCardInlineStyles(el) {
+    if (!el) return;
+    el.style.top = '';
+    el.style.left = '';
+    el.style.zIndex = '';
+  }
+
+  updateCardElement(el, card, options = {}) {
+    if (!el) return this.createCardElement(card, options);
     const { faceUp, skin, size, dataset, className, attributes } = options;
-    const el = document.createElement('div');
-    el.className = this.classes.card;
     const tokens = normalizeClassTokens(className);
+    el.className = this.classes.card;
     if (tokens.length) el.classList.add(...tokens);
 
     const resolvedSkin = skin ?? this.skin;
     const resolvedSize = size ?? this.size;
-    const resolvedScale = this.resolveScale(options);
     const runtimeDataset = this.getDataset ? this.getDataset(card, options) : null;
     const computedDataset = {
       ...this.dataset,
       ...(runtimeDataset || {}),
       ...(dataset || {}),
     };
-    if (resolvedSkin) computedDataset.skin = resolvedSkin;
-    if (resolvedSize) computedDataset.size = resolvedSize;
+    if (resolvedSkin) {
+      computedDataset.skin = resolvedSkin;
+    } else if (el.dataset.skin) {
+      delete el.dataset.skin;
+    }
+    if (resolvedSize) {
+      computedDataset.size = resolvedSize;
+    } else if (el.dataset.size) {
+      delete el.dataset.size;
+    }
     applyDataset(el, computedDataset);
     applyAttributes(el, attributes);
 
     const showFace = faceUp ?? (card && card.faceUp);
+    const cache = el._cardRenderer || (el._cardRenderer = {});
     if (!card || !showFace) {
       el.classList.add(this.stateClasses.faceDown);
+      if (cache.content && cache.content.parentElement === el) {
+        el.removeChild(cache.content);
+      }
+      cache.cardKey = null;
+      cache.pipSizeKey = null;
       return el;
     }
 
@@ -350,40 +406,79 @@ export class CardRenderer {
       el.classList.add(this.stateClasses.red);
     }
 
-    const content = document.createElement('div');
-    content.className = this.classes.content;
+    const isFace = card.value >= this.faceValueStart;
+    const resolvedScale = isFace ? null : this.resolveScale(options);
+    const pipSizeKey = isFace ? null : `${card.value}|${resolvedScale}|${resolvedSize ?? ''}`;
+    const classKey = `${this.classes.content}|${this.classes.cornerTop}|${this.classes.cornerBottom}|${this.classes.pips}|${this.classes.pip}|${this.classes.faceLabel}`;
+    const cardKey = `${card.value}|${card.suit}`;
+    const needsRebuild =
+      cache.cardKey !== cardKey ||
+      cache.isFace !== isFace ||
+      cache.pipSizeKey !== pipSizeKey ||
+      cache.faceValueStart !== this.faceValueStart ||
+      cache.valueLabels !== this.valueLabels ||
+      cache.suitSymbols !== this.suitSymbols ||
+      cache.classKey !== classKey;
 
-    const label = this.formatCardLabel(card);
-    content.appendChild(buildCorner(this.classes.cornerTop, label));
-    content.appendChild(buildCorner(this.classes.cornerBottom, label));
-
-    if (card.value >= this.faceValueStart) {
-      const face = document.createElement('div');
-      face.className = this.classes.faceLabel;
-      face.textContent = this.valueLabels[card.value];
-      content.appendChild(face);
-    } else {
-      const pips = document.createElement('div');
-      pips.className = this.classes.pips;
-      this.getPipsModifiers(card.value).forEach((cls) => pips.classList.add(cls));
-
-      this.pipLayout(card.value).forEach((cell) => {
-        const pip = document.createElement('div');
-        pip.className = this.classes.pip;
-        const sizeClass = this.getPipSizeClass(card.value, { scale: resolvedScale, size: resolvedSize, card });
-        if (sizeClass) pip.classList.add(sizeClass);
-        const row = Math.floor(cell / 3) + 1;
-        const col = (cell % 3) + 1;
-        pip.style.gridRow = String(row);
-        pip.style.gridColumn = String(col);
-        pip.textContent = this.suitSymbols[card.suit];
-        pips.appendChild(pip);
-      });
-
-      content.appendChild(pips);
+    let content = cache.content;
+    if (!content || content.parentElement !== el) {
+      content = document.createElement('div');
+      cache.content = content;
+      el.appendChild(content);
+    }
+    if (content.className !== this.classes.content) {
+      content.className = this.classes.content;
     }
 
-    el.appendChild(content);
+    if (needsRebuild) {
+      while (content.firstChild) content.removeChild(content.firstChild);
+      const label = this.formatCardLabel(card);
+      content.appendChild(buildCorner(this.classes.cornerTop, label));
+      content.appendChild(buildCorner(this.classes.cornerBottom, label));
+
+      if (isFace) {
+        const face = document.createElement('div');
+        face.className = this.classes.faceLabel;
+        face.textContent = this.valueLabels[card.value];
+        content.appendChild(face);
+      } else {
+        const pips = document.createElement('div');
+        pips.className = this.classes.pips;
+        this.getPipsModifiers(card.value).forEach((cls) => pips.classList.add(cls));
+
+        const layout = this.pipLayout(card.value);
+        const sizeClass = this.getPipSizeClass(card.value, { scale: resolvedScale, size: resolvedSize, card });
+        const pipSymbol = this.suitSymbols[card.suit];
+        const frag = document.createDocumentFragment();
+        layout.forEach((cell) => {
+          const pip = document.createElement('div');
+          pip.className = this.classes.pip;
+          if (sizeClass) pip.classList.add(sizeClass);
+          const row = Math.floor(cell / 3) + 1;
+          const col = (cell % 3) + 1;
+          pip.style.gridRow = String(row);
+          pip.style.gridColumn = String(col);
+          pip.textContent = pipSymbol;
+          frag.appendChild(pip);
+        });
+        pips.appendChild(frag);
+        content.appendChild(pips);
+      }
+
+      cache.cardKey = cardKey;
+      cache.isFace = isFace;
+      cache.pipSizeKey = pipSizeKey;
+      cache.faceValueStart = this.faceValueStart;
+      cache.valueLabels = this.valueLabels;
+      cache.suitSymbols = this.suitSymbols;
+      cache.classKey = classKey;
+    }
+
     return el;
+  }
+
+  createCardElement(card, options = {}) {
+    const el = document.createElement('div');
+    return this.updateCardElement(el, card, options);
   }
 }

@@ -326,15 +326,15 @@ function startWinCelebration() {
   fx.rafId = requestAnimationFrame(step);
 }
 
-function buildCardElement(card, colIndex, cardIndex) {
-  const el = buildCardVisual(card);
+function buildCardElement(card, colIndex, cardIndex, { reuse = true } = {}) {
+  const el = reuse ? cardRenderer.getCardElement(card) : cardRenderer.createCardElement(card);
+  cardRenderer.resetCardInlineStyles(el);
   el.dataset.pile = 'tableau';
   el.dataset.pileindex = String(colIndex);
   el.dataset.index = String(cardIndex);
 
-  if (card.faceUp && selection && selection.col === colIndex && cardIndex >= selection.index) {
-    el.classList.add('selected');
-  }
+  const isSelected = !!(card.faceUp && selection && selection.col === colIndex && cardIndex >= selection.index);
+  el.classList.toggle('selected', isSelected);
 
   return el;
 }
@@ -568,7 +568,7 @@ function buildDragPreview(cards, colIdx, startIndex, spacing) {
   const wrap = document.createElement('div');
   wrap.className = 'drag-preview';
   cards.forEach((card, idx) => {
-    const el = buildCardElement(card, colIdx, startIndex + idx);
+    const el = buildCardElement(card, colIdx, startIndex + idx, { reuse: false });
     el.style.position = 'absolute';
     el.style.top = `${idx * spacing}px`;
     wrap.appendChild(el);

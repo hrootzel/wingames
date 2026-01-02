@@ -59,7 +59,9 @@ function unlockAudio() {
 }
 
 function buildCardVisual(card) {
-  return cardRenderer.createCardElement(card);
+  const el = cardRenderer.getCardElement(card);
+  cardRenderer.resetCardInlineStyles(el);
+  return el;
 }
 
 function createDeck() {

@@ -633,23 +633,25 @@ function checkForWin() {
   showWinPopup();
 }
 
-function buildCardElement(card, pileType, pileIndex, cardIndex) {
-  const el = cardRenderer.createCardElement(card);
+function buildCardElement(card, pileType, pileIndex, cardIndex, { reuse = true } = {}) {
+  const el = reuse ? cardRenderer.getCardElement(card) : cardRenderer.createCardElement(card);
+  cardRenderer.resetCardInlineStyles(el);
   el.dataset.pile = pileType;
   el.dataset.index = String(cardIndex);
   el.dataset.pileindex = String(pileIndex);
 
+  let isSelected = false;
   if (selection) {
     const samePile = selection.source.type === pileType && selection.source.index === pileIndex;
     if (samePile) {
-      if (pileType === 'tableau' && cardIndex >= selection.cardIndex) {
-        el.classList.add('selected');
-      }
-      if (pileType !== 'tableau' && cardIndex === selection.cardIndex) {
-        el.classList.add('selected');
+      if (pileType === 'tableau') {
+        isSelected = cardIndex >= selection.cardIndex;
+      } else {
+        isSelected = cardIndex === selection.cardIndex;
       }
     }
   }
+  el.classList.toggle('selected', isSelected);
 
   return el;
 }
@@ -731,7 +733,7 @@ function buildDragPreview(cards, pileType, startIndex, pileIndex) {
   wrap.className = 'drag-preview';
   const spacing = dragState && typeof dragState.stackSpacing === 'number' ? dragState.stackSpacing : cardMetrics.spacing;
   cards.forEach((card, idx) => {
-    const el = buildCardElement(card, pileType, pileIndex, startIndex + idx);
+    const el = buildCardElement(card, pileType, pileIndex, startIndex + idx, { reuse: false });
     el.style.position = 'absolute';
     el.style.top = `${idx * spacing}px`;
     wrap.appendChild(el);

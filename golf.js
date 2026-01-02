@@ -460,7 +460,8 @@ function renderWaste() {
   const start = state.waste.length - visible;
   for (let i = 0; i < visible; i++) {
     const card = state.waste[start + i];
-    const el = cardRenderer.createCardElement(card);
+    const el = cardRenderer.getCardElement(card);
+    cardRenderer.resetCardInlineStyles(el);
     el.dataset.pile = 'waste';
     el.dataset.index = String(start + i);
     el.style.left = `${i * layoutMetrics.wasteSpacing}px`;
@@ -488,14 +489,14 @@ function renderTableau() {
     const col = cardRenderer.createStackElement({ className: 'tableau-col' });
     col.dataset.col = String(colIdx);
     stack.forEach((card, idx) => {
-      const el = cardRenderer.createCardElement(card);
+      const el = cardRenderer.getCardElement(card);
+      cardRenderer.resetCardInlineStyles(el);
       el.dataset.pile = 'tableau';
       el.dataset.col = String(colIdx);
       el.dataset.index = String(idx);
       el.style.top = `${idx * layoutMetrics.stackSpacing}px`;
-      if (idx === stack.length - 1 && playable.has(colIdx)) {
-        el.classList.add('playable');
-      }
+      const isPlayable = idx === stack.length - 1 && playable.has(colIdx);
+      el.classList.toggle('playable', isPlayable);
       col.appendChild(el);
     });
     tableauEl.appendChild(col);

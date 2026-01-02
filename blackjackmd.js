@@ -62,6 +62,7 @@ function ensureShoe() {
   if (!state.shoe || state.shoeDecks !== state.options.decks || state.shoe.length < minCards) {
     state.shoe = createShoe(state.options.decks);
     state.shoeDecks = state.options.decks;
+    cardRenderer.clearCardPool();
     sfx.play(BANK_BLACKJACK, 'shuffle');
   }
 }
@@ -596,7 +597,7 @@ function renderHand(container, hand, hideHole = false) {
 }
 
 function buildCardElement(card, displayCard = card) {
-  return cardRenderer.createCardElement(displayCard);
+  return cardRenderer.getCardElement(displayCard);
 }
 
 function updateButtons() {

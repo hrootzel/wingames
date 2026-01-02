@@ -713,8 +713,9 @@ function renderStock() {
   stockEl.appendChild(pile);
 }
 
-function buildCardElement(card, pileType, cardIndex, pileIndex) {
-  const el = cardRenderer.createCardElement(card);
+function buildCardElement(card, pileType, cardIndex, pileIndex, { reuse = true } = {}) {
+  const el = reuse ? cardRenderer.getCardElement(card) : cardRenderer.createCardElement(card);
+  cardRenderer.resetCardInlineStyles(el);
   el.dataset.pile = pileType;
   el.dataset.index = cardIndex.toString();
   if (pileIndex !== undefined) {
@@ -722,17 +723,19 @@ function buildCardElement(card, pileType, cardIndex, pileIndex) {
     el.dataset.col = pileIndex.toString();
   }
 
+  let isSelected = false;
   if (selection) {
     const selectedPileMatches = selection.source === pileType && selection.pileIndex === (pileIndex ?? 0);
     if (selectedPileMatches) {
-      if (pileType === 'tableau' && cardIndex >= selection.cardIndex) {
-        el.classList.add('selected');
+      if (pileType === 'tableau') {
+        isSelected = cardIndex >= selection.cardIndex;
       }
       if ((pileType === 'waste' || pileType === 'foundation') && cardIndex === selection.cardIndex) {
-        el.classList.add('selected');
+        isSelected = true;
       }
     }
   }
+  el.classList.toggle('selected', isSelected);
 
   return el;
 }
@@ -742,7 +745,7 @@ function buildDragPreview(cards, source, startIndex, pileIndex) {
   wrap.className = 'drag-preview';
   const spacing = dragState && typeof dragState.stackSpacing === 'number' ? dragState.stackSpacing : layoutMetrics.stackSpacing;
   cards.forEach((card, idx) => {
-    const el = buildCardElement(card, source, startIndex + idx, pileIndex);
+    const el = buildCardElement(card, source, startIndex + idx, pileIndex, { reuse: false });
     el.style.position = 'absolute';
     el.style.top = `${idx * spacing}px`;
     wrap.appendChild(el);
