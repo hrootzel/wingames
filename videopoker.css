@@ -1,3 +1,9 @@
+.videopoker {
+  --card-scale: 1;
+  --card-base-width: 176px;
+  --card-base-height: 240px;
+}
+
 .hands.videopoker-layout {
   grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
   align-items: stretch;
@@ -102,8 +108,18 @@
   flex-direction: column;
 }
 
+.vp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.vp-stats {
+  text-align: left;
+}
+
 .vp-controls {
   justify-content: flex-end;
-  margin-top: auto;
-  padding-top: 10px;
 }

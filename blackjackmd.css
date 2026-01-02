@@ -42,3 +42,21 @@
   visibility: hidden;
   pointer-events: none;
 }
+
+#player-hands {
+  min-height: calc(var(--card-height) + 48px);
+}
+
+.blackjackmd .hand-cards {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.blackjackmd {
+  --card-scale: 1;
+  --card-base-width: 120px;
+  --card-base-height: 166px;
+}

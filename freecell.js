@@ -54,6 +54,7 @@ const optCardSize = document.getElementById('opt-card-size');
 const optionsCloseBtn = document.getElementById('options-close');
 
 const cardRenderer = new CardRenderer();
+const scaleRoot = document.body || document.documentElement;
 
 let options = loadOptions();
 let cardMetrics = getCardMetrics(options.cardSize);
@@ -71,7 +72,23 @@ let currentDealNumber = 1;
 let winOverlay = null;
 
 function getCardMetrics(sizeKey) {
-  return SIZE_PRESETS[sizeKey] || SIZE_PRESETS.md;
+  const preset = SIZE_PRESETS[sizeKey] || SIZE_PRESETS.md;
+  const styles = getComputedStyle(appEl || document.body);
+  const width = parseFloat(styles.getPropertyValue('--card-width')) || preset.width;
+  const height = parseFloat(styles.getPropertyValue('--card-height')) || preset.height;
+  const spacing = parseFloat(styles.getPropertyValue('--stack-spacing')) || preset.spacing;
+  return { width, height, spacing };
+}
+
+function applyBoardScale() {
+  if (!tableauEl) return;
+  const styles = getComputedStyle(scaleRoot);
+  const baseWidth = parseFloat(styles.getPropertyValue('--card-base-width')) || SIZE_PRESETS.md.width;
+  const baseGap = parseFloat(styles.getPropertyValue('--card-base-gap')) || 12;
+  const required = 8 * baseWidth + 7 * baseGap;
+  const available = tableauEl.clientWidth;
+  const scale = required > 0 && available > 0 && required > available ? Math.max(0.6, available / required) : 1;
+  scaleRoot.style.setProperty('--card-scale', scale.toFixed(3));
 }
 
 function loadOptions() {
@@ -668,6 +685,9 @@ function renderTableau() {
 
 function render() {
   if (!state) return;
+  applyBoardScale();
+  cardRenderer.updateScaleFromCSS();
+  cardMetrics = getCardMetrics(options.cardSize);
   renderFreecells();
   renderFoundations();
   renderTableau();
@@ -1067,7 +1087,9 @@ function attachEvents() {
     applyOptions();
   });
 
-  window.addEventListener('resize', () => render());
+  window.addEventListener('resize', () => {
+    render();
+  });
 
   document.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape') {

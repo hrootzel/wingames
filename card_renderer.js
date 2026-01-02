@@ -15,6 +15,12 @@ const DEFAULT_STATE_CLASSES = {
 
 const defaultGetPipsModifiers = (value) => {
   const classes = [];
+  if (value === 1) {
+    classes.push('pips-ace');
+  }
+  if (value >= 2 && value <= 6) {
+    classes.push('pips-low');
+  }
   if (value >= 7) {
     classes.push('pips-tight', 'pips-compact-4');
   }
@@ -24,9 +30,18 @@ const defaultGetPipsModifiers = (value) => {
   return classes;
 };
 
-const defaultGetPipSizeClass = (value) => {
+const defaultGetPipSizeClass = (value, context = {}) => {
+  const scale = typeof context.scale === 'number' ? context.scale : 1;
+  const shrink = scale < 0.95;
+  const shrinkHard = scale < 0.8;
   if (value >= 9 && value <= 10) return 'pip-xsmall';
-  if (value >= 5 && value <= 8) return 'pip-small';
+  if (value >= 5 && value <= 8) {
+    if (shrinkHard && value <= 8) return 'pip-xsmall';
+    if (shrink && value <= 7) return 'pip-xsmall';
+    return 'pip-small';
+  }
+  if (shrinkHard && value <= 7) return 'pip-xsmall';
+  if (shrink && value <= 7) return 'pip-small';
   return '';
 };
 
@@ -96,8 +111,29 @@ export class CardRenderer {
     this.getPipsModifiers = options.getPipsModifiers || defaultGetPipsModifiers;
     this.skin = options.skin || null;
     this.size = options.size || null;
+    this.scale = typeof options.scale === 'number' ? options.scale : null;
     this.dataset = { ...(options.dataset || {}) };
     this.getDataset = typeof options.getDataset === 'function' ? options.getDataset : null;
+  }
+
+  updateScaleFromCSS(root = document.documentElement) {
+    if (!root) return;
+    const styles = getComputedStyle(root);
+    const scaleValue = parseFloat(styles.getPropertyValue('--card-scale'));
+    if (Number.isFinite(scaleValue)) {
+      this.scale = scaleValue;
+    }
+  }
+
+  resolveScale(options = {}) {
+    if (typeof options.scale === 'number') return options.scale;
+    if (typeof this.scale === 'number') return this.scale;
+    if (typeof document !== 'undefined') {
+      const styles = getComputedStyle(document.documentElement);
+      const scaleValue = parseFloat(styles.getPropertyValue('--card-scale'));
+      if (Number.isFinite(scaleValue)) return scaleValue;
+    }
+    return 1;
   }
 
   formatCardLabel(card) {
@@ -115,6 +151,7 @@ export class CardRenderer {
 
     const resolvedSkin = skin ?? this.skin;
     const resolvedSize = size ?? this.size;
+    const resolvedScale = this.resolveScale(options);
     const runtimeDataset = this.getDataset ? this.getDataset(card, options) : null;
     const computedDataset = {
       ...this.dataset,
@@ -170,8 +207,8 @@ export class CardRenderer {
       this.pipLayout(card.value).forEach((cell) => {
         const pip = document.createElement('div');
         pip.className = this.classes.pip;
-        const sizeClass = this.getPipSizeClass(card.value);
-        if (sizeClass) pip.classList.add(sizeClass);
+      const sizeClass = this.getPipSizeClass(card.value, { scale: resolvedScale, size: resolvedSize, card });
+      if (sizeClass) pip.classList.add(sizeClass);
         const row = Math.floor(cell / 3) + 1;
         const col = (cell % 3) + 1;
         pip.style.gridRow = String(row);

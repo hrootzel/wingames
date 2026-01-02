@@ -3,6 +3,10 @@
   --fc-card-height: 120px;
   --fc-fan-spacing: 24px;
   --fc-card-gap: 12px;
+  --card-base-width: var(--fc-card-width);
+  --card-base-height: var(--fc-card-height);
+  --card-base-gap: var(--fc-card-gap);
+  --card-base-spacing: var(--fc-fan-spacing);
 }
 
 .freecell[data-size="sm"] {
@@ -13,37 +17,37 @@
 }
 
 .freecell[data-size="sm"] .corner {
-  font-size: 11px;
+  font-size: calc(11px * var(--card-scale));
 }
 
 .freecell[data-size="sm"] .pips {
-  inset: 14px 10px;
-  font-size: 14px;
+  inset: calc(14px * var(--card-scale)) calc(10px * var(--card-scale));
+  font-size: calc(14px * var(--card-scale));
   row-gap: 2px;
   column-gap: 1px;
 }
 
 .freecell[data-size="sm"] .pip {
-  font-size: 14px;
+  font-size: calc(14px * var(--card-scale));
 }
 
 .freecell[data-size="sm"] .pip-small {
-  font-size: 10px;
+  font-size: calc(10px * var(--card-scale));
 }
 
 .freecell[data-size="sm"] .pip-xsmall {
-  font-size: 8px;
+  font-size: calc(8px * var(--card-scale));
 }
 
 .freecell[data-size="sm"] .pips-tight {
-  inset: 12px 8px;
+  inset: calc(12px * var(--card-scale)) calc(8px * var(--card-scale));
   row-gap: 0;
   column-gap: 0;
 }
 
 .freecell[data-size="sm"] .face-label {
-  inset: 14px 10px;
-  font-size: 28px;
+  inset: calc(14px * var(--card-scale)) calc(10px * var(--card-scale));
+  font-size: calc(28px * var(--card-scale));
 }
 
 .freecell[data-size="lg"] {
@@ -103,19 +107,22 @@
 .freecell-top {
   justify-content: space-between;
   width: 100%;
+  flex-wrap: nowrap;
 }
 
 .freecells-row,
 .foundations-row {
   display: flex;
   gap: var(--fc-card-gap);
+  flex-wrap: nowrap;
 }
 
 .freecell-tableau {
-  grid-template-columns: repeat(8, minmax(var(--fc-card-width), 1fr));
+  grid-template-columns: repeat(8, minmax(var(--card-width), 1fr));
   gap: var(--fc-card-gap);
   min-height: 360px;
 }
+
 
 .freecell-slot,
 .foundation-slot {

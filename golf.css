@@ -1,9 +1,14 @@
+.golf {
+  --card-base-spacing: 24px;
+  --card-base-waste-spacing: 16px;
+}
+
 .golf #app {
   max-width: 1100px;
 }
 
 .golf .pile.waste {
-  min-width: 120px;
+  min-width: calc(var(--card-width) + (var(--waste-spacing) * 2));
 }
 
 .golf-top {
@@ -21,12 +26,12 @@
 }
 
 .golf-tableau {
-  grid-template-columns: repeat(7, minmax(88px, 1fr));
-  min-height: 260px;
+  grid-template-columns: repeat(auto-fit, minmax(var(--card-width), 1fr));
+  min-height: calc(var(--card-height) * 2.2);
 }
 
 .golf-tableau .tableau-col {
-  min-height: 240px;
+  min-height: calc(var(--card-height) * 2);
 }
 
 .golf .card {

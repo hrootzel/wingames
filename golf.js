@@ -2,8 +2,8 @@ import { CardRenderer, SUITS } from './card_renderer.js';
 
 const TABLEAU_COLS = 7;
 const TABLEAU_ROWS = 5;
-const TABLEAU_SPACING = 24;
-const WASTE_SPACING = 16;
+const DEFAULT_STACK_SPACING = 24;
+const DEFAULT_WASTE_SPACING = 16;
 
 const STORAGE_KEY = 'golfOptions';
 const DEFAULT_OPTIONS = {
@@ -51,6 +51,20 @@ const resultNextBtn = document.getElementById('result-next');
 const resultRestartBtn = document.getElementById('result-restart');
 
 const cardRenderer = new CardRenderer();
+
+const layoutRoot = document.getElementById('app') || document.body;
+let layoutMetrics = readLayoutMetrics();
+
+function readLayoutMetrics() {
+  const styles = getComputedStyle(layoutRoot);
+  const stackSpacing = parseFloat(styles.getPropertyValue('--stack-spacing')) || DEFAULT_STACK_SPACING;
+  const wasteSpacing = parseFloat(styles.getPropertyValue('--waste-spacing')) || DEFAULT_WASTE_SPACING;
+  return { stackSpacing, wasteSpacing };
+}
+
+function refreshLayoutMetrics() {
+  layoutMetrics = readLayoutMetrics();
+}
 
 let options = loadOptions();
 let state = null;
@@ -447,7 +461,7 @@ function renderWaste() {
     const el = cardRenderer.createCardElement(card);
     el.dataset.pile = 'waste';
     el.dataset.index = String(start + i);
-    el.style.left = `${i * WASTE_SPACING}px`;
+    el.style.left = `${i * layoutMetrics.wasteSpacing}px`;
     el.style.zIndex = String(i);
     wasteEl.appendChild(el);
   }
@@ -477,7 +491,7 @@ function renderTableau() {
       el.dataset.pile = 'tableau';
       el.dataset.col = String(colIdx);
       el.dataset.index = String(idx);
-      el.style.top = `${idx * TABLEAU_SPACING}px`;
+      el.style.top = `${idx * layoutMetrics.stackSpacing}px`;
       if (idx === stack.length - 1 && playable.has(colIdx)) {
         el.classList.add('playable');
       }
@@ -490,6 +504,7 @@ function renderTableau() {
 function render() {
   if (!state) return;
   updateHoleVisibility();
+  cardRenderer.updateScaleFromCSS();
   renderStock();
   renderWaste();
   renderTableau();
@@ -616,6 +631,7 @@ function attachEvents() {
 
   window.addEventListener('resize', () => {
     if (!state) return;
+    refreshLayoutMetrics();
     render();
   });
 }

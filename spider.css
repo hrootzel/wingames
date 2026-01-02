@@ -1,3 +1,11 @@
+:root {
+  --card-base-spacing: 22px;
+}
+
+.top-row {
+  flex-wrap: nowrap;
+}
+
 .pile.stock .stock-count {
   position: absolute;
   inset: 0;
@@ -16,11 +24,14 @@
 }
 
 #completed-aces {
-  flex-wrap: wrap;
-  row-gap: 12px;
+  flex-wrap: nowrap;
   min-height: 120px;
 }
 
 #completed-aces .ace-marker {
   pointer-events: none;
+}
+
+.tableau {
+  grid-template-columns: repeat(10, minmax(var(--card-width), 1fr));
 }

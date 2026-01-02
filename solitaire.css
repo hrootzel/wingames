@@ -1,7 +1,16 @@
+:root {
+  --card-base-spacing: 26px;
+  --card-base-waste-spacing: 16px;
+}
+
 .pile.waste {
-  min-width: 120px;
+  min-width: calc(var(--card-width) + (var(--waste-spacing) * 2));
 }
 
 .foundation.empty {
   border-style: dashed;
+}
+
+.tableau {
+  grid-template-columns: repeat(7, minmax(var(--card-width), 1fr));
 }
