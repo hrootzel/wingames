@@ -4,6 +4,31 @@
   --blocks-glow: rgba(56, 189, 248, 0.35);
 }
 
+.blocks-game .settings {
+  margin-left: auto;
+}
+
+.blocks-game .icon-button {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--blocks-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+
+.blocks-game .icon-button:hover {
+  transform: translateY(-1px);
+}
+
+.blocks-game .hidden {
+  display: none !important;
+}
+
 .blocks-game .blocks-board {
   padding: 16px;
 }
@@ -81,7 +106,7 @@
 }
 
 .blocks-game input[type="number"] {
-  width: 80px;
+  width: 100%;
   padding: 6px 8px;
   border-radius: 8px;
   border: 1px solid var(--blocks-border);
@@ -94,6 +119,8 @@
   border-radius: 10px;
   padding: 8px 10px 10px;
   margin-top: 10px;
+  display: grid;
+  gap: 6px;
 }
 
 .blocks-game .size-fieldset legend {
@@ -130,6 +157,82 @@
 .blocks-game .blocks-controls {
   margin-top: 12px;
   justify-content: space-between;
+}
+
+.blocks-game .ms-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 24, 0.65);
+  display: grid;
+  place-items: center;
+  z-index: 3000;
+}
+
+.blocks-game .ms-modal-card {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  width: min(92vw, 420px);
+  padding: 16px;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.45);
+}
+
+.blocks-game .ms-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.blocks-game .ms-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.blocks-game .ms-form {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.blocks-game .ms-field {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.blocks-game .ms-field input {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.7);
+  color: inherit;
+}
+
+.blocks-game .ms-toggle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 600;
+}
+
+.blocks-game .ms-toggle input {
+  accent-color: #38bdf8;
+}
+
+.blocks-game .ms-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.blocks-game button.secondary {
+  background: transparent;
+  color: inherit;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  box-shadow: none;
 }
 
 @media (max-width: 900px) {

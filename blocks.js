@@ -10,6 +10,12 @@ const levelEl = document.getElementById('level');
 const piecesEl = document.getElementById('pieces');
 const previewStatusEl = document.getElementById('preview-status');
 
+const settingsToggle = document.getElementById('settings-toggle');
+const settingsModal = document.getElementById('settings-modal');
+const settingsClose = document.getElementById('settings-close');
+const settingsApply = document.getElementById('settings-apply');
+const settingsCancel = document.getElementById('settings-cancel');
+
 const gridWInput = document.getElementById('gridW');
 const gridHInput = document.getElementById('gridH');
 const previewToggle = document.getElementById('optPreview');
@@ -17,7 +23,6 @@ const size1Input = document.getElementById('size1');
 const size2Input = document.getElementById('size2');
 const size3Input = document.getElementById('size3');
 const size4Input = document.getElementById('size4');
-const applyBtn = document.getElementById('apply-settings');
 const newBtn = document.getElementById('new-game');
 const pauseBtn = document.getElementById('pause');
 
@@ -32,6 +37,28 @@ const DAS_FRAMES = 16;
 const ARR_FRAMES = 6;
 const SOFT_DROP_FRAMES = 2;
 const QUEUE_MIN = 5;
+
+const STORAGE = {
+  gridW: 'blocks.gridW',
+  gridH: 'blocks.gridH',
+  showPreview: 'blocks.showPreview',
+  size1: 'blocks.size1',
+  size2: 'blocks.size2',
+  size3: 'blocks.size3',
+  size4: 'blocks.size4',
+};
+
+const DEFAULT_SETTINGS = {
+  w: 10,
+  h: 20,
+  showPreview: true,
+  enabledSizes: {
+    1: false,
+    2: false,
+    3: false,
+    4: true,
+  },
+};
 
 const PALETTE = [
   '#0b1020',
@@ -77,6 +104,7 @@ const COLOR_BY_ID = {
 
 const input = makeInput();
 const state = makeState();
+let settings = loadSettings();
 const view = {
   cell: 24,
   pad: 16,
@@ -127,6 +155,74 @@ function makeState() {
     dasCounter: 0,
     arrCounter: 0,
   };
+}
+
+function toNumber(value, fallback) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function readStoredBool(key, fallback) {
+  const value = localStorage.getItem(key);
+  if (value === null) return fallback;
+  return value === 'true';
+}
+
+function sanitizeSettings(next) {
+  const w = clamp(toNumber(next.w, DEFAULT_SETTINGS.w), 6, 24);
+  const h = clamp(toNumber(next.h, DEFAULT_SETTINGS.h), 12, 40);
+  const showPreview =
+    typeof next.showPreview === 'boolean' ? next.showPreview : DEFAULT_SETTINGS.showPreview;
+  const enabledSizes = {
+    1: DEFAULT_SETTINGS.enabledSizes[1],
+    2: DEFAULT_SETTINGS.enabledSizes[2],
+    3: DEFAULT_SETTINGS.enabledSizes[3],
+    4: DEFAULT_SETTINGS.enabledSizes[4],
+  };
+  if (next.enabledSizes) {
+    for (const size of [1, 2, 3, 4]) {
+      if (Object.prototype.hasOwnProperty.call(next.enabledSizes, size)) {
+        enabledSizes[size] = Boolean(next.enabledSizes[size]);
+      }
+    }
+  }
+  if (!enabledSizes[1] && !enabledSizes[2] && !enabledSizes[3] && !enabledSizes[4]) {
+    enabledSizes[4] = true;
+  }
+  return { w, h, showPreview, enabledSizes };
+}
+
+function loadSettings() {
+  const w = toNumber(localStorage.getItem(STORAGE.gridW), DEFAULT_SETTINGS.w);
+  const h = toNumber(localStorage.getItem(STORAGE.gridH), DEFAULT_SETTINGS.h);
+  const showPreview = readStoredBool(STORAGE.showPreview, DEFAULT_SETTINGS.showPreview);
+  const enabledSizes = {
+    1: readStoredBool(STORAGE.size1, DEFAULT_SETTINGS.enabledSizes[1]),
+    2: readStoredBool(STORAGE.size2, DEFAULT_SETTINGS.enabledSizes[2]),
+    3: readStoredBool(STORAGE.size3, DEFAULT_SETTINGS.enabledSizes[3]),
+    4: readStoredBool(STORAGE.size4, DEFAULT_SETTINGS.enabledSizes[4]),
+  };
+  return sanitizeSettings({ w, h, showPreview, enabledSizes });
+}
+
+function saveSettings(next) {
+  localStorage.setItem(STORAGE.gridW, String(next.w));
+  localStorage.setItem(STORAGE.gridH, String(next.h));
+  localStorage.setItem(STORAGE.showPreview, String(next.showPreview));
+  localStorage.setItem(STORAGE.size1, String(next.enabledSizes[1]));
+  localStorage.setItem(STORAGE.size2, String(next.enabledSizes[2]));
+  localStorage.setItem(STORAGE.size3, String(next.enabledSizes[3]));
+  localStorage.setItem(STORAGE.size4, String(next.enabledSizes[4]));
+}
+
+function syncSettingsUI(next) {
+  gridWInput.value = String(next.w);
+  gridHInput.value = String(next.h);
+  previewToggle.checked = next.showPreview;
+  size1Input.checked = next.enabledSizes[1];
+  size2Input.checked = next.enabledSizes[2];
+  size3Input.checked = next.enabledSizes[3];
+  size4Input.checked = next.enabledSizes[4];
 }
 
 function makeRng(seed) {
@@ -489,7 +585,7 @@ function handleGravity() {
 }
 
 function stepGame() {
-  if (state.over || state.paused) {
+  if (state.over || state.paused || isSettingsOpen()) {
     input.clearPressed();
     return;
   }
@@ -663,30 +759,26 @@ function render() {
 }
 
 function applySettingsFromUI() {
-  const w = clamp(parseInt(gridWInput.value, 10) || 10, 6, 24);
-  const h = clamp(parseInt(gridHInput.value, 10) || 20, 12, 40);
-  const enabledSizes = {
-    1: size1Input.checked,
-    2: size2Input.checked,
-    3: size3Input.checked,
-    4: size4Input.checked,
-  };
-  if (!enabledSizes[1] && !enabledSizes[2] && !enabledSizes[3] && !enabledSizes[4]) {
-    enabledSizes[4] = true;
-    size4Input.checked = true;
-  }
-  gridWInput.value = w;
-  gridHInput.value = h;
-  startNewGame({
-    w,
-    h,
+  const next = sanitizeSettings({
+    w: gridWInput.value,
+    h: gridHInput.value,
     showPreview: previewToggle.checked,
-    enabledSizes,
+    enabledSizes: {
+      1: size1Input.checked,
+      2: size2Input.checked,
+      3: size3Input.checked,
+      4: size4Input.checked,
+    },
   });
+  settings = next;
+  saveSettings(settings);
+  syncSettingsUI(settings);
+  startNewGame({ ...settings, enabledSizes: { ...settings.enabledSizes } });
+  return true;
 }
 
 function startNewGame(settings) {
-  state.settings = settings;
+  state.settings = { ...settings, enabledSizes: { ...settings.enabledSizes } };
   state.board = makeBoard(settings.w, settings.h);
   state.nextQueue = [];
   state.score = 0;
@@ -726,6 +818,21 @@ function togglePause() {
   pauseBtn.textContent = state.paused ? 'Resume' : 'Pause';
 }
 
+function isSettingsOpen() {
+  return settingsModal && !settingsModal.classList.contains('hidden');
+}
+
+function openSettings() {
+  syncSettingsUI(settings);
+  settingsModal.classList.remove('hidden');
+  settingsToggle.setAttribute('aria-expanded', 'true');
+}
+
+function closeSettings() {
+  settingsModal.classList.add('hidden');
+  settingsToggle.setAttribute('aria-expanded', 'false');
+}
+
 function preventArrowScroll(ev) {
   const tag = ev.target && ev.target.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
@@ -737,6 +844,7 @@ function preventArrowScroll(ev) {
 function handleKeyDown(ev) {
   const tag = ev.target && ev.target.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  if (isSettingsOpen()) return;
   const key = ev.key.toLowerCase();
   if (ev.repeat) {
     if (key === 'arrowdown') ev.preventDefault();
@@ -770,7 +878,7 @@ function handleKeyDown(ev) {
     ev.preventDefault();
     return;
   }
-  if (key === 'arrowup' || key === 'x') {
+  if (key === 'arrowup' || key === 'x' || key === 'w') {
     input.pressed.rotate = true;
     ev.preventDefault();
     return;
@@ -791,11 +899,7 @@ function handleKeyDown(ev) {
     return;
   }
   if (key === 'r') {
-    if (state.settings) {
-      startNewGame({ ...state.settings });
-    } else {
-      applySettingsFromUI();
-    }
+    startNewGame({ ...settings, enabledSizes: { ...settings.enabledSizes } });
     ev.preventDefault();
   }
 }
@@ -835,15 +939,26 @@ function loop() {
 document.addEventListener('keydown', preventArrowScroll, { passive: false });
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
-applyBtn.addEventListener('click', () => applySettingsFromUI());
-newBtn.addEventListener('click', () => {
-  if (state.settings) {
-    startNewGame({ ...state.settings });
-  } else {
-    applySettingsFromUI();
+settingsToggle.addEventListener('click', () => openSettings());
+settingsClose.addEventListener('click', () => closeSettings());
+settingsCancel.addEventListener('click', () => closeSettings());
+settingsModal.addEventListener('click', (ev) => {
+  if (ev.target === settingsModal) closeSettings();
+});
+settingsApply.addEventListener('click', () => {
+  if (applySettingsFromUI()) closeSettings();
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && isSettingsOpen()) {
+    closeSettings();
+    ev.preventDefault();
   }
+});
+newBtn.addEventListener('click', () => {
+  startNewGame({ ...settings, enabledSizes: { ...settings.enabledSizes } });
 });
 pauseBtn.addEventListener('click', () => togglePause());
 
-applySettingsFromUI();
+syncSettingsUI(settings);
+startNewGame({ ...settings, enabledSizes: { ...settings.enabledSizes } });
 loop();
