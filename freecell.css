@@ -58,13 +58,13 @@
 }
 
 .freecell .card {
-  width: var(--fc-card-width);
-  height: var(--fc-card-height);
+  width: var(--card-width);
+  height: var(--card-height);
 }
 
 .freecell .pile {
-  width: var(--fc-card-width);
-  height: var(--fc-card-height);
+  width: var(--card-width);
+  height: var(--card-height);
 }
 
 .freecell .drop-ok,
@@ -110,16 +110,9 @@
   flex-wrap: nowrap;
 }
 
-.freecells-row,
-.foundations-row {
-  display: flex;
-  gap: var(--fc-card-gap);
-  flex-wrap: nowrap;
-}
-
 .freecell-tableau {
   grid-template-columns: repeat(8, minmax(var(--card-width), 1fr));
-  gap: var(--fc-card-gap);
+  gap: var(--card-gap);
   min-height: 360px;
 }
 

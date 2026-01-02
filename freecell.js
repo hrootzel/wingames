@@ -54,7 +54,8 @@ const optCardSize = document.getElementById('opt-card-size');
 const optionsCloseBtn = document.getElementById('options-close');
 
 const cardRenderer = new CardRenderer();
-const scaleRoot = document.body || document.documentElement;
+const scaleRoot = document.documentElement;
+const topRowEl = document.querySelector('.freecell-top');
 
 let options = loadOptions();
 let cardMetrics = getCardMetrics(options.cardSize);
@@ -85,9 +86,32 @@ function applyBoardScale() {
   const styles = getComputedStyle(scaleRoot);
   const baseWidth = parseFloat(styles.getPropertyValue('--card-base-width')) || SIZE_PRESETS.md.width;
   const baseGap = parseFloat(styles.getPropertyValue('--card-base-gap')) || 12;
-  const required = 8 * baseWidth + 7 * baseGap;
-  const available = tableauEl.clientWidth;
-  const scale = required > 0 && available > 0 && required > available ? Math.max(0.6, available / required) : 1;
+  const tableauRequired = TABLEAU_COLS * baseWidth + (TABLEAU_COLS - 1) * baseGap;
+  const tableauAvailable = tableauEl.clientWidth;
+  const scaleForTableau =
+    tableauRequired > 0 && tableauAvailable > 0 && tableauRequired > tableauAvailable
+      ? tableauAvailable / tableauRequired
+      : 1;
+
+  let scaleForTopRow = 1;
+  if (topRowEl) {
+    const topRowStyles = getComputedStyle(topRowEl);
+    const topRowGap =
+      parseFloat(topRowStyles.getPropertyValue('column-gap')) ||
+      parseFloat(topRowStyles.getPropertyValue('gap')) ||
+      0;
+    const topRowRequired =
+      FREECELL_SLOTS * baseWidth +
+      (FREECELL_SLOTS - 1) * baseGap +
+      FOUNDATION_SLOTS * baseWidth +
+      (FOUNDATION_SLOTS - 1) * baseGap;
+    const topRowAvailable = topRowEl.clientWidth - topRowGap;
+    if (topRowRequired > 0 && topRowAvailable > 0 && topRowRequired > topRowAvailable) {
+      scaleForTopRow = topRowAvailable / topRowRequired;
+    }
+  }
+
+  const scale = Math.max(0.6, Math.min(scaleForTableau, scaleForTopRow, 1));
   scaleRoot.style.setProperty('--card-scale', scale.toFixed(3));
 }
 
@@ -671,9 +695,7 @@ function renderTableau() {
   const tableauTop = tableauEl.getBoundingClientRect().top;
   state.tableau.forEach((stack, colIdx) => {
     const spacing = tableauSpacingForStack(stack.length, tableauTop);
-    const col = document.createElement('div');
-    col.className = 'tableau-col';
-    col.dataset.col = String(colIdx);
+    const col = cardRenderer.createStackElement({ className: 'tableau-col', dataset: { col: colIdx } });
     stack.forEach((card, idx) => {
       const el = buildCardElement(card, 'tableau', colIdx, idx);
       el.style.top = `${idx * spacing}px`;

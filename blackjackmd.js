@@ -538,7 +538,7 @@ function renderHands() {
     placeholder.className = 'hand placeholder';
     placeholder.innerHTML =
       '<div class="hand-header"><span>&nbsp;</span><span class="hand-status">&nbsp;</span></div>' +
-      '<div class="hand-cards card-grid"></div>' +
+      '<div class="hand-cards card-grid card-row card-row--scroll"></div>' +
       '<div class="hand-outcome">&nbsp;</div>';
     playerHandsEl.appendChild(placeholder);
   } else {
@@ -560,7 +560,7 @@ function renderHands() {
       wrap.appendChild(header);
 
       const cardsWrap = document.createElement('div');
-      cardsWrap.className = 'hand-cards card-grid';
+      cardsWrap.className = 'hand-cards card-grid card-row card-row--scroll';
       hand.cards.forEach((card) => {
         cardsWrap.appendChild(buildCardElement(card));
       });

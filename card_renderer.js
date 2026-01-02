@@ -13,6 +13,50 @@ const DEFAULT_STATE_CLASSES = {
   red: 'red',
 };
 
+const DEFAULT_LAYOUT_CLASSES = {
+  row: 'card-row',
+  rowNoWrap: 'card-row--nowrap',
+  rowScroll: 'card-row--scroll',
+  stackRow: 'card-stack-row',
+  stack: 'card-stack',
+};
+
+const readScaleFromCSS = (root = document.documentElement) => {
+  if (!root || typeof getComputedStyle !== 'function') return null;
+  const styles = getComputedStyle(root);
+  const scaleValue = parseFloat(styles.getPropertyValue('--card-scale'));
+  return Number.isFinite(scaleValue) ? scaleValue : null;
+};
+
+const normalizeClassTokens = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return String(value).split(' ').filter(Boolean);
+};
+
+const applyDataset = (el, dataset) => {
+  if (!dataset) return;
+  Object.entries(dataset).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    el.dataset[key] = String(value);
+  });
+};
+
+const applyAttributes = (el, attributes) => {
+  if (!attributes) return;
+  Object.entries(attributes).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    el.setAttribute(key, String(value));
+  });
+};
+
+const buildCorner = (className, label) => {
+  const corner = document.createElement('div');
+  corner.className = className;
+  corner.textContent = label;
+  return corner;
+};
+
 const defaultGetPipsModifiers = (value) => {
   const classes = [];
   if (value === 1) {
@@ -20,6 +64,9 @@ const defaultGetPipsModifiers = (value) => {
   }
   if (value >= 2 && value <= 6) {
     classes.push('pips-low');
+  }
+  if (value === 4 || value === 5) {
+    classes.push('pips-center');
   }
   if (value >= 7) {
     classes.push('pips-tight', 'pips-compact-4');
@@ -112,27 +159,21 @@ export class CardRenderer {
     this.skin = options.skin || null;
     this.size = options.size || null;
     this.scale = typeof options.scale === 'number' ? options.scale : null;
+    this.layoutClasses = { ...DEFAULT_LAYOUT_CLASSES, ...(options.layoutClasses || {}) };
     this.dataset = { ...(options.dataset || {}) };
     this.getDataset = typeof options.getDataset === 'function' ? options.getDataset : null;
   }
 
   updateScaleFromCSS(root = document.documentElement) {
-    if (!root) return;
-    const styles = getComputedStyle(root);
-    const scaleValue = parseFloat(styles.getPropertyValue('--card-scale'));
-    if (Number.isFinite(scaleValue)) {
-      this.scale = scaleValue;
-    }
+    const scaleValue = readScaleFromCSS(root);
+    if (scaleValue !== null) this.scale = scaleValue;
   }
 
   resolveScale(options = {}) {
     if (typeof options.scale === 'number') return options.scale;
     if (typeof this.scale === 'number') return this.scale;
-    if (typeof document !== 'undefined') {
-      const styles = getComputedStyle(document.documentElement);
-      const scaleValue = parseFloat(styles.getPropertyValue('--card-scale'));
-      if (Number.isFinite(scaleValue)) return scaleValue;
-    }
+    const scaleValue = readScaleFromCSS();
+    if (scaleValue !== null) return scaleValue;
     return 1;
   }
 
@@ -140,14 +181,39 @@ export class CardRenderer {
     return formatCardLabel(card, this.valueLabels, this.suitSymbols);
   }
 
+  createContainerElement(baseClass, options = {}) {
+    const { className, dataset, attributes } = options;
+    const el = document.createElement('div');
+    el.className = baseClass;
+    const tokens = normalizeClassTokens(className);
+    if (tokens.length) el.classList.add(...tokens);
+    applyDataset(el, dataset);
+    applyAttributes(el, attributes);
+    return el;
+  }
+
+  createRowElement(options = {}) {
+    const { className, dataset, attributes, nowrap, scroll } = options;
+    const classes = normalizeClassTokens(className);
+    if (nowrap) classes.push(this.layoutClasses.rowNoWrap);
+    if (scroll) classes.push(this.layoutClasses.rowScroll);
+    return this.createContainerElement(this.layoutClasses.row, { className: classes, dataset, attributes });
+  }
+
+  createStackRowElement(options = {}) {
+    return this.createContainerElement(this.layoutClasses.stackRow, options);
+  }
+
+  createStackElement(options = {}) {
+    return this.createContainerElement(this.layoutClasses.stack, options);
+  }
+
   createCardElement(card, options = {}) {
     const { faceUp, skin, size, dataset, className, attributes } = options;
     const el = document.createElement('div');
     el.className = this.classes.card;
-    if (className) {
-      const tokens = Array.isArray(className) ? className : String(className).split(' ').filter(Boolean);
-      if (tokens.length) el.classList.add(...tokens);
-    }
+    const tokens = normalizeClassTokens(className);
+    if (tokens.length) el.classList.add(...tokens);
 
     const resolvedSkin = skin ?? this.skin;
     const resolvedSize = size ?? this.size;
@@ -160,16 +226,8 @@ export class CardRenderer {
     };
     if (resolvedSkin) computedDataset.skin = resolvedSkin;
     if (resolvedSize) computedDataset.size = resolvedSize;
-    Object.entries(computedDataset).forEach(([key, value]) => {
-      if (value === undefined || value === null) return;
-      el.dataset[key] = String(value);
-    });
-    if (attributes) {
-      Object.entries(attributes).forEach(([key, value]) => {
-        if (value === undefined || value === null) return;
-        el.setAttribute(key, String(value));
-      });
-    }
+    applyDataset(el, computedDataset);
+    applyAttributes(el, attributes);
 
     const showFace = faceUp ?? (card && card.faceUp);
     if (!card || !showFace) {
@@ -184,15 +242,9 @@ export class CardRenderer {
     const content = document.createElement('div');
     content.className = this.classes.content;
 
-    const cornerTop = document.createElement('div');
-    cornerTop.className = this.classes.cornerTop;
-    cornerTop.textContent = this.formatCardLabel(card);
-    content.appendChild(cornerTop);
-
-    const cornerBottom = document.createElement('div');
-    cornerBottom.className = this.classes.cornerBottom;
-    cornerBottom.textContent = this.formatCardLabel(card);
-    content.appendChild(cornerBottom);
+    const label = this.formatCardLabel(card);
+    content.appendChild(buildCorner(this.classes.cornerTop, label));
+    content.appendChild(buildCorner(this.classes.cornerBottom, label));
 
     if (card.value >= this.faceValueStart) {
       const face = document.createElement('div');
@@ -207,8 +259,8 @@ export class CardRenderer {
       this.pipLayout(card.value).forEach((cell) => {
         const pip = document.createElement('div');
         pip.className = this.classes.pip;
-      const sizeClass = this.getPipSizeClass(card.value, { scale: resolvedScale, size: resolvedSize, card });
-      if (sizeClass) pip.classList.add(sizeClass);
+        const sizeClass = this.getPipSizeClass(card.value, { scale: resolvedScale, size: resolvedSize, card });
+        if (sizeClass) pip.classList.add(sizeClass);
         const row = Math.floor(cell / 3) + 1;
         const col = (cell % 3) + 1;
         pip.style.gridRow = String(row);

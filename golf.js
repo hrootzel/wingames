@@ -483,8 +483,7 @@ function renderTableau() {
     }
   }
   state.tableau.forEach((stack, colIdx) => {
-    const col = document.createElement('div');
-    col.className = 'tableau-col';
+    const col = cardRenderer.createStackElement({ className: 'tableau-col' });
     col.dataset.col = String(colIdx);
     stack.forEach((card, idx) => {
       const el = cardRenderer.createCardElement(card);

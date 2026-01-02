@@ -394,9 +394,7 @@ function render() {
   tableauEl.innerHTML = '';
   state.tableau.forEach((stack, colIdx) => {
     const spacing = tableauSpacingForStack(stack.length, tableauTop);
-    const col = document.createElement('div');
-    col.className = 'tableau-col';
-    col.dataset.col = String(colIdx);
+    const col = cardRenderer.createStackElement({ className: 'tableau-col', dataset: { col: colIdx } });
     stack.forEach((card, idx) => {
       const el = buildCardElement(card, colIdx, idx);
       el.style.top = `${idx * spacing}px`;

@@ -950,9 +950,7 @@ function renderTableau() {
   const tableauTop = tableauEl.getBoundingClientRect().top;
   state.tableau.forEach((stack, colIdx) => {
     const spacing = tableauSpacingForStack(stack.length, tableauTop);
-    const col = document.createElement('div');
-    col.className = 'tableau-col';
-    col.dataset.col = colIdx.toString();
+    const col = cardRenderer.createStackElement({ className: 'tableau-col', dataset: { col: colIdx } });
     col.style.minHeight = '160px';
 
     stack.forEach((card, idx) => {
