@@ -33,3 +33,12 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.4);
 }
+
+#dealer-box .hand-outcome {
+  min-height: 1.4em;
+}
+
+#player-hands .hand.placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}

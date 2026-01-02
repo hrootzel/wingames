@@ -533,37 +533,47 @@ function renderHands() {
   const dealerTotal = state.roundOver && state.dealer.length ? handValue(state.dealer).total : null;
 
   playerHandsEl.innerHTML = '';
-  state.hands.forEach((hand, idx) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'hand';
-    if (state.inRound && idx === state.activeHand) wrap.classList.add('active');
+  if (!state.hands.length) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'hand placeholder';
+    placeholder.innerHTML =
+      '<div class="hand-header"><span>&nbsp;</span><span class="hand-status">&nbsp;</span></div>' +
+      '<div class="hand-cards card-grid"></div>' +
+      '<div class="hand-outcome">&nbsp;</div>';
+    playerHandsEl.appendChild(placeholder);
+  } else {
+    state.hands.forEach((hand, idx) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'hand';
+      if (state.inRound && idx === state.activeHand) wrap.classList.add('active');
 
-    const header = document.createElement('div');
-    header.className = 'hand-header';
-    let status = hand.result;
-    if (!status) {
-      if (hand.busted) status = 'BUST';
-      else if (hand.surrendered) status = 'SURRENDER';
-      else if (state.inRound && idx === state.activeHand && !hand.finished) status = 'Playing';
-      else status = '';
-    }
-    header.innerHTML = `<span>Hand ${idx + 1} - Bet $${hand.bet}</span><span class="hand-status">${status}</span>`;
-    wrap.appendChild(header);
+      const header = document.createElement('div');
+      header.className = 'hand-header';
+      let status = hand.result;
+      if (!status) {
+        if (hand.busted) status = 'BUST';
+        else if (hand.surrendered) status = 'SURRENDER';
+        else if (state.inRound && idx === state.activeHand && !hand.finished) status = 'Playing';
+        else status = '';
+      }
+      header.innerHTML = `<span>Hand ${idx + 1} - Bet $${hand.bet}</span><span class="hand-status">${status}</span>`;
+      wrap.appendChild(header);
 
-    const cardsWrap = document.createElement('div');
-    cardsWrap.className = 'hand-cards card-grid';
-    hand.cards.forEach((card) => {
-      cardsWrap.appendChild(buildCardElement(card));
+      const cardsWrap = document.createElement('div');
+      cardsWrap.className = 'hand-cards card-grid';
+      hand.cards.forEach((card) => {
+        cardsWrap.appendChild(buildCardElement(card));
+      });
+      wrap.appendChild(cardsWrap);
+
+      const outcome = document.createElement('div');
+      outcome.className = 'hand-outcome';
+      outcome.textContent = outcomeLineForHand(hand, dealerTotal);
+      wrap.appendChild(outcome);
+
+      playerHandsEl.appendChild(wrap);
     });
-    wrap.appendChild(cardsWrap);
-
-    const outcome = document.createElement('div');
-    outcome.className = 'hand-outcome';
-    outcome.textContent = outcomeLineForHand(hand, dealerTotal);
-    wrap.appendChild(outcome);
-
-    playerHandsEl.appendChild(wrap);
-  });
+  }
 
   bankEl.textContent = String(state.bank);
 }
