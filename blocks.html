@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Blocks</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="blocks.css">
+</head>
+<body class="blocks-game">
+  <div id="app">
+    <header class="app-header">
+      <div>
+        <h1>Blocks</h1>
+        <p class="subtitle">Stack polyominoes, clear lines, ride the NES drop curve.</p>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Ready.</span>
+      </div>
+    </div>
+
+    <div class="board blocks-board">
+      <div class="blocks-wrap">
+        <div class="blocks-stage">
+          <canvas id="blocks-canvas" width="360" height="640" aria-label="Blocks playfield"></canvas>
+        </div>
+
+        <div class="blocks-panel">
+          <div class="panel-box">
+            <h3>Next</h3>
+            <canvas id="preview-canvas" class="preview-canvas" width="120" height="120" aria-label="Next piece preview"></canvas>
+            <p id="preview-status" class="preview-status">Preview on.</p>
+          </div>
+
+          <div class="panel-box">
+            <h3>Scoreboard</h3>
+            <div class="quick-stats blocks-stats">
+              <div>Score: <span id="score">0</span></div>
+              <div>Lines: <span id="lines">0</span></div>
+              <div>Level: <span id="level">0</span></div>
+              <div>Pieces: <span id="pieces">0</span></div>
+            </div>
+          </div>
+
+          <div class="panel-box">
+            <h3>Settings</h3>
+            <div class="settings-grid">
+              <label>Grid Width <input id="gridW" type="number" min="6" max="24" value="10"></label>
+              <label>Grid Height <input id="gridH" type="number" min="12" max="40" value="20"></label>
+            </div>
+            <label class="checkbox"><input id="optPreview" type="checkbox" checked> Show Preview</label>
+
+            <fieldset class="size-fieldset">
+              <legend>Enabled piece sizes</legend>
+              <label class="checkbox"><input id="size1" type="checkbox"> 1-block</label>
+              <label class="checkbox"><input id="size2" type="checkbox"> 2-block</label>
+              <label class="checkbox"><input id="size3" type="checkbox"> 3-block</label>
+              <label class="checkbox"><input id="size4" type="checkbox" checked> 4-block</label>
+            </fieldset>
+
+            <button id="apply-settings">Apply / Restart</button>
+          </div>
+
+          <div class="panel-box">
+            <h3>Controls</h3>
+            <div class="key-hints">
+              <div><span class="key">Left/Right</span> Move</div>
+              <div><span class="key">Down</span> Soft drop</div>
+              <div><span class="key">Up/X</span> Rotate CW</div>
+              <div><span class="key">Z</span> Rotate CCW</div>
+              <div><span class="key">Space</span> Hard drop</div>
+              <div><span class="key">P</span> Pause</div>
+              <div><span class="key">R</span> Restart</div>
+            </div>
+            <div class="control-group blocks-controls">
+              <button id="new-game">New Game</button>
+              <button id="pause">Pause</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="tips">
+      Clear full rows to score. Soft drops add a point per step, and line clears use the
+      NES multiplier table. Use Settings to widen the grid or enable smaller pieces.
+    </p>
+  </div>
+
+  <script type="module" src="blocks.js"></script>
+</body>
+</html>
