@@ -257,6 +257,68 @@ export class CardRenderer {
     dragState.raf = 0;
   }
 
+  readLayoutMetrics(options = {}) {
+    const {
+      root = document.documentElement,
+      defaults = {},
+      minStackSpacingScale = 0.5,
+      minStackSpacingMin = 8,
+    } = options;
+    const styles = getComputedStyle(root);
+    const cardWidth = parseFloat(styles.getPropertyValue('--card-width')) || defaults.cardWidth || 88;
+    const cardHeight = parseFloat(styles.getPropertyValue('--card-height')) || defaults.cardHeight || 120;
+    const stackSpacing = parseFloat(styles.getPropertyValue('--stack-spacing')) || defaults.stackSpacing || 24;
+    const wasteSpacing = parseFloat(styles.getPropertyValue('--waste-spacing')) || defaults.wasteSpacing || 16;
+    return {
+      cardWidth,
+      cardHeight,
+      stackSpacing,
+      wasteSpacing,
+      minStackSpacing: Math.max(minStackSpacingMin, Math.round(stackSpacing * minStackSpacingScale)),
+    };
+  }
+
+  readBaseLayoutMetrics(options = {}) {
+    const { root = document.documentElement, defaults = {} } = options;
+    const styles = getComputedStyle(root);
+    const cardBaseWidth = parseFloat(styles.getPropertyValue('--card-base-width')) || defaults.cardBaseWidth || 88;
+    const cardBaseGap = parseFloat(styles.getPropertyValue('--card-base-gap')) || defaults.cardBaseGap || 12;
+    return { cardBaseWidth, cardBaseGap };
+  }
+
+  applyBoardScale(options = {}) {
+    const {
+      root = document.documentElement,
+      constraints = [],
+      minScale = 0.6,
+      maxScale = 1,
+      cardBaseWidth,
+      cardBaseGap,
+    } = options;
+    const baseMetrics =
+      typeof cardBaseWidth === 'number' && typeof cardBaseGap === 'number'
+        ? { cardBaseWidth, cardBaseGap }
+        : this.readBaseLayoutMetrics({ root });
+    const scales = constraints.map((constraint) => {
+      if (!constraint) return 1;
+      const required =
+        typeof constraint.required === 'number'
+          ? constraint.required
+          : constraint.columns
+            ? constraint.columns * baseMetrics.cardBaseWidth + (constraint.columns - 1) * baseMetrics.cardBaseGap
+            : 0;
+      const available = constraint.available ?? 0;
+      if (required > 0 && available > 0 && required > available) {
+        return available / required;
+      }
+      return 1;
+    });
+    const unclamped = Math.min(maxScale, ...scales, 1);
+    const scale = Math.max(minScale, unclamped);
+    root.style.setProperty('--card-scale', scale.toFixed(3));
+    return scale;
+  }
+
   createCardElement(card, options = {}) {
     const { faceUp, skin, size, dataset, className, attributes } = options;
     const el = document.createElement('div');

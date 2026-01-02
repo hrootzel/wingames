@@ -12,40 +12,37 @@ const TIGHTEN_START = 14;
 const TIGHTEN_END = 42;
 const VIEWPORT_BOTTOM_MARGIN = 28;
 
-const layoutRoot = document.getElementById('app') || document.body;
-let layoutMetrics = readLayoutMetrics();
+const sfx = new SfxEngine({ master: 0.6 });
+const cardRenderer = new CardRenderer();
+let audioUnlocked = false;
 
-function readLayoutMetrics() {
-  const styles = getComputedStyle(layoutRoot);
-  const cardWidth = parseFloat(styles.getPropertyValue('--card-width')) || DEFAULT_CARD_WIDTH;
-  const cardHeight = parseFloat(styles.getPropertyValue('--card-height')) || DEFAULT_CARD_HEIGHT;
-  const stackSpacing = parseFloat(styles.getPropertyValue('--stack-spacing')) || DEFAULT_STACK_SPACING;
-  return {
-    cardWidth,
-    cardHeight,
-    stackSpacing,
-    minStackSpacing: Math.max(8, Math.round(stackSpacing * 0.5)),
-  };
-}
+const layoutRoot = document.getElementById('app') || document.body;
+const layoutDefaults = {
+  cardWidth: DEFAULT_CARD_WIDTH,
+  cardHeight: DEFAULT_CARD_HEIGHT,
+  stackSpacing: DEFAULT_STACK_SPACING,
+};
+let layoutMetrics = cardRenderer.readLayoutMetrics({
+  root: layoutRoot,
+  defaults: layoutDefaults,
+  minStackSpacingMin: 8,
+});
 
 function refreshLayoutMetrics() {
-  layoutMetrics = readLayoutMetrics();
-}
-
-function readBaseLayoutMetrics() {
-  const styles = getComputedStyle(document.documentElement);
-  const cardBaseWidth = parseFloat(styles.getPropertyValue('--card-base-width')) || DEFAULT_CARD_WIDTH;
-  const cardBaseGap = parseFloat(styles.getPropertyValue('--card-base-gap')) || 12;
-  return { cardBaseWidth, cardBaseGap };
+  layoutMetrics = cardRenderer.readLayoutMetrics({
+    root: layoutRoot,
+    defaults: layoutDefaults,
+    minStackSpacingMin: 8,
+  });
 }
 
 function applyBoardScale() {
   if (!tableauEl) return;
-  const { cardBaseWidth, cardBaseGap } = readBaseLayoutMetrics();
-  const required = 10 * cardBaseWidth + 9 * cardBaseGap;
-  const available = tableauEl.clientWidth;
-  const scale = required > 0 && available > 0 && required > available ? Math.max(0.6, available / required) : 1;
-  document.documentElement.style.setProperty('--card-scale', scale.toFixed(3));
+  cardRenderer.applyBoardScale({
+    root: document.documentElement,
+    constraints: [{ columns: 10, available: tableauEl.clientWidth }],
+    minScale: 0.6,
+  });
 }
 
 function tableauSpacingForStack(stackLength, tableauTop) {
@@ -70,10 +67,6 @@ const newBtn = document.getElementById('new-game');
 const dealBtn = document.getElementById('deal');
 const undoBtn = document.getElementById('undo');
 const difficultySelect = document.getElementById('difficulty');
-
-const sfx = new SfxEngine({ master: 0.6 });
-const cardRenderer = new CardRenderer();
-let audioUnlocked = false;
 
 cardRenderer.applyRowClasses(completedAcesEl, { nowrap: true });
 cardRenderer.applyStackRowClasses(tableauEl);

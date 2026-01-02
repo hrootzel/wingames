@@ -87,17 +87,12 @@ function getCardMetrics(sizeKey) {
 
 function applyBoardScale() {
   if (!tableauEl) return;
-  const styles = getComputedStyle(scaleRoot);
-  const baseWidth = parseFloat(styles.getPropertyValue('--card-base-width')) || SIZE_PRESETS.md.width;
-  const baseGap = parseFloat(styles.getPropertyValue('--card-base-gap')) || 12;
-  const tableauRequired = TABLEAU_COLS * baseWidth + (TABLEAU_COLS - 1) * baseGap;
-  const tableauAvailable = tableauEl.clientWidth;
-  const scaleForTableau =
-    tableauRequired > 0 && tableauAvailable > 0 && tableauRequired > tableauAvailable
-      ? tableauAvailable / tableauRequired
-      : 1;
+  const { cardBaseWidth, cardBaseGap } = cardRenderer.readBaseLayoutMetrics({
+    root: scaleRoot,
+    defaults: { cardBaseWidth: SIZE_PRESETS.md.width, cardBaseGap: 12 },
+  });
+  const constraints = [{ columns: TABLEAU_COLS, available: tableauEl.clientWidth }];
 
-  let scaleForTopRow = 1;
   if (topRowEl) {
     const topRowStyles = getComputedStyle(topRowEl);
     const topRowGap =
@@ -105,18 +100,20 @@ function applyBoardScale() {
       parseFloat(topRowStyles.getPropertyValue('gap')) ||
       0;
     const topRowRequired =
-      FREECELL_SLOTS * baseWidth +
-      (FREECELL_SLOTS - 1) * baseGap +
-      FOUNDATION_SLOTS * baseWidth +
-      (FOUNDATION_SLOTS - 1) * baseGap;
+      FREECELL_SLOTS * cardBaseWidth +
+      (FREECELL_SLOTS - 1) * cardBaseGap +
+      FOUNDATION_SLOTS * cardBaseWidth +
+      (FOUNDATION_SLOTS - 1) * cardBaseGap;
     const topRowAvailable = topRowEl.clientWidth - topRowGap;
-    if (topRowRequired > 0 && topRowAvailable > 0 && topRowRequired > topRowAvailable) {
-      scaleForTopRow = topRowAvailable / topRowRequired;
-    }
+    constraints.push({ required: topRowRequired, available: topRowAvailable });
   }
-
-  const scale = Math.max(0.6, Math.min(scaleForTableau, scaleForTopRow, 1));
-  scaleRoot.style.setProperty('--card-scale', scale.toFixed(3));
+  cardRenderer.applyBoardScale({
+    root: scaleRoot,
+    cardBaseWidth,
+    cardBaseGap,
+    constraints,
+    minScale: 0.6,
+  });
 }
 
 function loadOptions() {
@@ -777,52 +774,61 @@ function setDropIndicator(el, className) {
   dropIndicator = { el, className };
 }
 
-function evaluateTableauDrop(destIndex) {
+function evaluateTableauDrop(destIndex, moving) {
   if (!selection) return { ok: false, reason: 'BUILD_RULE' };
   if (selection.source.type === 'tableau' && selection.source.index === destIndex) {
     return { ok: false, reason: 'BUILD_RULE' };
   }
-  const moving = peekSelectionCards(selection);
-  if (moving.length === 0) return { ok: false, reason: 'BUILD_RULE' };
+  const cards = moving || (dragState && dragState.movingCards) || peekSelectionCards(selection);
+  if (cards.length === 0) return { ok: false, reason: 'BUILD_RULE' };
+  const sequenceValid =
+    selection.source.type !== 'tableau'
+      ? true
+      : dragState && typeof dragState.sequenceValid === 'boolean'
+        ? dragState.sequenceValid
+        : isValidTableauSequence(cards);
   const destStack = state.tableau[destIndex];
-  if (!canPlaceOnTableau(moving[0], destStack)) return { ok: false, reason: 'BUILD_RULE' };
-  if (selection.source.type !== 'tableau' && moving.length > 1) return { ok: false, reason: 'BUILD_RULE' };
-  if (selection.source.type === 'tableau' && !isValidTableauSequence(moving)) return { ok: false, reason: 'BUILD_RULE' };
-  if (!options.allowSupermove && moving.length > 1) return { ok: false, reason: 'BUILD_RULE' };
+  if (!canPlaceOnTableau(cards[0], destStack)) return { ok: false, reason: 'BUILD_RULE' };
+  if (selection.source.type !== 'tableau' && cards.length > 1) return { ok: false, reason: 'BUILD_RULE' };
+  if (!sequenceValid) return { ok: false, reason: 'BUILD_RULE' };
+  if (!options.allowSupermove && cards.length > 1) return { ok: false, reason: 'BUILD_RULE' };
 
-  if (moving.length > 1 && options.allowSupermove && !options.disableSupermoveCap) {
+  if (cards.length > 1 && options.allowSupermove && !options.disableSupermoveCap) {
     const destIsEmpty = destStack.length === 0;
-    const maxMove = maxMovableToTableau({
-      tableauPiles: state.tableau,
-      freePiles: state.freecells,
-      destIsEmptyTableau: destIsEmpty,
-    });
-    if (moving.length > maxMove) return { ok: false, reason: 'CAP' };
+    const maxMove =
+      dragState && typeof dragState.maxMoveEmpty === 'number'
+        ? (destIsEmpty ? dragState.maxMoveEmpty : dragState.maxMoveNonEmpty)
+        : maxMovableToTableau({
+            tableauPiles: state.tableau,
+            freePiles: state.freecells,
+            destIsEmptyTableau: destIsEmpty,
+          });
+    if (cards.length > maxMove) return { ok: false, reason: 'CAP' };
   }
   return { ok: true };
 }
 
-function evaluateFreecellDrop(destIndex) {
+function evaluateFreecellDrop(destIndex, moving) {
   if (!selection) return { ok: false, reason: 'BUILD_RULE' };
   if (selection.source.type === 'freecell' && selection.source.index === destIndex) {
     return { ok: false, reason: 'BUILD_RULE' };
   }
-  const moving = peekSelectionCards(selection);
-  if (moving.length !== 1) return { ok: false, reason: 'BUILD_RULE' };
+  const cards = moving || (dragState && dragState.movingCards) || peekSelectionCards(selection);
+  if (cards.length !== 1) return { ok: false, reason: 'BUILD_RULE' };
   const destStack = state.freecells[destIndex];
   if (destStack.length !== 0) return { ok: false, reason: 'BUILD_RULE' };
   return { ok: true };
 }
 
-function evaluateFoundationDrop(destIndex) {
+function evaluateFoundationDrop(destIndex, moving) {
   if (!selection) return { ok: false, reason: 'BUILD_RULE' };
   if (selection.source.type === 'foundation' && selection.source.index === destIndex) {
     return { ok: false, reason: 'BUILD_RULE' };
   }
-  const moving = peekSelectionCards(selection);
-  if (moving.length !== 1) return { ok: false, reason: 'BUILD_RULE' };
+  const cards = moving || (dragState && dragState.movingCards) || peekSelectionCards(selection);
+  if (cards.length !== 1) return { ok: false, reason: 'BUILD_RULE' };
   const destStack = state.foundations[destIndex];
-  if (!canPlaceOnFoundation(moving[0], destStack, destIndex)) return { ok: false, reason: 'BUILD_RULE' };
+  if (!canPlaceOnFoundation(cards[0], destStack, destIndex)) return { ok: false, reason: 'BUILD_RULE' };
   return { ok: true };
 }
 
@@ -836,40 +842,55 @@ function updateDropIndicator(clientX, clientY) {
     clearDropIndicator();
     return;
   }
-  if (!selection) {
+  if (!selection || !dragState || !dragState.dragging) {
     clearDropIndicator();
     return;
   }
   const target = document.elementFromPoint(clientX, clientY);
   if (!target) {
-    clearDropIndicator();
+    if (dragState.lastDropKey) {
+      clearDropIndicator();
+      dragState.lastDropKey = null;
+    }
     return;
   }
   const freecellSlot = target.closest('.freecell-slot');
   if (freecellSlot) {
     const idx = Number(freecellSlot.dataset.index);
+    const key = `freecell:${idx}`;
+    if (dragState.lastDropKey === key) return;
     const highlightEl = freecellSlot.querySelector('.card') || freecellSlot;
-    const result = evaluateFreecellDrop(idx);
+    const result = evaluateFreecellDrop(idx, dragState.movingCards);
     setDropIndicator(highlightEl, dropIndicatorClass(result));
+    dragState.lastDropKey = key;
     return;
   }
   const foundationSlot = target.closest('.foundation-slot');
   if (foundationSlot) {
     const idx = Number(foundationSlot.dataset.index);
+    const key = `foundation:${idx}`;
+    if (dragState.lastDropKey === key) return;
     const highlightEl = foundationSlot.querySelector('.card') || foundationSlot;
-    const result = evaluateFoundationDrop(idx);
+    const result = evaluateFoundationDrop(idx, dragState.movingCards);
     setDropIndicator(highlightEl, dropIndicatorClass(result));
+    dragState.lastDropKey = key;
     return;
   }
   const colEl = target.closest('.tableau-col');
   if (colEl) {
     const idx = Number(colEl.dataset.col);
+    const key = `tableau:${idx}`;
+    if (dragState.lastDropKey === key) return;
     const highlightEl = colEl.querySelector('.card:last-child') || colEl;
-    const result = evaluateTableauDrop(idx);
+    const result = evaluateTableauDrop(idx, dragState.movingCards);
     setDropIndicator(highlightEl, dropIndicatorClass(result));
+    dragState.lastDropKey = key;
     return;
   }
-  clearDropIndicator();
+  if (dragState.lastDropKey) {
+    clearDropIndicator();
+    dragState.lastDropKey = null;
+  }
 }
 
 function selectionFromCardEl(cardEl) {
@@ -936,6 +957,11 @@ function handlePointerDown(ev) {
     raf: 0,
     pendingX: 0,
     pendingY: 0,
+    movingCards: null,
+    sequenceValid: true,
+    maxMoveEmpty: null,
+    maxMoveNonEmpty: null,
+    lastDropKey: null,
   };
   if (sel.source.type === 'tableau') {
     dragState.stackSpacing = tableauSpacingForStack(state.tableau[sel.source.index].length, tableauEl.getBoundingClientRect().top);
@@ -951,6 +977,20 @@ function handlePointerMove(ev) {
     if (cards.length === 0 || !selection) {
       dragState = null;
       return;
+    }
+    dragState.movingCards = cards;
+    dragState.sequenceValid = selection.source.type !== 'tableau' ? true : isValidTableauSequence(cards);
+    if (options.allowSupermove && !options.disableSupermoveCap && cards.length > 1) {
+      dragState.maxMoveEmpty = maxMovableToTableau({
+        tableauPiles: state.tableau,
+        freePiles: state.freecells,
+        destIsEmptyTableau: true,
+      });
+      dragState.maxMoveNonEmpty = maxMovableToTableau({
+        tableauPiles: state.tableau,
+        freePiles: state.freecells,
+        destIsEmptyTableau: false,
+      });
     }
     dragState.preview = buildDragPreview(cards, selection.source.type, selection.cardIndex, selection.source.index);
     dragState.dragging = true;
