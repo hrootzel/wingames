@@ -74,6 +74,7 @@ cardRenderer.applyStackRowClasses(tableauEl);
 let state;
 let selection = null;
 let dragState = null;
+const dragPreviewCache = { el: null, cards: [] };
 let ignoreClicksUntil = 0;
 let undoSnapshot = null;
 let winFx = null;
@@ -565,15 +566,35 @@ function handlePointerDown(ev) {
 }
 
 function buildDragPreview(cards, colIdx, startIndex, spacing) {
-  const wrap = document.createElement('div');
-  wrap.className = 'drag-preview';
+  if (!dragPreviewCache.el) {
+    const wrap = document.createElement('div');
+    wrap.className = 'drag-preview';
+    wrap.style.display = 'none';
+    wrap.style.willChange = 'transform';
+    document.body.appendChild(wrap);
+    dragPreviewCache.el = wrap;
+  } else if (!dragPreviewCache.el.parentElement) {
+    document.body.appendChild(dragPreviewCache.el);
+  }
+  const wrap = dragPreviewCache.el;
+  wrap.style.display = '';
+  wrap.style.transform = 'translate(-9999px, -9999px)';
   cards.forEach((card, idx) => {
-    const el = buildCardElement(card, colIdx, startIndex + idx, { reuse: false });
-    el.style.position = 'absolute';
+    let el = dragPreviewCache.cards[idx];
+    if (!el) {
+      el = cardRenderer.createCardElement(card, { className: 'selected' });
+      el.style.position = 'absolute';
+      dragPreviewCache.cards[idx] = el;
+      wrap.appendChild(el);
+    } else {
+      cardRenderer.updateCardElement(el, card, { className: 'selected' });
+      el.style.display = '';
+    }
     el.style.top = `${idx * spacing}px`;
-    wrap.appendChild(el);
   });
-  document.body.appendChild(wrap);
+  for (let i = cards.length; i < dragPreviewCache.cards.length; i++) {
+    dragPreviewCache.cards[i].style.display = 'none';
+  }
   return wrap;
 }
 
@@ -585,8 +606,9 @@ function updateDragPreviewPosition(clientX, clientY) {
 }
 
 function clearDragPreview() {
-  if (dragState && dragState.preview && dragState.preview.parentElement) {
-    dragState.preview.parentElement.removeChild(dragState.preview);
+  if (dragState && dragState.preview) {
+    dragState.preview.style.display = 'none';
+    dragState.preview.style.transform = 'translate(-9999px, -9999px)';
   }
   if (dragState) dragState.preview = null;
   cardRenderer.cancelDragUpdate(dragState);
