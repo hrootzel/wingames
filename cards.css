@@ -1,6 +1,4 @@
-.card-row,
-.hand-cards,
-.foundation-row {
+.card-row {
   display: flex;
   gap: var(--card-gap);
   align-items: flex-start;
@@ -16,8 +14,7 @@
   margin-top: 16px;
 }
 
-.card-stack-row,
-.tableau {
+.card-stack-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--card-width), 1fr));
   gap: var(--card-gap);
@@ -59,8 +56,7 @@
   color: rgba(255, 255, 255, 0.78);
 }
 
-.hand .card-stack-row,
-.hand .tableau {
+.hand .card-stack-row {
   min-height: 160px;
   gap: 6px;
 }
@@ -82,16 +78,12 @@
 
 .hand-cards .card {
   flex: 0 0 auto;
-}
-
-.card-grid .card {
   position: relative;
   top: auto;
   left: auto;
 }
 
-.card-stack,
-.tableau-col {
+.card-stack {
   position: relative;
   min-height: 180px;
   border-radius: 10px;

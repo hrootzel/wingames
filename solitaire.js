@@ -78,6 +78,7 @@ let winFx = null;
 
 const stockEl = document.getElementById('stock');
 const wasteEl = document.getElementById('waste');
+const foundationRowEl = document.querySelector('.foundation-row');
 const foundationEls = Array.from(document.querySelectorAll('.foundation'));
 const tableauEl = document.getElementById('tableau');
 const scoreEl = document.getElementById('score');
@@ -93,6 +94,9 @@ const keepVegasCheckbox = document.getElementById('keep-vegas');
 const sfx = new SfxEngine({ master: 0.6 });
 const cardRenderer = new CardRenderer();
 let audioUnlocked = false;
+
+cardRenderer.applyRowClasses(foundationRowEl);
+cardRenderer.applyStackRowClasses(tableauEl);
 
 let dragState = null;
 
@@ -769,6 +773,7 @@ function clearDragPreview() {
   if (dragState) {
     dragState.preview = null;
   }
+  cardRenderer.cancelDragUpdate(dragState);
   cleanupDanglingPreviews();
 }
 
@@ -814,6 +819,9 @@ function handlePointerDown(ev) {
     startX: ev.clientX,
     startY: ev.clientY,
     dragging: false,
+    raf: 0,
+    pendingX: 0,
+    pendingY: 0,
   };
   if (selection.source === 'tableau') {
     dragState.stackSpacing = tableauSpacingForStack(state.tableau[selection.pileIndex].length, tableauEl.getBoundingClientRect().top);
@@ -837,7 +845,7 @@ function handlePointerMove(ev) {
     dragState.dragging = true;
   }
   ev.preventDefault();
-  updateDragPreviewPosition(ev.clientX, ev.clientY);
+  cardRenderer.scheduleDragUpdate(dragState, ev.clientX, ev.clientY, updateDragPreviewPosition);
 }
 
 function handlePointerUp(ev) {

@@ -34,6 +34,8 @@ const sfx = new SfxEngine({ master: 0.6 });
 const cardRenderer = new CardRenderer();
 let audioUnlocked = false;
 
+cardRenderer.applyRowClasses(cardsEl);
+
 let state = initialState();
 const paytableRowEls = new Map();
 

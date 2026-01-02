@@ -181,31 +181,80 @@ export class CardRenderer {
     return formatCardLabel(card, this.valueLabels, this.suitSymbols);
   }
 
-  createContainerElement(baseClass, options = {}) {
+  applyLayoutClasses(el, baseClass, options = {}) {
+    if (!el) return null;
     const { className, dataset, attributes } = options;
-    const el = document.createElement('div');
-    el.className = baseClass;
     const tokens = normalizeClassTokens(className);
-    if (tokens.length) el.classList.add(...tokens);
+    if (tokens.length) {
+      el.classList.add(baseClass, ...tokens);
+    } else {
+      el.classList.add(baseClass);
+    }
     applyDataset(el, dataset);
     applyAttributes(el, attributes);
     return el;
   }
 
+  createContainerElement(baseClass, options = {}) {
+    const el = document.createElement('div');
+    return this.applyLayoutClasses(el, baseClass, options);
+  }
+
+  applyRowClasses(el, options = {}) {
+    if (!el) return null;
+    const { nowrap, scroll, className, dataset, attributes } = options;
+    this.applyLayoutClasses(el, this.layoutClasses.row, { className, dataset, attributes });
+    if (nowrap) el.classList.add(this.layoutClasses.rowNoWrap);
+    if (scroll) el.classList.add(this.layoutClasses.rowScroll);
+    return el;
+  }
+
   createRowElement(options = {}) {
-    const { className, dataset, attributes, nowrap, scroll } = options;
-    const classes = normalizeClassTokens(className);
-    if (nowrap) classes.push(this.layoutClasses.rowNoWrap);
-    if (scroll) classes.push(this.layoutClasses.rowScroll);
-    return this.createContainerElement(this.layoutClasses.row, { className: classes, dataset, attributes });
+    const el = document.createElement('div');
+    return this.applyRowClasses(el, options);
+  }
+
+  applyStackRowClasses(el, options = {}) {
+    return this.applyLayoutClasses(el, this.layoutClasses.stackRow, options);
   }
 
   createStackRowElement(options = {}) {
-    return this.createContainerElement(this.layoutClasses.stackRow, options);
+    const el = document.createElement('div');
+    return this.applyStackRowClasses(el, options);
+  }
+
+  applyStackClasses(el, options = {}) {
+    return this.applyLayoutClasses(el, this.layoutClasses.stack, options);
   }
 
   createStackElement(options = {}) {
-    return this.createContainerElement(this.layoutClasses.stack, options);
+    const el = document.createElement('div');
+    return this.applyStackClasses(el, options);
+  }
+
+  scheduleDragUpdate(dragState, clientX, clientY, onUpdate) {
+    if (!dragState || typeof onUpdate !== 'function') return;
+    dragState.pendingX = clientX;
+    dragState.pendingY = clientY;
+    if (dragState.raf) return;
+    if (typeof requestAnimationFrame !== 'function') {
+      if (dragState.dragging) onUpdate(dragState.pendingX, dragState.pendingY);
+      return;
+    }
+    dragState.raf = requestAnimationFrame(() => {
+      if (!dragState) return;
+      dragState.raf = 0;
+      if (!dragState.dragging) return;
+      onUpdate(dragState.pendingX, dragState.pendingY);
+    });
+  }
+
+  cancelDragUpdate(dragState) {
+    if (!dragState || !dragState.raf) return;
+    if (typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(dragState.raf);
+    }
+    dragState.raf = 0;
   }
 
   createCardElement(card, options = {}) {

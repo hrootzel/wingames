@@ -52,6 +52,8 @@ const resultRestartBtn = document.getElementById('result-restart');
 
 const cardRenderer = new CardRenderer();
 
+cardRenderer.applyStackRowClasses(tableauEl);
+
 const layoutRoot = document.getElementById('app') || document.body;
 let layoutMetrics = readLayoutMetrics();
 

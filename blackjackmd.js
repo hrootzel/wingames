@@ -35,6 +35,8 @@ let audioUnlocked = false;
 
 let state;
 
+cardRenderer.applyRowClasses(dealerEl, { scroll: true });
+
 function shuffle(deck) {
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -536,10 +538,18 @@ function renderHands() {
   if (!state.hands.length) {
     const placeholder = document.createElement('div');
     placeholder.className = 'hand placeholder';
-    placeholder.innerHTML =
-      '<div class="hand-header"><span>&nbsp;</span><span class="hand-status">&nbsp;</span></div>' +
-      '<div class="hand-cards card-grid card-row card-row--scroll"></div>' +
-      '<div class="hand-outcome">&nbsp;</div>';
+    const header = document.createElement('div');
+    header.className = 'hand-header';
+    header.innerHTML = '<span>&nbsp;</span><span class="hand-status">&nbsp;</span>';
+    placeholder.appendChild(header);
+
+    const cardsWrap = cardRenderer.createRowElement({ className: 'hand-cards', scroll: true });
+    placeholder.appendChild(cardsWrap);
+
+    const outcome = document.createElement('div');
+    outcome.className = 'hand-outcome';
+    outcome.innerHTML = '&nbsp;';
+    placeholder.appendChild(outcome);
     playerHandsEl.appendChild(placeholder);
   } else {
     state.hands.forEach((hand, idx) => {
@@ -559,8 +569,7 @@ function renderHands() {
       header.innerHTML = `<span>Hand ${idx + 1} - Bet $${hand.bet}</span><span class="hand-status">${status}</span>`;
       wrap.appendChild(header);
 
-      const cardsWrap = document.createElement('div');
-      cardsWrap.className = 'hand-cards card-grid card-row card-row--scroll';
+      const cardsWrap = cardRenderer.createRowElement({ className: 'hand-cards', scroll: true });
       hand.cards.forEach((card) => {
         cardsWrap.appendChild(buildCardElement(card));
       });

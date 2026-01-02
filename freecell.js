@@ -57,6 +57,10 @@ const cardRenderer = new CardRenderer();
 const scaleRoot = document.documentElement;
 const topRowEl = document.querySelector('.freecell-top');
 
+cardRenderer.applyRowClasses(freecellsEl, { nowrap: true });
+cardRenderer.applyRowClasses(foundationsEl, { nowrap: true });
+cardRenderer.applyStackRowClasses(tableauEl);
+
 let options = loadOptions();
 let cardMetrics = getCardMetrics(options.cardSize);
 let stats = loadStats();
@@ -751,6 +755,7 @@ function clearDragPreview() {
     dragState.preview.parentElement.removeChild(dragState.preview);
   }
   if (dragState) dragState.preview = null;
+  cardRenderer.cancelDragUpdate(dragState);
   clearDropIndicator();
   cleanupDanglingPreviews();
 }
@@ -928,6 +933,9 @@ function handlePointerDown(ev) {
     startY: ev.clientY,
     dragging: false,
     stackSpacing: cardMetrics.spacing,
+    raf: 0,
+    pendingX: 0,
+    pendingY: 0,
   };
   if (sel.source.type === 'tableau') {
     dragState.stackSpacing = tableauSpacingForStack(state.tableau[sel.source.index].length, tableauEl.getBoundingClientRect().top);
@@ -948,8 +956,10 @@ function handlePointerMove(ev) {
     dragState.dragging = true;
   }
   ev.preventDefault();
-  updateDragPreviewPosition(ev.clientX, ev.clientY);
-  updateDropIndicator(ev.clientX, ev.clientY);
+  cardRenderer.scheduleDragUpdate(dragState, ev.clientX, ev.clientY, (x, y) => {
+    updateDragPreviewPosition(x, y);
+    updateDropIndicator(x, y);
+  });
 }
 
 function attemptDrop(clientX, clientY) {

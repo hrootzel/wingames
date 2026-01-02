@@ -75,6 +75,9 @@ const sfx = new SfxEngine({ master: 0.6 });
 const cardRenderer = new CardRenderer();
 let audioUnlocked = false;
 
+cardRenderer.applyRowClasses(completedAcesEl, { nowrap: true });
+cardRenderer.applyStackRowClasses(tableauEl);
+
 let state;
 let selection = null;
 let dragState = null;
@@ -560,6 +563,9 @@ function handlePointerDown(ev) {
     startY: ev.clientY,
     dragging: false,
     stackSpacing: tableauSpacingForStack(state.tableau[col].length, tableauEl.getBoundingClientRect().top),
+    raf: 0,
+    pendingX: 0,
+    pendingY: 0,
   };
   render();
   sfx.play(BANK_SPIDER, 'pickup');
@@ -590,6 +596,7 @@ function clearDragPreview() {
     dragState.preview.parentElement.removeChild(dragState.preview);
   }
   if (dragState) dragState.preview = null;
+  cardRenderer.cancelDragUpdate(dragState);
 }
 
 function attemptDrop(clientX, clientY) {
@@ -622,7 +629,7 @@ function handlePointerMove(ev) {
     dragState.dragging = true;
   }
   ev.preventDefault();
-  updateDragPreviewPosition(ev.clientX, ev.clientY);
+  cardRenderer.scheduleDragUpdate(dragState, ev.clientX, ev.clientY, updateDragPreviewPosition);
 }
 
 function handlePointerUp(ev) {
