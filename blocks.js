@@ -1,3 +1,6 @@
+import { SfxEngine } from './sfx_engine.js';
+import { BANK_BLOCKS } from './sfx_bank_blocks.js';
+
 const canvas = document.getElementById('blocks-canvas');
 const ctx = canvas.getContext('2d');
 const stageEl = document.querySelector('.blocks-stage');
@@ -26,6 +29,9 @@ const size3Input = document.getElementById('size3');
 const size4Input = document.getElementById('size4');
 const newBtn = document.getElementById('new-game');
 const pauseBtn = document.getElementById('pause');
+
+const sfx = new SfxEngine({ master: 0.55 });
+let audioUnlocked = false;
 
 const FIXED_DT = 1000 / 60;
 const DROP_SPEED_TABLE = [
@@ -156,6 +162,17 @@ function makeState() {
     dasCounter: 0,
     arrCounter: 0,
   };
+}
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  sfx.unlock();
+}
+
+function playSfx(name, payload) {
+  if (!audioUnlocked) return;
+  sfx.play(BANK_BLOCKS, name, payload);
 }
 
 function toNumber(value, fallback) {
@@ -436,6 +453,14 @@ function tryMove(dx, dy) {
   return false;
 }
 
+function tryShift(dx) {
+  if (tryMove(dx, 0)) {
+    playSfx('shift');
+    return true;
+  }
+  return false;
+}
+
 const KICKS = [
   { x: 0, y: 0 },
   { x: -1, y: 0 },
@@ -462,9 +487,10 @@ function tryRotate(dir) {
   return false;
 }
 
-function lockPiece() {
+function lockPiece(opts = {}) {
   const p = state.active;
   if (!p) return;
+  const silent = opts.silent === true;
   let toppedOut = false;
   for (const c of p.rots[p.rot]) {
     const x = p.x + c.x;
@@ -477,12 +503,26 @@ function lockPiece() {
   }
   state.active = null;
   state.pieces += 1;
+  if (!silent) {
+    playSfx('lock');
+  }
   if (state.softDropPoints > 0) {
     state.score += state.softDropPoints;
     state.softDropPoints = 0;
   }
+  const prevLevel = state.level;
   const cleared = clearFullLines();
   applyScoring(cleared);
+  if (cleared > 0) {
+    if (cleared >= 4) {
+      playSfx('tetris');
+    } else {
+      playSfx('lineClear', { lines: cleared });
+    }
+  }
+  if (state.level > prevLevel) {
+    playSfx('levelUp');
+  }
   if (toppedOut) {
     setGameOver();
     return;
@@ -493,7 +533,8 @@ function lockPiece() {
 function hardDrop() {
   if (!state.active) return;
   while (tryMove(0, 1)) {}
-  lockPiece();
+  playSfx('hardDrop');
+  lockPiece({ silent: true });
 }
 
 function spawnNextPiece() {
@@ -526,6 +567,7 @@ function setGameOver() {
   state.active = null;
   state.status = 'Game Over.';
   pauseBtn.textContent = 'Pause';
+  playSfx('gameOver');
 }
 
 function heldDirection() {
@@ -547,7 +589,7 @@ function handleDAS() {
     state.dasDir = dir;
     state.dasCounter = 0;
     state.arrCounter = 0;
-    tryMove(dir, 0);
+    tryShift(dir);
     return;
   }
   state.dasCounter += 1;
@@ -555,7 +597,7 @@ function handleDAS() {
   state.arrCounter += 1;
   if (state.arrCounter >= ARR_FRAMES) {
     state.arrCounter = 0;
-    tryMove(dir, 0);
+    tryShift(dir);
   }
 }
 
@@ -597,10 +639,10 @@ function stepGame() {
   }
 
   if (input.pressed.rotate) {
-    tryRotate(1);
+    if (tryRotate(1)) playSfx('rotate');
   }
   if (input.pressed.rotateCCW) {
-    tryRotate(-1);
+    if (tryRotate(-1)) playSfx('rotate');
   }
   if (input.pressed.hardDrop) {
     hardDrop();
@@ -871,6 +913,7 @@ function preventArrowScroll(ev) {
 function handleKeyDown(ev) {
   const tag = ev.target && ev.target.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  unlockAudio();
   if (isSettingsOpen()) return;
   const key = ev.key.toLowerCase();
   if (ev.repeat) {
@@ -884,7 +927,7 @@ function handleKeyDown(ev) {
       state.dasDir = -1;
       state.dasCounter = 0;
       state.arrCounter = 0;
-      tryMove(-1, 0);
+      tryShift(-1);
     }
     ev.preventDefault();
     return;
@@ -895,7 +938,7 @@ function handleKeyDown(ev) {
       state.dasDir = 1;
       state.dasCounter = 0;
       state.arrCounter = 0;
-      tryMove(1, 0);
+      tryShift(1);
     }
     ev.preventDefault();
     return;
@@ -966,6 +1009,7 @@ function loop() {
 document.addEventListener('keydown', preventArrowScroll, { passive: false });
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
+document.addEventListener('pointerdown', unlockAudio, { once: true });
 window.addEventListener('resize', () => resizeCanvasToStage());
 settingsToggle.addEventListener('click', () => openSettings());
 settingsClose.addEventListener('click', () => closeSettings());

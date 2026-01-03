@@ -45,7 +45,7 @@
 
 .blocks-game .blocks-stage-area {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(100px, 160px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 160px);
   grid-template-rows: minmax(0, 1fr);
   gap: 12px;
   align-items: stretch;
@@ -289,6 +289,7 @@
   .blocks-game .blocks-panel {
     max-height: none;
     overflow: visible;
+    align-self: start;
   }
 
   .blocks-game .controls-box {
