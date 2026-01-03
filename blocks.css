@@ -35,8 +35,7 @@
 
 .blocks-game .blocks-wrap {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
-  grid-auto-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   height: 100vh;
   max-height: 100vh;
@@ -62,12 +61,8 @@
   min-width: 0;
 }
 
-.blocks-game .blocks-stage,
-.blocks-game .blocks-panel {
-  min-height: 0;
-}
-
 .blocks-game .blocks-stage {
+  min-height: 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -88,15 +83,6 @@
   border: 1px solid rgba(0, 0, 0, 0.6);
   box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 24px var(--blocks-glow);
   background: #0b1020;
-}
-
-.blocks-game .blocks-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-height: 100%;
-  overflow-y: auto;
-  min-width: 0;
 }
 
 .blocks-game .panel-box {
@@ -194,7 +180,43 @@
 
 .blocks-game .blocks-controls {
   margin-top: 12px;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.blocks-game .controls-box .blocks-controls {
+  margin-top: 0;
+}
+
+.blocks-game .blocks-controls button {
+  width: 100%;
+}
+
+.blocks-game .blocks-footer {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.blocks-game .blocks-footer .tips {
+  margin-top: 0;
+}
+
+.blocks-game .footer-controls {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.blocks-game .footer-controls h3 {
+  margin: 0;
+}
+
+.blocks-game .footer-controls .key-hints {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
 .blocks-game .ms-modal {
@@ -274,42 +296,7 @@
 }
 
 @media (max-width: 900px) {
-  .blocks-game .blocks-wrap {
+  .blocks-game .footer-controls {
     grid-template-columns: 1fr;
-    height: auto;
-    max-height: none;
-    grid-auto-rows: auto;
-  }
-
-  .blocks-game .blocks-stage-area {
-    height: 100vh;
-    max-height: 100vh;
-  }
-
-  .blocks-game .blocks-panel {
-    max-height: none;
-    overflow: visible;
-    align-self: start;
-  }
-
-  .blocks-game .controls-box {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .blocks-game .controls-box h3,
-  .blocks-game .controls-box .key-hints {
-    display: none;
-  }
-
-  .blocks-game .controls-box .blocks-controls {
-    margin-top: 0;
-    width: 100%;
-    justify-content: space-evenly;
-  }
-
-  .blocks-game #blocks-canvas {
-    max-width: 100%;
   }
 }

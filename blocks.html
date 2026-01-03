@@ -47,33 +47,36 @@
                 <div>Pieces: <span id="pieces">0</span></div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <div class="blocks-panel">
-          <div class="panel-box controls-box">
-            <h3>Controls</h3>
-            <div class="key-hints">
-              <div><span class="key">A/D + Left/Right</span> Move</div>
-              <div><span class="key">S/Down</span> Soft drop</div>
-              <div><span class="key">W/Up/X</span> Rotate CW</div>
-              <div><span class="key">Z</span> Rotate CCW</div>
-              <div><span class="key">Space</span> Hard drop</div>
-              <div><span class="key">P</span> Pause</div>
-              <div><span class="key">R</span> Restart</div>
-            </div>
-            <div class="control-group blocks-controls">
-              <button id="new-game">New Game</button>
-              <button id="pause">Pause</button>
+            <div class="panel-box controls-box">
+              <div class="control-group blocks-controls">
+                <button id="new-game">New Game</button>
+                <button id="pause">Pause</button>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <p class="tips">
-      Clear full rows to score. Soft drops add a point per step. Open Settings to change the grid or piece sizes.
-    </p>
+    <footer class="blocks-footer">
+      <div class="panel-box footer-controls">
+        <h3>Controls</h3>
+        <div class="key-hints">
+          <div><span class="key">A/D + Left/Right</span> Move</div>
+          <div><span class="key">S/Down</span> Soft drop</div>
+          <div><span class="key">W/Up/X</span> Rotate CW</div>
+          <div><span class="key">Z</span> Rotate CCW</div>
+          <div><span class="key">Space</span> Hard drop</div>
+          <div><span class="key">P</span> Pause</div>
+          <div><span class="key">R</span> Restart</div>
+        </div>
+      </div>
+
+      <p class="tips">
+        Clear full rows to score. Soft drops add a point per step. Open Settings to change the grid or piece sizes.
+      </p>
+    </footer>
   </div>
 
   <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
