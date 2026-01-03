@@ -35,12 +35,31 @@
 
 .blocks-game .blocks-wrap {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
   grid-auto-rows: minmax(0, 1fr);
   gap: 16px;
   height: 100vh;
   max-height: 100vh;
   align-items: stretch;
+}
+
+.blocks-game .blocks-stage-area {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(100px, 160px);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+}
+
+.blocks-game .blocks-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
 }
 
 .blocks-game .blocks-stage,
@@ -57,14 +76,14 @@
   border-radius: 12px;
   border: 1px solid var(--blocks-border);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+  min-width: 0;
 }
 
 .blocks-game #blocks-canvas {
   width: 100%;
-  max-width: 380px;
+  max-width: 100%;
   height: auto;
   max-height: 100%;
-  aspect-ratio: 9 / 16;
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.6);
   box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 24px var(--blocks-glow);
@@ -77,6 +96,7 @@
   gap: 12px;
   max-height: 100%;
   overflow-y: auto;
+  min-width: 0;
 }
 
 .blocks-game .panel-box {
@@ -84,6 +104,7 @@
   border-radius: 12px;
   border: 1px solid var(--blocks-border);
   padding: 12px;
+  min-width: 0;
 }
 
 .blocks-game .panel-box h3 {
@@ -97,6 +118,10 @@
 .blocks-game .preview-canvas {
   display: block;
   margin: 0 auto;
+  width: 100%;
+  max-width: 120px;
+  height: auto;
+  aspect-ratio: 1 / 1;
 }
 
 .blocks-game .preview-status {
@@ -108,6 +133,7 @@
 
 .blocks-game .blocks-stats {
   text-align: left;
+  word-break: break-word;
 }
 
 .blocks-game .settings-grid {
@@ -250,15 +276,36 @@
 @media (max-width: 900px) {
   .blocks-game .blocks-wrap {
     grid-template-columns: 1fr;
+    height: auto;
+    max-height: none;
+    grid-auto-rows: auto;
+  }
+
+  .blocks-game .blocks-stage-area {
+    height: 100vh;
+    max-height: 100vh;
   }
 
   .blocks-game .blocks-panel {
-    flex-direction: row;
-    flex-wrap: wrap;
+    max-height: none;
+    overflow: visible;
   }
 
-  .blocks-game .panel-box {
-    flex: 1 1 220px;
+  .blocks-game .controls-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .blocks-game .controls-box h3,
+  .blocks-game .controls-box .key-hints {
+    display: none;
+  }
+
+  .blocks-game .controls-box .blocks-controls {
+    margin-top: 0;
+    width: 100%;
+    justify-content: space-evenly;
   }
 
   .blocks-game #blocks-canvas {

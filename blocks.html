@@ -26,28 +26,32 @@
 
     <div class="board blocks-board">
       <div class="blocks-wrap">
-        <div class="blocks-stage">
-          <canvas id="blocks-canvas" width="360" height="640" aria-label="Blocks playfield"></canvas>
+        <div class="blocks-stage-area">
+          <div class="blocks-stage">
+            <canvas id="blocks-canvas" width="360" height="640" aria-label="Blocks playfield"></canvas>
+          </div>
+
+          <div class="blocks-side">
+            <div class="panel-box preview-box">
+              <h3>Next</h3>
+              <canvas id="preview-canvas" class="preview-canvas" width="120" height="120" aria-label="Next piece preview"></canvas>
+              <p id="preview-status" class="preview-status">Preview on.</p>
+            </div>
+
+            <div class="panel-box score-box">
+              <h3>Scoreboard</h3>
+              <div class="quick-stats blocks-stats">
+                <div>Score: <span id="score">0</span></div>
+                <div>Lines: <span id="lines">0</span></div>
+                <div>Level: <span id="level">0</span></div>
+                <div>Pieces: <span id="pieces">0</span></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="blocks-panel">
-          <div class="panel-box">
-            <h3>Next</h3>
-            <canvas id="preview-canvas" class="preview-canvas" width="120" height="120" aria-label="Next piece preview"></canvas>
-            <p id="preview-status" class="preview-status">Preview on.</p>
-          </div>
-
-          <div class="panel-box">
-            <h3>Scoreboard</h3>
-            <div class="quick-stats blocks-stats">
-              <div>Score: <span id="score">0</span></div>
-              <div>Lines: <span id="lines">0</span></div>
-              <div>Level: <span id="level">0</span></div>
-              <div>Pieces: <span id="pieces">0</span></div>
-            </div>
-          </div>
-
-          <div class="panel-box">
+          <div class="panel-box controls-box">
             <h3>Controls</h3>
             <div class="key-hints">
               <div><span class="key">A/D + Left/Right</span> Move</div>
