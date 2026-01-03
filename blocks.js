@@ -9,6 +9,7 @@ const stageAreaEl = document.querySelector('.blocks-stage-area');
 const sideEl = document.querySelector('.blocks-side');
 const previewCanvas = document.getElementById('preview-canvas');
 const previewCtx = previewCanvas.getContext('2d');
+const previewBoxEl = document.querySelector('.preview-box');
 
 const statusEl = document.getElementById('status');
 const scoreEl = document.getElementById('score');
@@ -59,13 +60,13 @@ const STORAGE = {
 };
 
 const DEFAULT_SETTINGS = {
-  w: 10,
-  h: 20,
-  showPreview: true,
+  w: 12,
+  h: 22,
+  showPreview: false,
   enabledSizes: {
-    1: false,
-    2: false,
-    3: false,
+    1: true,
+    2: true,
+    3: true,
     4: true,
   },
 };
@@ -814,10 +815,12 @@ function updateHud() {
 
 function updatePreviewStatus() {
   if (!state.settings || !state.settings.showPreview) {
+    if (previewBoxEl) previewBoxEl.classList.add('hidden');
     previewStatusEl.textContent = 'Preview off.';
     previewCanvas.style.opacity = '0.35';
     return;
   }
+  if (previewBoxEl) previewBoxEl.classList.remove('hidden');
   previewStatusEl.textContent = 'Preview on.';
   previewCanvas.style.opacity = '1';
 }
