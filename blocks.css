@@ -40,13 +40,16 @@
   height: 100vh;
   max-height: 100vh;
   align-items: stretch;
+  justify-items: center;
+  justify-content: center;
 }
 
 .blocks-game .blocks-stage-area {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 160px);
+  grid-template-columns: max-content minmax(0, 160px);
   grid-template-rows: minmax(0, 1fr);
   gap: 12px;
+  justify-content: start;
   align-items: stretch;
   min-width: 0;
   min-height: 0;
@@ -66,7 +69,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 12px;
+  padding: 8px;
   background: var(--blocks-panel);
   border-radius: 12px;
   border: 1px solid var(--blocks-border);
