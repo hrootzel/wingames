@@ -89,9 +89,24 @@ const BASE_SCORE = { LOW: 100, MED: 200, HI: 300 };
 
 const FIXED_DT = 1000 / 60;
 const RESOLVE_DROP_INTERVAL = 60;
+const MAX_START_STAGE = 20;
+
+const STORAGE = {
+  speed: 'pill_popper.speed',
+  startStage: 'pill_popper.startStage',
+};
+
+const DEFAULT_SETTINGS = {
+  speed: Speed.MED,
+  startStage: 0,
+};
 
 const canvas = document.getElementById('pill-canvas');
 const ctx = canvas.getContext('2d');
+const stageEl = document.querySelector('.pill-stage');
+const wrapEl = document.querySelector('.pill-wrap');
+const stageAreaEl = document.querySelector('.pill-stage-area');
+const sideEl = document.querySelector('.pill-side');
 const nextCanvas = document.getElementById('next-canvas');
 const nextCtx = nextCanvas.getContext('2d');
 
@@ -100,7 +115,13 @@ const virusesEl = document.getElementById('viruses');
 const levelEl = document.getElementById('level');
 const speedLabelEl = document.getElementById('speed-label');
 const statusEl = document.getElementById('status');
+const settingsToggle = document.getElementById('settings-toggle');
+const settingsModal = document.getElementById('settings-modal');
+const settingsClose = document.getElementById('settings-close');
+const settingsApply = document.getElementById('settings-apply');
+const settingsCancel = document.getElementById('settings-cancel');
 const speedSelect = document.getElementById('speed');
+const startStageInput = document.getElementById('start-stage');
 const newBtn = document.getElementById('new-game');
 const pauseBtn = document.getElementById('pause');
 
@@ -116,6 +137,7 @@ const view = {
 };
 
 const game = makeGame();
+let settings = loadSettings();
 
 function makeRng(seed) {
   let t = seed >>> 0;
@@ -131,6 +153,73 @@ function makeRng(seed) {
       return Math.floor(this.next() * n);
     },
   };
+}
+
+function toNumber(value, fallback) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function sanitizeSettings(next) {
+  const speed = Speed[next.speed] ? next.speed : DEFAULT_SETTINGS.speed;
+  const startStage = clamp(
+    toNumber(next.startStage, DEFAULT_SETTINGS.startStage),
+    0,
+    MAX_START_STAGE
+  );
+  return { speed, startStage };
+}
+
+function loadSettings() {
+  const speed = localStorage.getItem(STORAGE.speed) ?? DEFAULT_SETTINGS.speed;
+  const startStage = toNumber(localStorage.getItem(STORAGE.startStage), DEFAULT_SETTINGS.startStage);
+  return sanitizeSettings({ speed, startStage });
+}
+
+function saveSettings(next) {
+  localStorage.setItem(STORAGE.speed, next.speed);
+  localStorage.setItem(STORAGE.startStage, String(next.startStage));
+}
+
+function syncSettingsUI(next) {
+  if (speedSelect) speedSelect.value = next.speed;
+  if (startStageInput) {
+    startStageInput.max = String(MAX_START_STAGE + 1);
+    startStageInput.value = String(next.startStage + 1);
+  }
+}
+
+function applySettingsFromUI() {
+  const startStageValue = toNumber(startStageInput.value, DEFAULT_SETTINGS.startStage + 1);
+  const startStageIndex = clamp(Math.round(startStageValue) - 1, 0, MAX_START_STAGE);
+  const next = sanitizeSettings({
+    speed: speedSelect.value,
+    startStage: startStageIndex,
+  });
+  settings = next;
+  saveSettings(settings);
+  syncSettingsUI(settings);
+  newGame();
+  return true;
+}
+
+function isSettingsOpen() {
+  return settingsModal && !settingsModal.classList.contains('hidden');
+}
+
+function openSettings() {
+  syncSettingsUI(settings);
+  settingsModal.classList.remove('hidden');
+  settingsToggle.setAttribute('aria-expanded', 'true');
+}
+
+function closeSettings() {
+  settingsModal.classList.add('hidden');
+  settingsToggle.setAttribute('aria-expanded', 'false');
 }
 
 function makeEmptyCell() {
@@ -808,8 +897,8 @@ function newGame() {
   game.input.clearPressed();
   game.horVelocity = 0;
   pauseBtn.textContent = 'Pause';
-  game.speed = speedSelect.value;
-  startStage(0);
+  game.speed = settings.speed;
+  startStage(settings.startStage);
 }
 
 function updateHud() {
@@ -821,10 +910,47 @@ function updateHud() {
 }
 
 function setupView() {
+  const pad = 16;
+  const cell = Math.floor(
+    Math.min(
+      (canvas.width - pad * 2) / W,
+      (canvas.height - pad * 2) / VISIBLE_H
+    )
+  );
+  view.cellSize = Math.max(8, cell);
   view.boardWidth = W * view.cellSize;
   view.boardHeight = VISIBLE_H * view.cellSize;
   view.boardLeft = Math.floor((canvas.width - view.boardWidth) / 2);
   view.boardTop = Math.floor((canvas.height - view.boardHeight) / 2);
+}
+
+function resizeCanvasToStage() {
+  if (!stageEl || !stageAreaEl || !wrapEl) return;
+  const wrapRect = wrapEl.getBoundingClientRect();
+  const areaStyle = window.getComputedStyle(stageAreaEl);
+  const stageStyle = window.getComputedStyle(stageEl);
+  const gapX = parseFloat(areaStyle.columnGap) || parseFloat(areaStyle.gap) || 0;
+  const sideWidth = sideEl ? sideEl.getBoundingClientRect().width : 0;
+  const padX = parseFloat(stageStyle.paddingLeft) + parseFloat(stageStyle.paddingRight);
+  const padY = parseFloat(stageStyle.paddingTop) + parseFloat(stageStyle.paddingBottom);
+  const maxW = Math.max(0, wrapRect.width - sideWidth - gapX - padX);
+  const maxH = Math.max(0, wrapRect.height - padY);
+  if (maxW <= 0 || maxH <= 0) return;
+  const ratio = W / VISIBLE_H;
+  let width = maxW;
+  let height = maxH;
+  if (width / height > ratio) {
+    width = height * ratio;
+  } else {
+    height = width / ratio;
+  }
+  const wPx = Math.max(1, Math.floor(width));
+  const hPx = Math.max(1, Math.floor(height));
+  canvas.style.width = `${wPx}px`;
+  canvas.style.height = `${hPx}px`;
+  canvas.width = wPx;
+  canvas.height = hPx;
+  setupView();
 }
 
 function cellToX(col) {
@@ -960,7 +1086,7 @@ function stepGame(dt) {
     game.input.clearPressed();
     return;
   }
-  if (game.paused) {
+  if (game.paused || isSettingsOpen()) {
     game.input.clearPressed();
     return;
   }
@@ -1010,6 +1136,7 @@ function handleKeyDown(ev) {
     return;
   }
   unlockAudio();
+  if (isSettingsOpen()) return;
   if (key === 'arrowleft' || key === 'a') {
     if (!game.input.held.left) {
       game.input.held.left = true;
@@ -1039,7 +1166,7 @@ function handleKeyDown(ev) {
     ev.preventDefault();
     return;
   }
-  if (key === 'arrowup' || key === 'x') {
+  if (key === 'arrowup' || key === 'x' || key === 'w') {
     game.input.pressed.rotateCCW = true;
     ev.preventDefault();
     return;
@@ -1114,12 +1241,25 @@ document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
 newBtn.addEventListener('click', () => newGame());
 pauseBtn.addEventListener('click', () => togglePause());
-speedSelect.addEventListener('change', () => {
-  game.speed = speedSelect.value;
-  newGame();
+settingsToggle.addEventListener('click', () => openSettings());
+settingsClose.addEventListener('click', () => closeSettings());
+settingsCancel.addEventListener('click', () => closeSettings());
+settingsModal.addEventListener('click', (ev) => {
+  if (ev.target === settingsModal) closeSettings();
+});
+settingsApply.addEventListener('click', () => {
+  if (applySettingsFromUI()) closeSettings();
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && isSettingsOpen()) {
+    closeSettings();
+    ev.preventDefault();
+  }
 });
 document.addEventListener('pointerdown', unlockAudio, { once: true });
+window.addEventListener('resize', () => resizeCanvasToStage());
 
-setupView();
+syncSettingsUI(settings);
+resizeCanvasToStage();
 newGame();
 loop();
