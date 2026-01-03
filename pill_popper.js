@@ -1166,7 +1166,7 @@ function handleKeyDown(ev) {
     ev.preventDefault();
     return;
   }
-  if (key === 'arrowup' || key === 'x') {
+  if (key === 'arrowup' || key === 'x' || key === 'w') {
     game.input.pressed.rotateCCW = true;
     ev.preventDefault();
     return;
