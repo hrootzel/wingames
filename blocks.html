@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Blocks</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="blocks.css">
+</head>
+<body class="blocks-game">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>Blocks</h1>
+        <p class="subtitle">Stack polyominoes, clear lines, ride the drop curve.</p>
+      </div>
+      <div class="settings">
+        <button id="settings-toggle" class="icon-button" aria-expanded="false" aria-controls="settings-modal" aria-label="Settings" title="Settings">Settings</button>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Ready.</span>
+      </div>
+    </div>
+
+    <div class="board blocks-board">
+      <div class="blocks-wrap">
+        <div class="blocks-stage-area">
+          <div class="blocks-stage">
+            <canvas id="blocks-canvas" width="360" height="640" aria-label="Blocks playfield"></canvas>
+          </div>
+
+          <div class="blocks-side">
+            <div class="panel-box preview-box">
+              <h3>Next</h3>
+              <canvas id="preview-canvas" class="preview-canvas" width="120" height="120" aria-label="Next piece preview"></canvas>
+              <p id="preview-status" class="preview-status">Preview on.</p>
+            </div>
+
+            <div class="panel-box score-box">
+              <h3>Scoreboard</h3>
+              <div class="quick-stats blocks-stats">
+                <div>Score: <span id="score">0</span></div>
+                <div>Lines: <span id="lines">0</span></div>
+                <div>Level: <span id="level">0</span></div>
+                <div>Pieces: <span id="pieces">0</span></div>
+              </div>
+            </div>
+
+            <div class="panel-box controls-box">
+              <div class="control-group blocks-controls">
+                <button id="new-game">New Game</button>
+                <button id="pause">Pause</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="blocks-footer">
+      <div class="panel-box footer-controls">
+        <h3>Controls</h3>
+        <div class="key-hints">
+          <div><span class="key">A/D + Left/Right</span> Move</div>
+          <div><span class="key">S/Down</span> Soft drop</div>
+          <div><span class="key">W/Up/X</span> Rotate CW</div>
+          <div><span class="key">Z</span> Rotate CCW</div>
+          <div><span class="key">Space</span> Hard drop</div>
+          <div><span class="key">P</span> Pause</div>
+          <div><span class="key">R</span> Restart</div>
+        </div>
+      </div>
+
+      <p class="tips">
+        Clear full rows to score. Soft drops add a point per step. Open Settings to change the grid or piece sizes.
+      </p>
+    </footer>
+  </div>
+
+  <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="settings-title">Settings</h2>
+        <button id="settings-close" class="icon-button" aria-label="Close settings">X</button>
+      </header>
+
+      <div class="ms-form">
+        <div class="settings-grid">
+          <label class="ms-field">
+            <span>Grid Width</span>
+            <input id="gridW" type="number" min="6" max="24" value="12">
+          </label>
+          <label class="ms-field">
+            <span>Grid Height</span>
+            <input id="gridH" type="number" min="12" max="40" value="22">
+          </label>
+        </div>
+
+        <label class="ms-toggle">
+          <input id="optPreview" type="checkbox">
+          <span>Show preview</span>
+        </label>
+
+        <fieldset class="size-fieldset">
+          <legend>Enabled piece sizes</legend>
+          <label class="ms-toggle"><input id="size1" type="checkbox"> <span>1-block</span></label>
+          <label class="ms-toggle"><input id="size2" type="checkbox"> <span>2-block</span></label>
+          <label class="ms-toggle"><input id="size3" type="checkbox"> <span>3-block</span></label>
+          <label class="ms-toggle"><input id="size4" type="checkbox"> <span>4-block</span></label>
+        </fieldset>
+      </div>
+
+      <div class="ms-actions">
+        <button id="settings-apply">Apply / Restart</button>
+        <button id="settings-cancel" class="secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="blocks.js"></script>
+</body>
+</html>

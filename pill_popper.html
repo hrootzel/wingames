@@ -8,10 +8,13 @@
 </head>
 <body class="pill-popper">
   <div id="app">
-    <header class="app-header">
+    <header class="app-header compact-header">
       <div>
         <h1>Pill Popper</h1>
         <p class="subtitle">Clear viruses with color-matching capsules.</p>
+      </div>
+      <div class="settings">
+        <button id="settings-toggle" class="icon-button" aria-expanded="false" aria-controls="settings-modal" aria-label="Settings" title="Settings">Settings</button>
       </div>
     </header>
 
@@ -23,59 +26,88 @@
 
     <div class="board pill-board">
       <div class="pill-wrap">
-        <div class="pill-stage">
-          <canvas id="pill-canvas" width="320" height="540" aria-label="Pill Popper bottle"></canvas>
-        </div>
-
-        <div class="pill-panel">
-          <div class="panel-box">
-            <h3>Next Capsule</h3>
-            <canvas id="next-canvas" class="preview-canvas" width="100" height="100" aria-label="Next capsule preview"></canvas>
+        <div class="pill-stage-area">
+          <div class="pill-stage">
+            <canvas id="pill-canvas" width="320" height="540" aria-label="Pill Popper bottle"></canvas>
           </div>
 
-          <div class="panel-box">
-            <h3>Scoreboard</h3>
-            <div class="quick-stats pill-stats">
-              <div>Score: <span id="score">0</span></div>
-              <div>Viruses: <span id="viruses">0</span></div>
-              <div>Level: <span id="level">1</span></div>
-              <div>Speed: <span id="speed-label">MED</span></div>
-            </div>
-          </div>
-
-          <div class="panel-box">
-            <h3>Controls</h3>
-            <div class="key-hints">
-              <div><span class="key">Left/Right</span> Move</div>
-              <div><span class="key">Down</span> Soft drop</div>
-              <div><span class="key">Up/X</span> Rotate</div>
-              <div><span class="key">Z</span> Rotate</div>
-              <div><span class="key">Space</span> Hard drop</div>
-              <div><span class="key">P</span> Pause</div>
-              <div><span class="key">R</span> Restart</div>
+          <div class="pill-side">
+            <div class="panel-box preview-box">
+              <h3>Next Capsule</h3>
+              <canvas id="next-canvas" class="preview-canvas" width="100" height="100" aria-label="Next capsule preview"></canvas>
             </div>
 
-            <label class="pill-speed">Speed
-              <select id="speed">
-                <option value="LOW">Low</option>
-                <option value="MED" selected>Med</option>
-                <option value="HI">Hi</option>
-              </select>
-            </label>
+            <div class="panel-box score-box">
+              <h3>Scoreboard</h3>
+              <div class="quick-stats pill-stats">
+                <div>Score: <span id="score">0</span></div>
+                <div>Viruses: <span id="viruses">0</span></div>
+                <div>Level: <span id="level">1</span></div>
+                <div>Speed: <span id="speed-label">MED</span></div>
+              </div>
+            </div>
 
-            <div class="control-group pill-controls">
-              <button id="new-game">New Game</button>
-              <button id="pause">Pause</button>
+            <div class="panel-box controls-box">
+              <div class="control-group pill-controls">
+                <button id="new-game">New Game</button>
+                <button id="pause">Pause</button>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <p class="tips">
-      Line up 4 or more of the same color to clear viruses and capsule segments. Viruses never fall,
-      but capsule halves will drop and split when unsupported. Clear all viruses to advance the level.
-    </p>
+    <footer class="pill-footer">
+      <div class="panel-box footer-controls">
+        <h3>Controls</h3>
+        <div class="key-hints">
+          <div><span class="key">Left/Right</span> Move</div>
+          <div><span class="key">Down</span> Soft drop</div>
+          <div><span class="key">Up/X</span> Rotate</div>
+          <div><span class="key">Z</span> Rotate</div>
+          <div><span class="key">Space</span> Hard drop</div>
+          <div><span class="key">P</span> Pause</div>
+          <div><span class="key">R</span> Restart</div>
+        </div>
+      </div>
+
+      <p class="tips">
+        Line up 4 or more of the same color to clear viruses and capsule segments. Viruses never fall,
+        but capsule halves will drop and split when unsupported. Clear all viruses to advance the level.
+      </p>
+    </footer>
+  </div>
+
+  <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="settings-title">Settings</h2>
+        <button id="settings-close" class="icon-button" aria-label="Close settings">X</button>
+      </header>
+
+      <div class="ms-form">
+        <div class="settings-grid">
+          <label class="ms-field">
+            <span>Speed</span>
+            <select id="speed">
+              <option value="LOW">Low</option>
+              <option value="MED">Med</option>
+              <option value="HI">Hi</option>
+            </select>
+          </label>
+          <label class="ms-field">
+            <span>Starting Stage</span>
+            <input id="start-stage" type="number" min="1" max="21" value="1">
+          </label>
+        </div>
+      </div>
+
+      <div class="ms-actions">
+        <button id="settings-apply">Apply / Restart</button>
+        <button id="settings-cancel" class="secondary">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="pill_popper.js"></script>
