@@ -318,7 +318,6 @@ document.getElementById('undo').addEventListener('click', undo);
 
 // Settings
 document.getElementById('settings-toggle').addEventListener('click', () => settingsModal.classList.remove('hidden'));
-document.getElementById('settings-close').addEventListener('click', () => settingsModal.classList.add('hidden'));
 document.getElementById('settings-apply').addEventListener('click', () => settingsModal.classList.add('hidden'));
 optShowHints.addEventListener('change', () => { showHints = optShowHints.checked; render(); });
 

@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="color-scheme" content="dark">
-  <title>TriPeaks</title>
+  <title>Pyramid Solitaire</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="tripeaks.css">
+  <link rel="stylesheet" href="pyramid.css">
 </head>
-<body class="tripeaks">
+<body class="pyramid">
   <div id="app">
     <header class="app-header compact-header">
       <div>
-        <h1>TriPeaks</h1>
-        <p class="subtitle">Clear the peaks by playing cards ±1 from the waste.</p>
+        <h1>Pyramid</h1>
+        <p class="subtitle">Remove pairs that sum to 13. Kings remove alone.</p>
       </div>
       <div class="quick-stats">
         <div>Score: <span id="score">0</span></div>
@@ -22,18 +22,18 @@
     </header>
     <div class="hud"><div class="status-row"><span id="status">Ready</span></div></div>
     <div class="board">
-      <div id="peaks" class="tripeaks-grid"></div>
-      <div class="top-row tripeaks-top">
+      <div id="pyramid" class="pyramid-grid"></div>
+      <div class="top-row pyramid-top">
         <div class="pile-wrap"><div class="label">Stock</div><div id="stock" class="pile stock"></div></div>
         <div class="pile-wrap"><div class="label">Waste</div><div id="waste" class="pile waste"></div></div>
       </div>
     </div>
     <div class="control-group bottom-controls">
       <button id="new-game">New Game</button>
-      <button id="flip-stock">Flip Stock</button>
+      <button id="flip-stock">Draw</button>
       <button id="undo" disabled>Undo</button>
     </div>
-    <p class="tips">Click a free card to play it on the waste (±1 rank, wrapping K↔A). Click stock to draw.</p>
+    <p class="tips">Click two cards that sum to 13 to remove them (A=1, J=11, Q=12, K=13). Kings remove alone. Click stock to draw.</p>
   </div>
 
   <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true">
@@ -52,6 +52,6 @@
     </div>
   </div>
 
-  <script type="module" src="tripeaks.js"></script>
+  <script type="module" src="pyramid.js"></script>
 </body>
 </html>
