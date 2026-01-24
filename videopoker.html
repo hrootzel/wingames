@@ -6,17 +6,12 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="videopoker.css">
 </head>
-<body>
+<body class="videopoker">
   <div id="app">
     <header class="app-header">
       <div>
         <h1>Video Poker</h1>
         <p class="subtitle">9-6 Jacks or Better</p>
-      </div>
-      <div class="quick-stats">
-        <div>Credits: <span id="credits">50</span></div>
-        <div>Bet: <span id="bet">5</span></div>
-        <div>Win: <span id="win">0</span></div>
       </div>
     </header>
 
@@ -43,11 +38,18 @@
             <span>Hand</span>
             <span class="hand-status" id="hand-name"></span>
           </div>
-          <div id="cards" class="hand-cards card-grid videopoker-cards"></div>
+          <div id="cards" class="hand-cards videopoker-cards"></div>
           <div class="hand-outcome" id="hand-outcome"></div>
-          <div class="control-group vp-controls">
-            <button id="deal">Deal</button>
-            <button id="new-game">New Game</button>
+          <div class="vp-footer">
+            <div class="quick-stats vp-stats">
+              <div>Credits: <span id="credits">50</span></div>
+              <div>Bet: <span id="bet">5</span></div>
+              <div>Win: <span id="win">0</span></div>
+            </div>
+            <div class="control-group vp-controls">
+              <button id="deal">Deal</button>
+              <button id="new-game">New Game</button>
+            </div>
           </div>
         </div>
       </div>

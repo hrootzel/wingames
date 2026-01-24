@@ -1,7 +1,23 @@
+:root {
+  --card-base-spacing: 26px;
+}
+
+.foundations-wrap {
+  margin-left: auto;
+}
+
+.foundation-row {
+  flex-wrap: nowrap;
+}
+
 .pile.waste {
-  min-width: 120px;
+  min-width: calc(var(--card-width) + var(--card-gap) * 4);
 }
 
 .foundation.empty {
   border-style: dashed;
+}
+
+.tableau {
+  grid-template-columns: repeat(7, minmax(var(--card-width), 1fr));
 }

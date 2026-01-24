@@ -1,12 +1,10 @@
 import { CardRenderer, SUITS, SUIT_SYMBOLS, cardColor } from './card_renderer.js';
+import { CardLayout, calcStackSpacing, createDragPreviewCache, hideDragPreview } from './card_layout.js';
 
 const TABLEAU_COLS = 8;
 const FREECELL_SLOTS = 4;
 const FOUNDATION_SLOTS = 4;
 const DEAL_MAX = 32000;
-const VIEWPORT_BOTTOM_MARGIN = 28;
-const TIGHTEN_START = 12;
-const TIGHTEN_END = 28;
 
 const SIZE_PRESETS = {
   sm: { width: 72, height: 100, spacing: 20 },
@@ -54,14 +52,28 @@ const optCardSize = document.getElementById('opt-card-size');
 const optionsCloseBtn = document.getElementById('options-close');
 
 const cardRenderer = new CardRenderer();
+const cardLayout = new CardLayout();
+
+function getStackSpacing(stackLength) {
+  const m = cardLayout.metrics;
+  return calcStackSpacing({
+    stackLength,
+    containerTop: tableauEl?.getBoundingClientRect().top ?? 0,
+    cardHeight: m.cardHeight,
+    baseSpacing: m.stackSpacing,
+    minSpacing: 10,
+    tightenStart: 12,
+    tightenEnd: 28,
+  });
+}
 
 let options = loadOptions();
-let cardMetrics = getCardMetrics(options.cardSize);
 let stats = loadStats();
 
 let state = null;
 let selection = null;
 let dragState = null;
+const dragPreviewCache = createDragPreviewCache();
 let dropIndicator = null;
 let undoStack = [];
 let timerId = null;
@@ -69,10 +81,6 @@ let clickTracker = { cardKey: null, time: 0 };
 let ignoreClicksUntil = 0;
 let currentDealNumber = 1;
 let winOverlay = null;
-
-function getCardMetrics(sizeKey) {
-  return SIZE_PRESETS[sizeKey] || SIZE_PRESETS.md;
-}
 
 function loadOptions() {
   const raw = localStorage.getItem('freecellOptions');
@@ -202,10 +210,8 @@ function recordGameEnd(won) {
 }
 
 function applyOptions() {
-  appEl.dataset.size = options.cardSize;
-  document.body.dataset.size = options.cardSize;
-  cardMetrics = getCardMetrics(options.cardSize);
-  cardRenderer.size = options.cardSize;
+  appEl.dataset.cardSize = options.cardSize;
+  document.body.dataset.cardSize = options.cardSize;
   optDealMode.value = options.dealMode;
   optSupermove.checked = options.allowSupermove;
   optDisableCap.checked = options.disableSupermoveCap;
@@ -334,14 +340,8 @@ function startTimer() {
   }, 1000);
 }
 
-function tableauSpacingForStack(stackLength, tableauTop) {
-  if (stackLength <= 1) return cardMetrics.spacing;
-  const availableHeight = Math.max(0, window.innerHeight - tableauTop - VIEWPORT_BOTTOM_MARGIN);
-  const fitSpacing = (availableHeight - cardMetrics.height) / (stackLength - 1);
-  const minSpacing = Math.max(10, Math.round(cardMetrics.spacing * 0.5));
-  const t = stackLength <= TIGHTEN_START ? 0 : Math.min(1, (stackLength - TIGHTEN_START) / (TIGHTEN_END - TIGHTEN_START));
-  const desiredSpacing = cardMetrics.spacing - t * (cardMetrics.spacing - minSpacing);
-  return Math.max(0, Math.min(cardMetrics.spacing, desiredSpacing, fitSpacing));
+function tableauSpacingForStack(stackLength) {
+  return getStackSpacing(stackLength);
 }
 
 function canPlaceOnTableau(card, stack) {
@@ -591,23 +591,25 @@ function checkForWin() {
   showWinPopup();
 }
 
-function buildCardElement(card, pileType, pileIndex, cardIndex) {
-  const el = cardRenderer.createCardElement(card);
+function buildCardElement(card, pileType, pileIndex, cardIndex, { reuse = true } = {}) {
+  const el = reuse ? cardRenderer.getCardElement(card) : cardRenderer.createCardElement(card);
+  cardRenderer.resetCardInlineStyles(el);
   el.dataset.pile = pileType;
   el.dataset.index = String(cardIndex);
   el.dataset.pileindex = String(pileIndex);
 
+  let isSelected = false;
   if (selection) {
     const samePile = selection.source.type === pileType && selection.source.index === pileIndex;
     if (samePile) {
-      if (pileType === 'tableau' && cardIndex >= selection.cardIndex) {
-        el.classList.add('selected');
-      }
-      if (pileType !== 'tableau' && cardIndex === selection.cardIndex) {
-        el.classList.add('selected');
+      if (pileType === 'tableau') {
+        isSelected = cardIndex >= selection.cardIndex;
+      } else {
+        isSelected = cardIndex === selection.cardIndex;
       }
     }
   }
+  el.classList.toggle('selected', isSelected);
 
   return el;
 }
@@ -651,12 +653,9 @@ function renderFoundations() {
 
 function renderTableau() {
   tableauEl.innerHTML = '';
-  const tableauTop = tableauEl.getBoundingClientRect().top;
   state.tableau.forEach((stack, colIdx) => {
-    const spacing = tableauSpacingForStack(stack.length, tableauTop);
-    const col = document.createElement('div');
-    col.className = 'tableau-col';
-    col.dataset.col = String(colIdx);
+    const spacing = tableauSpacingForStack(stack.length);
+    const col = cardRenderer.createStackElement({ className: 'tableau-col', dataset: { col: colIdx } });
     stack.forEach((card, idx) => {
       const el = buildCardElement(card, 'tableau', colIdx, idx);
       el.style.top = `${idx * spacing}px`;
@@ -676,24 +675,41 @@ function render() {
 }
 
 function cleanupDanglingPreviews() {
-  const previews = document.querySelectorAll('.drag-preview');
-  previews.forEach((el) => {
-    if (dragState && dragState.preview === el) return;
-    if (el.parentElement) el.parentElement.removeChild(el);
-  });
+  if (dragState && dragState.preview) return;
+  hideDragPreview(dragPreviewCache);
 }
 
 function buildDragPreview(cards, pileType, startIndex, pileIndex) {
-  const wrap = document.createElement('div');
-  wrap.className = 'drag-preview';
-  const spacing = dragState && typeof dragState.stackSpacing === 'number' ? dragState.stackSpacing : cardMetrics.spacing;
+  if (!dragPreviewCache.el) {
+    const wrap = document.createElement('div');
+    wrap.className = 'drag-preview';
+    wrap.style.display = 'none';
+    wrap.style.willChange = 'transform';
+    document.body.appendChild(wrap);
+    dragPreviewCache.el = wrap;
+  } else if (!dragPreviewCache.el.parentElement) {
+    document.body.appendChild(dragPreviewCache.el);
+  }
+  const wrap = dragPreviewCache.el;
+  wrap.style.display = '';
+  wrap.style.transform = 'translate(-9999px, -9999px)';
+  const spacing = dragState?.stackSpacing ?? cardLayout.metrics.stackSpacing;
   cards.forEach((card, idx) => {
-    const el = buildCardElement(card, pileType, pileIndex, startIndex + idx);
-    el.style.position = 'absolute';
+    let el = dragPreviewCache.cards[idx];
+    if (!el) {
+      el = cardRenderer.createCardElement(card, { className: 'selected' });
+      el.style.position = 'absolute';
+      dragPreviewCache.cards[idx] = el;
+      wrap.appendChild(el);
+    } else {
+      cardRenderer.updateCardElement(el, card, { className: 'selected' });
+      el.style.display = '';
+    }
     el.style.top = `${idx * spacing}px`;
-    wrap.appendChild(el);
   });
-  document.body.appendChild(wrap);
+  for (let i = cards.length; i < dragPreviewCache.cards.length; i++) {
+    dragPreviewCache.cards[i].style.display = 'none';
+  }
   return wrap;
 }
 
@@ -705,10 +721,11 @@ function updateDragPreviewPosition(clientX, clientY) {
 }
 
 function clearDragPreview() {
-  if (dragState && dragState.preview && dragState.preview.parentElement) {
-    dragState.preview.parentElement.removeChild(dragState.preview);
+  if (dragState?.preview) {
+    dragState.preview.style.display = 'none';
+    dragState.preview.style.transform = 'translate(-9999px, -9999px)';
+    dragState.preview = null;
   }
-  if (dragState) dragState.preview = null;
   clearDropIndicator();
   cleanupDanglingPreviews();
 }
@@ -730,52 +747,61 @@ function setDropIndicator(el, className) {
   dropIndicator = { el, className };
 }
 
-function evaluateTableauDrop(destIndex) {
+function evaluateTableauDrop(destIndex, moving) {
   if (!selection) return { ok: false, reason: 'BUILD_RULE' };
   if (selection.source.type === 'tableau' && selection.source.index === destIndex) {
     return { ok: false, reason: 'BUILD_RULE' };
   }
-  const moving = peekSelectionCards(selection);
-  if (moving.length === 0) return { ok: false, reason: 'BUILD_RULE' };
+  const cards = moving || (dragState && dragState.movingCards) || peekSelectionCards(selection);
+  if (cards.length === 0) return { ok: false, reason: 'BUILD_RULE' };
+  const sequenceValid =
+    selection.source.type !== 'tableau'
+      ? true
+      : dragState && typeof dragState.sequenceValid === 'boolean'
+        ? dragState.sequenceValid
+        : isValidTableauSequence(cards);
   const destStack = state.tableau[destIndex];
-  if (!canPlaceOnTableau(moving[0], destStack)) return { ok: false, reason: 'BUILD_RULE' };
-  if (selection.source.type !== 'tableau' && moving.length > 1) return { ok: false, reason: 'BUILD_RULE' };
-  if (selection.source.type === 'tableau' && !isValidTableauSequence(moving)) return { ok: false, reason: 'BUILD_RULE' };
-  if (!options.allowSupermove && moving.length > 1) return { ok: false, reason: 'BUILD_RULE' };
+  if (!canPlaceOnTableau(cards[0], destStack)) return { ok: false, reason: 'BUILD_RULE' };
+  if (selection.source.type !== 'tableau' && cards.length > 1) return { ok: false, reason: 'BUILD_RULE' };
+  if (!sequenceValid) return { ok: false, reason: 'BUILD_RULE' };
+  if (!options.allowSupermove && cards.length > 1) return { ok: false, reason: 'BUILD_RULE' };
 
-  if (moving.length > 1 && options.allowSupermove && !options.disableSupermoveCap) {
+  if (cards.length > 1 && options.allowSupermove && !options.disableSupermoveCap) {
     const destIsEmpty = destStack.length === 0;
-    const maxMove = maxMovableToTableau({
-      tableauPiles: state.tableau,
-      freePiles: state.freecells,
-      destIsEmptyTableau: destIsEmpty,
-    });
-    if (moving.length > maxMove) return { ok: false, reason: 'CAP' };
+    const maxMove =
+      dragState && typeof dragState.maxMoveEmpty === 'number'
+        ? (destIsEmpty ? dragState.maxMoveEmpty : dragState.maxMoveNonEmpty)
+        : maxMovableToTableau({
+            tableauPiles: state.tableau,
+            freePiles: state.freecells,
+            destIsEmptyTableau: destIsEmpty,
+          });
+    if (cards.length > maxMove) return { ok: false, reason: 'CAP' };
   }
   return { ok: true };
 }
 
-function evaluateFreecellDrop(destIndex) {
+function evaluateFreecellDrop(destIndex, moving) {
   if (!selection) return { ok: false, reason: 'BUILD_RULE' };
   if (selection.source.type === 'freecell' && selection.source.index === destIndex) {
     return { ok: false, reason: 'BUILD_RULE' };
   }
-  const moving = peekSelectionCards(selection);
-  if (moving.length !== 1) return { ok: false, reason: 'BUILD_RULE' };
+  const cards = moving || (dragState && dragState.movingCards) || peekSelectionCards(selection);
+  if (cards.length !== 1) return { ok: false, reason: 'BUILD_RULE' };
   const destStack = state.freecells[destIndex];
   if (destStack.length !== 0) return { ok: false, reason: 'BUILD_RULE' };
   return { ok: true };
 }
 
-function evaluateFoundationDrop(destIndex) {
+function evaluateFoundationDrop(destIndex, moving) {
   if (!selection) return { ok: false, reason: 'BUILD_RULE' };
   if (selection.source.type === 'foundation' && selection.source.index === destIndex) {
     return { ok: false, reason: 'BUILD_RULE' };
   }
-  const moving = peekSelectionCards(selection);
-  if (moving.length !== 1) return { ok: false, reason: 'BUILD_RULE' };
+  const cards = moving || (dragState && dragState.movingCards) || peekSelectionCards(selection);
+  if (cards.length !== 1) return { ok: false, reason: 'BUILD_RULE' };
   const destStack = state.foundations[destIndex];
-  if (!canPlaceOnFoundation(moving[0], destStack, destIndex)) return { ok: false, reason: 'BUILD_RULE' };
+  if (!canPlaceOnFoundation(cards[0], destStack, destIndex)) return { ok: false, reason: 'BUILD_RULE' };
   return { ok: true };
 }
 
@@ -789,40 +815,55 @@ function updateDropIndicator(clientX, clientY) {
     clearDropIndicator();
     return;
   }
-  if (!selection) {
+  if (!selection || !dragState || !dragState.dragging) {
     clearDropIndicator();
     return;
   }
   const target = document.elementFromPoint(clientX, clientY);
   if (!target) {
-    clearDropIndicator();
+    if (dragState.lastDropKey) {
+      clearDropIndicator();
+      dragState.lastDropKey = null;
+    }
     return;
   }
   const freecellSlot = target.closest('.freecell-slot');
   if (freecellSlot) {
     const idx = Number(freecellSlot.dataset.index);
+    const key = `freecell:${idx}`;
+    if (dragState.lastDropKey === key) return;
     const highlightEl = freecellSlot.querySelector('.card') || freecellSlot;
-    const result = evaluateFreecellDrop(idx);
+    const result = evaluateFreecellDrop(idx, dragState.movingCards);
     setDropIndicator(highlightEl, dropIndicatorClass(result));
+    dragState.lastDropKey = key;
     return;
   }
   const foundationSlot = target.closest('.foundation-slot');
   if (foundationSlot) {
     const idx = Number(foundationSlot.dataset.index);
+    const key = `foundation:${idx}`;
+    if (dragState.lastDropKey === key) return;
     const highlightEl = foundationSlot.querySelector('.card') || foundationSlot;
-    const result = evaluateFoundationDrop(idx);
+    const result = evaluateFoundationDrop(idx, dragState.movingCards);
     setDropIndicator(highlightEl, dropIndicatorClass(result));
+    dragState.lastDropKey = key;
     return;
   }
   const colEl = target.closest('.tableau-col');
   if (colEl) {
     const idx = Number(colEl.dataset.col);
+    const key = `tableau:${idx}`;
+    if (dragState.lastDropKey === key) return;
     const highlightEl = colEl.querySelector('.card:last-child') || colEl;
-    const result = evaluateTableauDrop(idx);
+    const result = evaluateTableauDrop(idx, dragState.movingCards);
     setDropIndicator(highlightEl, dropIndicatorClass(result));
+    dragState.lastDropKey = key;
     return;
   }
-  clearDropIndicator();
+  if (dragState.lastDropKey) {
+    clearDropIndicator();
+    dragState.lastDropKey = null;
+  }
 }
 
 function selectionFromCardEl(cardEl) {
@@ -885,10 +926,18 @@ function handlePointerDown(ev) {
     startX: ev.clientX,
     startY: ev.clientY,
     dragging: false,
-    stackSpacing: cardMetrics.spacing,
+    stackSpacing: cardLayout.metrics.stackSpacing,
+    raf: 0,
+    pendingX: 0,
+    pendingY: 0,
+    movingCards: null,
+    sequenceValid: true,
+    maxMoveEmpty: null,
+    maxMoveNonEmpty: null,
+    lastDropKey: null,
   };
   if (sel.source.type === 'tableau') {
-    dragState.stackSpacing = tableauSpacingForStack(state.tableau[sel.source.index].length, tableauEl.getBoundingClientRect().top);
+    dragState.stackSpacing = tableauSpacingForStack(state.tableau[sel.source.index].length);
   }
 }
 
@@ -901,6 +950,20 @@ function handlePointerMove(ev) {
     if (cards.length === 0 || !selection) {
       dragState = null;
       return;
+    }
+    dragState.movingCards = cards;
+    dragState.sequenceValid = selection.source.type !== 'tableau' ? true : isValidTableauSequence(cards);
+    if (options.allowSupermove && !options.disableSupermoveCap && cards.length > 1) {
+      dragState.maxMoveEmpty = maxMovableToTableau({
+        tableauPiles: state.tableau,
+        freePiles: state.freecells,
+        destIsEmptyTableau: true,
+      });
+      dragState.maxMoveNonEmpty = maxMovableToTableau({
+        tableauPiles: state.tableau,
+        freePiles: state.freecells,
+        destIsEmptyTableau: false,
+      });
     }
     dragState.preview = buildDragPreview(cards, selection.source.type, selection.cardIndex, selection.source.index);
     dragState.dragging = true;
@@ -1067,7 +1130,16 @@ function attachEvents() {
     applyOptions();
   });
 
-  window.addEventListener('resize', () => render());
+  window.addEventListener('resize', () => {
+    render();
+  });
+
+  // Initialize layout system
+  cardLayout.init({
+    constraints: [{ columns: TABLEAU_COLS, element: tableauEl }],
+    observeElements: [tableauEl],
+    onUpdate: () => state && render(),
+  });
 
   document.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape') {

@@ -4,29 +4,30 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_SPIDER } from './card_sfx_banks.js';
 import { CardRenderer, SUITS } from './card_renderer.js';
+import { CardLayout, calcStackSpacing, createDragPreviewCache, hideDragPreview } from './card_layout.js';
 
-const TABLEAU_SPACING = 22;
-const MIN_TABLEAU_SPACING = 10;
-const TIGHTEN_START = 14;
-const TIGHTEN_END = 42;
-const CARD_WIDTH = 88;
-const CARD_HEIGHT = 120;
-const VIEWPORT_BOTTOM_MARGIN = 28;
+const sfx = new SfxEngine({ master: 0.6 });
+const cardRenderer = new CardRenderer();
+let audioUnlocked = false;
 
-function tableauSpacingForStack(stackLength, tableauTop) {
-  if (stackLength <= 1) return TABLEAU_SPACING;
-  const availableHeight = Math.max(0, window.innerHeight - tableauTop - VIEWPORT_BOTTOM_MARGIN);
-  const fitSpacing = (availableHeight - CARD_HEIGHT) / (stackLength - 1);
+const tableauEl = document.getElementById('tableau');
+const cardLayout = new CardLayout();
 
-  const t = stackLength <= TIGHTEN_START ? 0 : Math.min(1, (stackLength - TIGHTEN_START) / (TIGHTEN_END - TIGHTEN_START));
-  const desiredSpacing = TABLEAU_SPACING - t * (TABLEAU_SPACING - MIN_TABLEAU_SPACING);
-
-  return Math.max(0, Math.min(TABLEAU_SPACING, desiredSpacing, fitSpacing));
+function getStackSpacing(stackLength) {
+  const m = cardLayout.metrics;
+  return calcStackSpacing({
+    stackLength,
+    containerTop: tableauEl?.getBoundingClientRect().top ?? 0,
+    cardHeight: m.cardHeight,
+    baseSpacing: m.stackSpacing,
+    minSpacing: 8,
+    tightenStart: 14,
+    tightenEnd: 42,
+  });
 }
 
 const stockEl = document.getElementById('stock');
 const completedAcesEl = document.getElementById('completed-aces');
-const tableauEl = document.getElementById('tableau');
 const completedEl = document.getElementById('completed');
 const dealsEl = document.getElementById('deals');
 const statusEl = document.getElementById('status');
@@ -35,13 +36,10 @@ const dealBtn = document.getElementById('deal');
 const undoBtn = document.getElementById('undo');
 const difficultySelect = document.getElementById('difficulty');
 
-const sfx = new SfxEngine({ master: 0.6 });
-const cardRenderer = new CardRenderer();
-let audioUnlocked = false;
-
 let state;
 let selection = null;
 let dragState = null;
+const dragPreviewCache = createDragPreviewCache();
 let ignoreClicksUntil = 0;
 let undoSnapshot = null;
 let winFx = null;
@@ -201,8 +199,8 @@ function startWinCelebration() {
     el.style.top = '0px';
     overlay.appendChild(el);
 
-    const startX = originRect.left + Math.random() * Math.max(0, originRect.width - CARD_WIDTH);
-    const startY = originRect.top + Math.random() * Math.max(0, originRect.height - CARD_HEIGHT);
+    const startX = originRect.left + Math.random() * Math.max(0, originRect.width - cardLayout.metrics.cardWidth);
+    const startY = originRect.top + Math.random() * Math.max(0, originRect.height - cardLayout.metrics.cardHeight);
     const vx = (Math.random() * 2 - 1) * 720;
     const vy = -(650 + Math.random() * 900);
     const rot = (Math.random() * 2 - 1) * 35;
@@ -222,7 +220,7 @@ function startWinCelebration() {
     const gravity = 2600;
     const wallBounce = 0.86;
     const floorBounce = 0.78;
-    const maxY = window.innerHeight - CARD_HEIGHT;
+    const maxY = window.innerHeight - cardLayout.metrics.cardHeight;
     const airDrag = 0.18;
     const groundDrag = 2.4;
     const groundFriction = 0.9;
@@ -256,7 +254,7 @@ function startWinCelebration() {
       }
       p.rot += p.vr * dt;
 
-      if (p.x + CARD_WIDTH < 0 || p.x > window.innerWidth) {
+      if (p.x + cardLayout.metrics.cardWidth < 0 || p.x > window.innerWidth) {
         p.el.remove();
         particles.splice(i, 1);
         continue;
@@ -294,15 +292,15 @@ function startWinCelebration() {
   fx.rafId = requestAnimationFrame(step);
 }
 
-function buildCardElement(card, colIndex, cardIndex) {
-  const el = buildCardVisual(card);
+function buildCardElement(card, colIndex, cardIndex, { reuse = true } = {}) {
+  const el = reuse ? cardRenderer.getCardElement(card) : cardRenderer.createCardElement(card);
+  cardRenderer.resetCardInlineStyles(el);
   el.dataset.pile = 'tableau';
   el.dataset.pileindex = String(colIndex);
   el.dataset.index = String(cardIndex);
 
-  if (card.faceUp && selection && selection.col === colIndex && cardIndex >= selection.index) {
-    el.classList.add('selected');
-  }
+  const isSelected = !!(card.faceUp && selection && selection.col === colIndex && cardIndex >= selection.index);
+  el.classList.toggle('selected', isSelected);
 
   return el;
 }
@@ -312,7 +310,18 @@ function buildCardVisual(card) {
 }
 
 function render() {
-  const tableauTop = tableauEl.getBoundingClientRect().top;
+  // tableau
+  tableauEl.innerHTML = '';
+  state.tableau.forEach((stack, colIdx) => {
+    const spacing = getStackSpacing(stack.length);
+    const col = cardRenderer.createStackElement({ className: 'tableau-col', dataset: { col: colIdx } });
+    stack.forEach((card, idx) => {
+      const el = buildCardElement(card, colIdx, idx);
+      el.style.top = `${idx * spacing}px`;
+      col.appendChild(el);
+    });
+    tableauEl.appendChild(col);
+  });
 
   // stock
   stockEl.innerHTML = '';
@@ -350,21 +359,6 @@ function render() {
       });
     }
   }
-
-  // tableau
-  tableauEl.innerHTML = '';
-  state.tableau.forEach((stack, colIdx) => {
-    const spacing = tableauSpacingForStack(stack.length, tableauTop);
-    const col = document.createElement('div');
-    col.className = 'tableau-col';
-    col.dataset.col = String(colIdx);
-    stack.forEach((card, idx) => {
-      const el = buildCardElement(card, colIdx, idx);
-      el.style.top = `${idx * spacing}px`;
-      col.appendChild(el);
-    });
-    tableauEl.appendChild(col);
-  });
 
   completedEl.textContent = String(state.completed);
   dealsEl.textContent = String(dealsLeft);
@@ -522,22 +516,42 @@ function handlePointerDown(ev) {
     startX: ev.clientX,
     startY: ev.clientY,
     dragging: false,
-    stackSpacing: tableauSpacingForStack(state.tableau[col].length, tableauEl.getBoundingClientRect().top),
+    stackSpacing: getStackSpacing(state.tableau[col].length),
   };
   render();
   sfx.play(BANK_SPIDER, 'pickup');
 }
 
 function buildDragPreview(cards, colIdx, startIndex, spacing) {
-  const wrap = document.createElement('div');
-  wrap.className = 'drag-preview';
+  if (!dragPreviewCache.el) {
+    const wrap = document.createElement('div');
+    wrap.className = 'drag-preview';
+    wrap.style.display = 'none';
+    wrap.style.willChange = 'transform';
+    document.body.appendChild(wrap);
+    dragPreviewCache.el = wrap;
+  } else if (!dragPreviewCache.el.parentElement) {
+    document.body.appendChild(dragPreviewCache.el);
+  }
+  const wrap = dragPreviewCache.el;
+  wrap.style.display = '';
+  wrap.style.transform = 'translate(-9999px, -9999px)';
   cards.forEach((card, idx) => {
-    const el = buildCardElement(card, colIdx, startIndex + idx);
-    el.style.position = 'absolute';
+    let el = dragPreviewCache.cards[idx];
+    if (!el) {
+      el = cardRenderer.createCardElement(card, { className: 'selected' });
+      el.style.position = 'absolute';
+      dragPreviewCache.cards[idx] = el;
+      wrap.appendChild(el);
+    } else {
+      cardRenderer.updateCardElement(el, card, { className: 'selected' });
+      el.style.display = '';
+    }
     el.style.top = `${idx * spacing}px`;
-    wrap.appendChild(el);
   });
-  document.body.appendChild(wrap);
+  for (let i = cards.length; i < dragPreviewCache.cards.length; i++) {
+    dragPreviewCache.cards[i].style.display = 'none';
+  }
   return wrap;
 }
 
@@ -549,10 +563,11 @@ function updateDragPreviewPosition(clientX, clientY) {
 }
 
 function clearDragPreview() {
-  if (dragState && dragState.preview && dragState.preview.parentElement) {
-    dragState.preview.parentElement.removeChild(dragState.preview);
+  if (dragState?.preview) {
+    dragState.preview.style.display = 'none';
+    dragState.preview.style.transform = 'translate(-9999px, -9999px)';
+    dragState.preview = null;
   }
-  if (dragState) dragState.preview = null;
 }
 
 function attemptDrop(clientX, clientY) {
@@ -581,7 +596,7 @@ function handlePointerMove(ev) {
   if (!dragState.dragging) {
     const fromStack = state.tableau[selection.col];
     const cards = fromStack.slice(selection.index);
-    dragState.preview = buildDragPreview(cards, selection.col, selection.index, dragState.stackSpacing ?? TABLEAU_SPACING);
+    dragState.preview = buildDragPreview(cards, selection.col, selection.index, dragState.stackSpacing ?? cardLayout.metrics.stackSpacing);
     dragState.dragging = true;
   }
   ev.preventDefault();
@@ -650,6 +665,13 @@ function attachEvents() {
   window.addEventListener('resize', () => {
     if (!state) return;
     render();
+  });
+
+  // Initialize layout system
+  cardLayout.init({
+    constraints: [{ columns: 10, element: tableauEl }],
+    observeElements: [tableauEl],
+    onUpdate: () => state && render(),
   });
 
   newBtn.addEventListener('click', () => newGame());

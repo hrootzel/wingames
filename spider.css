@@ -1,26 +1,19 @@
-.pile.stock .stock-count {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 44px;
-  font-weight: 900;
-  color: #fbbf24;
-  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
-  pointer-events: none;
+:root {
+  --card-base-spacing: 22px;
 }
 
-.pile.stock .stock-count.empty {
-  opacity: 0.35;
+.top-row {
+  flex-wrap: nowrap;
 }
 
 #completed-aces {
-  flex-wrap: wrap;
-  row-gap: 12px;
   min-height: 120px;
 }
 
 #completed-aces .ace-marker {
   pointer-events: none;
+}
+
+.tableau {
+  grid-template-columns: repeat(10, minmax(var(--card-width), 1fr));
 }

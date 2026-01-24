@@ -1,9 +1,10 @@
 import { CardRenderer, SUITS } from './card_renderer.js';
+import { CardLayout } from './card_layout.js';
 
 const TABLEAU_COLS = 7;
 const TABLEAU_ROWS = 5;
-const TABLEAU_SPACING = 24;
-const WASTE_SPACING = 16;
+const DEFAULT_STACK_SPACING = 24;
+const DEFAULT_WASTE_SPACING = 16;
 
 const STORAGE_KEY = 'golfOptions';
 const DEFAULT_OPTIONS = {
@@ -51,6 +52,7 @@ const resultNextBtn = document.getElementById('result-next');
 const resultRestartBtn = document.getElementById('result-restart');
 
 const cardRenderer = new CardRenderer();
+const cardLayout = new CardLayout();
 
 let options = loadOptions();
 let state = null;
@@ -442,12 +444,14 @@ function renderWaste() {
   wasteEl.innerHTML = '';
   const visible = Math.min(3, state.waste.length);
   const start = state.waste.length - visible;
+  const wasteSpacing = cardLayout.metrics.cardGap;
   for (let i = 0; i < visible; i++) {
     const card = state.waste[start + i];
-    const el = cardRenderer.createCardElement(card);
+    const el = cardRenderer.getCardElement(card);
+    cardRenderer.resetCardInlineStyles(el);
     el.dataset.pile = 'waste';
     el.dataset.index = String(start + i);
-    el.style.left = `${i * WASTE_SPACING}px`;
+    el.style.left = `${i * wasteSpacing}px`;
     el.style.zIndex = String(i);
     wasteEl.appendChild(el);
   }
@@ -469,18 +473,17 @@ function renderTableau() {
     }
   }
   state.tableau.forEach((stack, colIdx) => {
-    const col = document.createElement('div');
-    col.className = 'tableau-col';
+    const col = cardRenderer.createStackElement({ className: 'tableau-col' });
     col.dataset.col = String(colIdx);
     stack.forEach((card, idx) => {
-      const el = cardRenderer.createCardElement(card);
+      const el = cardRenderer.getCardElement(card);
+      cardRenderer.resetCardInlineStyles(el);
       el.dataset.pile = 'tableau';
       el.dataset.col = String(colIdx);
       el.dataset.index = String(idx);
-      el.style.top = `${idx * TABLEAU_SPACING}px`;
-      if (idx === stack.length - 1 && playable.has(colIdx)) {
-        el.classList.add('playable');
-      }
+      el.style.top = `${idx * cardLayout.metrics.stackSpacing}px`;
+      const isPlayable = idx === stack.length - 1 && playable.has(colIdx);
+      el.classList.toggle('playable', isPlayable);
       col.appendChild(el);
     });
     tableauEl.appendChild(col);
@@ -617,6 +620,13 @@ function attachEvents() {
   window.addEventListener('resize', () => {
     if (!state) return;
     render();
+  });
+
+  // Initialize layout system
+  cardLayout.init({
+    constraints: [{ columns: TABLEAU_COLS, element: tableauEl }],
+    observeElements: [tableauEl],
+    onUpdate: () => state && render(),
   });
 }
 

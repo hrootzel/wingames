@@ -1,67 +1,4 @@
-.freecell {
-  --fc-card-width: 88px;
-  --fc-card-height: 120px;
-  --fc-fan-spacing: 24px;
-  --fc-card-gap: 12px;
-}
-
-.freecell[data-size="sm"] {
-  --fc-card-width: 72px;
-  --fc-card-height: 100px;
-  --fc-fan-spacing: 20px;
-  --fc-card-gap: 10px;
-}
-
-.freecell[data-size="sm"] .corner {
-  font-size: 11px;
-}
-
-.freecell[data-size="sm"] .pips {
-  inset: 14px 10px;
-  font-size: 14px;
-  row-gap: 2px;
-  column-gap: 1px;
-}
-
-.freecell[data-size="sm"] .pip {
-  font-size: 14px;
-}
-
-.freecell[data-size="sm"] .pip-small {
-  font-size: 10px;
-}
-
-.freecell[data-size="sm"] .pip-xsmall {
-  font-size: 8px;
-}
-
-.freecell[data-size="sm"] .pips-tight {
-  inset: 12px 8px;
-  row-gap: 0;
-  column-gap: 0;
-}
-
-.freecell[data-size="sm"] .face-label {
-  inset: 14px 10px;
-  font-size: 28px;
-}
-
-.freecell[data-size="lg"] {
-  --fc-card-width: 104px;
-  --fc-card-height: 144px;
-  --fc-fan-spacing: 28px;
-  --fc-card-gap: 14px;
-}
-
-.freecell .card {
-  width: var(--fc-card-width);
-  height: var(--fc-card-height);
-}
-
-.freecell .pile {
-  width: var(--fc-card-width);
-  height: var(--fc-card-height);
-}
+/* FreeCell uses data-card-size attribute for size presets (defined in cards.css) */
 
 .freecell .drop-ok,
 .freecell .drop-cap,
@@ -103,17 +40,17 @@
 .freecell-top {
   justify-content: space-between;
   width: 100%;
+  flex-wrap: nowrap;
 }
 
-.freecells-row,
-.foundations-row {
-  display: flex;
-  gap: var(--fc-card-gap);
+.freecell-top .foundation-row {
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 
 .freecell-tableau {
-  grid-template-columns: repeat(8, minmax(var(--fc-card-width), 1fr));
-  gap: var(--fc-card-gap);
+  grid-template-columns: repeat(8, minmax(var(--card-width), 1fr));
+  gap: var(--card-gap);
   min-height: 360px;
 }
 
@@ -129,97 +66,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
+  font-size: calc(32px * var(--card-scale));
   color: rgba(255, 255, 255, 0.2);
   pointer-events: none;
 }
 
 .freecell-controls {
   justify-content: flex-end;
-}
-
-.icon-button {
-  background: rgba(0, 0, 0, 0.25);
-  color: #f8fafc;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 18px;
-  line-height: 1;
-}
-
-.icon-button:hover {
-  background: rgba(0, 0, 0, 0.35);
-}
-
-.ms-modal {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(15, 23, 42, 0.55);
-  z-index: 2000;
-}
-
-.ms-modal.hidden {
-  display: none;
-}
-
-.ms-modal-card {
-  background: #e5e7eb;
-  color: #111827;
-  border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.2);
-  padding: 16px 18px;
-  min-width: 280px;
-  max-width: 360px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-}
-
-.ms-modal-header h2 {
-  margin: 0 0 12px 0;
-  font-size: 18px;
-}
-
-.ms-modal-body {
-  display: grid;
-  gap: 12px;
-  font-size: 14px;
-}
-
-.ms-modal-body label {
-  color: #111827;
-  font-weight: 600;
-}
-
-.ms-modal-body input,
-.ms-modal-body select {
-  margin-left: 8px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(15, 23, 42, 0.2);
-  font-size: 14px;
-}
-
-.modal-hint {
-  margin: 0;
-  color: rgba(15, 23, 42, 0.7);
-  font-size: 12px;
-}
-
-.ms-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.ms-modal-actions .secondary {
-  background: #9ca3af;
-  color: #111827;
 }
 
 .stats-grid {
