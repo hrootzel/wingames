@@ -1,5 +1,6 @@
 /* Card layout containers */
-.card-row {
+.card-row,
+.foundation-row {
   display: flex;
   gap: var(--card-gap);
   align-items: flex-start;
@@ -16,7 +17,8 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.card-stack-row {
+.card-stack-row,
+.tableau {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--card-width), 1fr));
   gap: var(--card-gap);
