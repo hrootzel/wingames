@@ -43,6 +43,11 @@
   flex-wrap: nowrap;
 }
 
+.freecell-top .foundation-row {
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
 .freecell-tableau {
   grid-template-columns: repeat(8, minmax(var(--card-width), 1fr));
   gap: var(--card-gap);

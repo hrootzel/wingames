@@ -43,6 +43,10 @@
   min-height: calc(var(--card-height) * 3.2);
 }
 
+.tableau-wrap {
+  margin-top: 16px;
+}
+
 .hands {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -57,7 +61,35 @@
   position: relative;
 }
 
+.hand-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: #e5e7eb;
+}
+
+.hand-status {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.hand-outcome {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.78);
+}
+
 .card-stack {
+  position: relative;
+  min-height: 180px;
+  border-radius: 10px;
+  padding-top: 6px;
+}
+
+.tableau-col {
   position: relative;
   min-height: 180px;
   border-radius: 10px;
