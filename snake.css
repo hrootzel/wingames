@@ -1,0 +1,79 @@
+.snake-game #app { max-width: 900px; }
+
+.snake-board {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.snake-stage {
+  background: #0f172a;
+  border: 3px solid #334155;
+  border-radius: 8px;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+  flex: 1 1 auto;
+  max-width: min(70vh, 500px);
+  aspect-ratio: 1;
+}
+
+#snake-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.snake-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 140px;
+}
+
+.snake-side .panel-box {
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.snake-side .panel-box h3 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255,255,255,0.7);
+}
+
+.snake-stats {
+  display: grid;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.snake-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.snake-footer {
+  margin-top: 12px;
+}
+
+.snake-footer .key-hints {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 16px;
+  font-size: 13px;
+}
+
+.snake-footer .key {
+  display: inline-block;
+  background: rgba(255,255,255,0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 11px;
+  margin-right: 4px;
+}

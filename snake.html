@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
+  <title>Snake</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="snake.css">
+</head>
+<body class="snake-game">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>Snake</h1>
+        <p class="subtitle">Eat food, grow longer, don't hit walls or yourself.</p>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Press any arrow key to start.</span>
+      </div>
+    </div>
+
+    <div class="board snake-board">
+      <div class="snake-stage">
+        <canvas id="snake-canvas" width="400" height="400"></canvas>
+      </div>
+
+      <div class="snake-side">
+        <div class="panel-box">
+          <h3>Score</h3>
+          <div class="snake-stats">
+            <div>Score: <span id="score">0</span></div>
+            <div>Length: <span id="length">3</span></div>
+            <div>Speed: <span id="speed">1</span></div>
+            <div>High: <span id="high">0</span></div>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <div class="snake-controls">
+            <button id="new-game">New Game</button>
+            <button id="pause">Pause</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="snake-footer">
+      <div class="panel-box">
+        <h3>Controls</h3>
+        <div class="key-hints">
+          <div><span class="key">↑ W</span> Up</div>
+          <div><span class="key">↓ S</span> Down</div>
+          <div><span class="key">← A</span> Left</div>
+          <div><span class="key">→ D</span> Right</div>
+          <div><span class="key">P</span> Pause</div>
+          <div><span class="key">R</span> Restart</div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="snake.js"></script>
+</body>
+</html>
