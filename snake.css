@@ -1,4 +1,4 @@
-.snake-game #app { max-width: 700px; }
+.snake-game #app { max-width: 900px; }
 
 .snake-board {
   display: flex;
@@ -12,10 +12,15 @@
   border: 3px solid #334155;
   border-radius: 8px;
   box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+  flex: 1 1 auto;
+  max-width: min(70vh, 500px);
+  aspect-ratio: 1;
 }
 
 #snake-canvas {
   display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .snake-side {
