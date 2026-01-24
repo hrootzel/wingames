@@ -17,6 +17,24 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.hand-cards {
+  display: flex;
+  gap: var(--card-gap);
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  min-height: var(--card-height);
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hand-cards .card {
+  position: relative;
+  flex: 0 0 auto;
+  top: auto;
+  left: auto;
+}
+
 .card-stack-row,
 .tableau {
   display: grid;

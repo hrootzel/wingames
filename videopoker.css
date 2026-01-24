@@ -1,7 +1,11 @@
 .videopoker {
-  --card-scale: 1;
   --card-base-width: 176px;
   --card-base-height: 240px;
+  --card-base-gap: 16px;
+}
+
+.videopoker .hand-cards {
+  justify-content: center;
 }
 
 .hands.videopoker-layout {
