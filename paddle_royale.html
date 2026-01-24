@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
+  <title>Paddle Royale</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="paddle_royale.css">
+</head>
+<body class="paddle-royale">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>Paddle Royale</h1>
+        <p class="subtitle">Break bricks, catch powerups, clear levels.</p>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Click to launch ball.</span>
+      </div>
+    </div>
+
+    <div class="board paddle-board">
+      <div class="paddle-stage">
+        <canvas id="paddle-canvas" width="480" height="640"></canvas>
+      </div>
+
+      <div class="paddle-side">
+        <div class="panel-box">
+          <h3>Score</h3>
+          <div class="paddle-stats">
+            <div>Score: <span id="score">0</span></div>
+            <div>Level: <span id="level">1</span></div>
+            <div>Lives: <span id="lives">3</span></div>
+            <div>High: <span id="high">0</span></div>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <div class="paddle-controls">
+            <button id="new-game">New Game</button>
+            <button id="pause">Pause</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="paddle-footer">
+      <div class="panel-box">
+        <h3>Controls</h3>
+        <div class="key-hints">
+          <div><span class="key">← A</span> Move left</div>
+          <div><span class="key">→ D</span> Move right</div>
+          <div><span class="key">Space</span> Launch ball</div>
+          <div><span class="key">P</span> Pause</div>
+          <div><span class="key">R</span> Restart</div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="paddle_royale.js"></script>
+</body>
+</html>
