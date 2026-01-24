@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
+  <title>TriPeaks</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="tripeaks.css">
+</head>
+<body class="tripeaks">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>TriPeaks</h1>
+        <p class="subtitle">Clear the peaks by playing cards ±1 from the waste.</p>
+      </div>
+      <div class="quick-stats">
+        <div>Score: <span id="score">0</span></div>
+        <div>Moves: <span id="moves">0</span></div>
+      </div>
+      <button id="settings-toggle" class="icon-button" aria-label="Settings" title="Settings">⚙</button>
+    </header>
+    <div class="hud"><div class="status-row"><span id="status">Ready</span></div></div>
+    <div class="board">
+      <div id="peaks" class="tripeaks-grid"></div>
+      <div class="top-row tripeaks-top">
+        <div class="pile-wrap"><div class="label">Stock</div><div id="stock" class="pile stock"></div></div>
+        <div class="pile-wrap"><div class="label">Waste</div><div id="waste" class="pile waste"></div></div>
+      </div>
+    </div>
+    <div class="control-group bottom-controls">
+      <button id="new-game">New Game</button>
+      <button id="flip-stock">Flip Stock</button>
+      <button id="undo" disabled>Undo</button>
+    </div>
+    <p class="tips">Click a free card to play it on the waste (±1 rank, wrapping K↔A). Click stock to draw.</p>
+  </div>
+
+  <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2>Settings</h2>
+      </header>
+      <div class="ms-modal-body">
+        <label class="checkbox">
+          <input id="opt-show-hints" type="checkbox"> Show valid moves
+        </label>
+      </div>
+      <div class="ms-modal-actions">
+        <button id="settings-apply">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="tripeaks.js"></script>
+</body>
+</html>

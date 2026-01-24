@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
+  <title>Pyramid Solitaire</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="pyramid.css">
+</head>
+<body class="pyramid">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>Pyramid</h1>
+        <p class="subtitle">Remove pairs that sum to 13. Kings remove alone.</p>
+      </div>
+      <div class="quick-stats">
+        <div>Score: <span id="score">0</span></div>
+        <div>Moves: <span id="moves">0</span></div>
+      </div>
+      <button id="settings-toggle" class="icon-button" aria-label="Settings" title="Settings">⚙</button>
+    </header>
+    <div class="hud"><div class="status-row"><span id="status">Ready</span></div></div>
+    <div class="board">
+      <div id="pyramid" class="pyramid-grid"></div>
+      <div class="top-row pyramid-top">
+        <div class="pile-wrap"><div class="label">Stock</div><div id="stock" class="pile stock"></div></div>
+        <div class="pile-wrap"><div class="label">Waste</div><div id="waste" class="pile waste"></div></div>
+      </div>
+    </div>
+    <div class="control-group bottom-controls">
+      <button id="new-game">New Game</button>
+      <button id="flip-stock">Draw</button>
+      <button id="undo" disabled>Undo</button>
+    </div>
+    <p class="tips">Click two cards that sum to 13 to remove them (A=1, J=11, Q=12, K=13). Kings remove alone. Click stock to draw.</p>
+  </div>
+
+  <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2>Settings</h2>
+      </header>
+      <div class="ms-modal-body">
+        <label class="checkbox">
+          <input id="opt-show-hints" type="checkbox"> Show valid moves
+        </label>
+      </div>
+      <div class="ms-modal-actions">
+        <button id="settings-apply">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="pyramid.js"></script>
+</body>
+</html>

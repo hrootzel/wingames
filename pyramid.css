@@ -1,0 +1,73 @@
+.pyramid #app { max-width: 900px; }
+.pyramid .pile.waste { min-width: calc(var(--card-width) + var(--card-gap) * 2); }
+.pyramid-top { align-items: center; }
+
+.pyramid-grid {
+  display: grid;
+  grid-template-columns: repeat(13, calc(var(--card-width) * 0.5));
+  grid-template-rows: repeat(6, calc(var(--card-height) * 0.35)) auto;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.pyramid-slot {
+  width: var(--card-width);
+  height: var(--card-height);
+  position: relative;
+  pointer-events: none;
+}
+
+.pyramid-slot .card,
+.pyramid-slot .card-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: auto;
+}
+
+.pyramid-slot[data-row="6"] { height: var(--card-height); }
+
+/* Row positions - pyramid of 7 rows, each row centered */
+.pyramid-slot[data-row="0"] { grid-column: 7; }
+.pyramid-slot[data-row="1"][data-col="0"] { grid-column: 6; }
+.pyramid-slot[data-row="1"][data-col="1"] { grid-column: 8; }
+.pyramid-slot[data-row="2"][data-col="0"] { grid-column: 5; }
+.pyramid-slot[data-row="2"][data-col="1"] { grid-column: 7; }
+.pyramid-slot[data-row="2"][data-col="2"] { grid-column: 9; }
+.pyramid-slot[data-row="3"][data-col="0"] { grid-column: 4; }
+.pyramid-slot[data-row="3"][data-col="1"] { grid-column: 6; }
+.pyramid-slot[data-row="3"][data-col="2"] { grid-column: 8; }
+.pyramid-slot[data-row="3"][data-col="3"] { grid-column: 10; }
+.pyramid-slot[data-row="4"][data-col="0"] { grid-column: 3; }
+.pyramid-slot[data-row="4"][data-col="1"] { grid-column: 5; }
+.pyramid-slot[data-row="4"][data-col="2"] { grid-column: 7; }
+.pyramid-slot[data-row="4"][data-col="3"] { grid-column: 9; }
+.pyramid-slot[data-row="4"][data-col="4"] { grid-column: 11; }
+.pyramid-slot[data-row="5"][data-col="0"] { grid-column: 2; }
+.pyramid-slot[data-row="5"][data-col="1"] { grid-column: 4; }
+.pyramid-slot[data-row="5"][data-col="2"] { grid-column: 6; }
+.pyramid-slot[data-row="5"][data-col="3"] { grid-column: 8; }
+.pyramid-slot[data-row="5"][data-col="4"] { grid-column: 10; }
+.pyramid-slot[data-row="5"][data-col="5"] { grid-column: 12; }
+.pyramid-slot[data-row="6"][data-col="0"] { grid-column: 1; }
+.pyramid-slot[data-row="6"][data-col="1"] { grid-column: 3; }
+.pyramid-slot[data-row="6"][data-col="2"] { grid-column: 5; }
+.pyramid-slot[data-row="6"][data-col="3"] { grid-column: 7; }
+.pyramid-slot[data-row="6"][data-col="4"] { grid-column: 9; }
+.pyramid-slot[data-row="6"][data-col="5"] { grid-column: 11; }
+.pyramid-slot[data-row="6"][data-col="6"] { grid-column: 13; }
+
+.pyramid .card.selected {
+  outline: 3px solid var(--accent);
+  outline-offset: -2px;
+  box-shadow: 0 10px 22px rgba(245,158,11,0.35);
+}
+
+.pyramid .card.playable {
+  outline: 3px solid rgba(16,185,129,0.95);
+  outline-offset: -2px;
+  box-shadow: 0 10px 22px rgba(16,185,129,0.35);
+  cursor: pointer;
+}
+.pyramid .card.playable:hover { transform: translateY(-2px); }
+.pyramid .pile.stock { cursor: pointer; }

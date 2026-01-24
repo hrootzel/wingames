@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tile Toggle</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    :root {
+      --tt-panel: #c6c8cc;
+      --tt-panel-dark: #8b8e94;
+      --tt-panel-light: #f1f3f6;
+      --tt-panel-mid: #b0b3b8;
+      --tt-border: #6b7280;
+      --tt-on: #22c55e;
+      --tt-off: #4b5563;
+      --tt-shadow: rgba(0,0,0,0.3);
+    }
+    body.tile-toggle #app { max-width: 600px; }
+    .tt-board {
+      background: var(--tt-panel);
+      border: 2px solid var(--tt-panel-dark);
+      box-shadow: inset 1px 1px 0 var(--tt-panel-light), inset -1px -1px 0 var(--tt-panel-dark);
+      padding: 12px;
+    }
+    .tt-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px; border: 2px solid var(--tt-panel-dark);
+      background: var(--tt-panel-mid);
+      box-shadow: inset 1px 1px 0 var(--tt-panel-light), inset -1px -1px 0 var(--tt-panel-dark);
+    }
+    .tt-counter { font-weight: 700; color: #111827; }
+    .tt-grid-wrap {
+      margin-top: 10px; padding: 6px;
+      border: 2px solid var(--tt-panel-dark);
+      background: var(--tt-panel-mid);
+      box-shadow: inset 1px 1px 0 var(--tt-panel-light), inset -1px -1px 0 var(--tt-panel-dark);
+      display: flex; justify-content: center;
+    }
+    .tt-grid { display: grid; gap: 4px; }
+    .tt-cell {
+      width: 48px; height: 48px; border-radius: 6px; cursor: pointer;
+      border: 2px solid var(--tt-panel-dark);
+      box-shadow: inset 1px 1px 0 rgba(255,255,255,0.3), inset -1px -1px 0 rgba(0,0,0,0.2);
+      transition: background 0.1s;
+    }
+    .tt-cell.on { background: var(--tt-on); }
+    .tt-cell.off { background: var(--tt-off); }
+    .icon-button {
+      width: 40px; height: 40px; border-radius: 10px;
+      border: 1px solid var(--tt-border); background: rgba(0,0,0,0.2);
+      color: inherit; font-size: 20px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hidden { display: none !important; }
+    .tt-modal {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.55);
+      display: grid; place-items: center; z-index: 3000;
+    }
+    .tt-modal-card {
+      background: #0f172a; color: #e2e8f0; border-radius: 14px;
+      border: 1px solid rgba(148,163,184,0.4); width: min(92vw,320px);
+      padding: 16px; box-shadow: 0 24px 40px rgba(0,0,0,0.45);
+    }
+    .tt-modal-header { display: flex; justify-content: space-between; align-items: center; }
+    .tt-form { margin-top: 12px; display: grid; gap: 12px; }
+    .tt-field { display: grid; gap: 6px; font-weight: 700; }
+    .tt-field select { padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(148,163,184,0.45); background: rgba(15,23,42,0.7); color: inherit; }
+    .tt-actions { margin-top: 16px; display: flex; justify-content: flex-end; gap: 10px; }
+    .tt-win { text-align: center; font-size: 20px; font-weight: 700; color: #22c55e; margin-top: 12px; }
+  </style>
+</head>
+<body class="tile-toggle">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>Tile Toggle</h1>
+        <p class="subtitle">Turn off all the lights.</p>
+      </div>
+      <div class="settings">
+        <button id="settings-toggle" class="icon-button" aria-label="Settings" title="Settings">⚙</button>
+      </div>
+    </header>
+    <div class="hud"><div class="status-row"><span id="status">Moves: 0</span></div></div>
+    <div class="board tt-board">
+      <div class="tt-bar">
+        <span class="tt-counter">Grid: <span id="grid-label">5×5</span></span>
+        <button id="new-game">New Game</button>
+      </div>
+      <div class="tt-grid-wrap"><div id="grid" class="tt-grid"></div></div>
+    </div>
+    <div id="win-msg" class="tt-win hidden">🎉 You win!</div>
+    <p class="tips">Click a tile to toggle it and its neighbors. Turn all tiles grey to win.</p>
+  </div>
+
+  <div id="settings-modal" class="tt-modal hidden" role="dialog" aria-modal="true">
+    <div class="tt-modal-card">
+      <header class="tt-modal-header">
+        <h2>Settings</h2>
+        <button id="settings-close" class="icon-button" aria-label="Close">✕</button>
+      </header>
+      <div class="tt-form">
+        <label class="tt-field"><span>Grid Size</span>
+          <select id="size-select">
+            <option value="3">3×3</option>
+            <option value="4">4×4</option>
+            <option value="5" selected>5×5</option>
+            <option value="6">6×6</option>
+            <option value="7">7×7</option>
+          </select>
+        </label>
+      </div>
+      <div class="tt-actions">
+        <button id="settings-apply">Apply</button>
+        <button id="settings-cancel" class="secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const grid = document.getElementById('grid');
+    const status = document.getElementById('status');
+    const winMsg = document.getElementById('win-msg');
+    const gridLabel = document.getElementById('grid-label');
+    const sizeSelect = document.getElementById('size-select');
+    const settingsModal = document.getElementById('settings-modal');
+    let size = 5, cells = [], moves = 0;
+
+    function init() {
+      moves = 0; status.textContent = 'Moves: 0'; winMsg.classList.add('hidden');
+      gridLabel.textContent = `${size}×${size}`;
+      grid.style.gridTemplateColumns = `repeat(${size}, 48px)`;
+      grid.innerHTML = '';
+      cells = [];
+      for (let i = 0; i < size * size; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'tt-cell off';
+        cell.dataset.idx = i;
+        cell.addEventListener('click', () => toggle(i));
+        grid.appendChild(cell);
+        cells.push(cell);
+      }
+      shuffle();
+    }
+
+    function toggle(idx, countMove = true) {
+      const r = Math.floor(idx / size), c = idx % size;
+      flip(idx);
+      if (r > 0) flip(idx - size);
+      if (r < size - 1) flip(idx + size);
+      if (c > 0) flip(idx - 1);
+      if (c < size - 1) flip(idx + 1);
+      if (countMove) { moves++; status.textContent = `Moves: ${moves}`; checkWin(); }
+    }
+
+    function flip(idx) { cells[idx].classList.toggle('on'); cells[idx].classList.toggle('off'); }
+
+    function shuffle() {
+      const n = size * size + Math.floor(Math.random() * size * size);
+      for (let i = 0; i < n; i++) toggle(Math.floor(Math.random() * size * size), false);
+      if (cells.every(c => c.classList.contains('off'))) shuffle();
+    }
+
+    function checkWin() {
+      if (cells.every(c => c.classList.contains('off'))) winMsg.classList.remove('hidden');
+    }
+
+    document.getElementById('new-game').addEventListener('click', init);
+    document.getElementById('settings-toggle').addEventListener('click', () => settingsModal.classList.remove('hidden'));
+    document.getElementById('settings-close').addEventListener('click', () => settingsModal.classList.add('hidden'));
+    document.getElementById('settings-cancel').addEventListener('click', () => settingsModal.classList.add('hidden'));
+    document.getElementById('settings-apply').addEventListener('click', () => {
+      size = parseInt(sizeSelect.value); settingsModal.classList.add('hidden'); init();
+    });
+
+    init();
+  </script>
+</body>
+</html>
