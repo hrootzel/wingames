@@ -1,0 +1,71 @@
+.tripeaks #app { max-width: 1100px; }
+.tripeaks .pile.waste { min-width: calc(var(--card-width) + var(--card-gap) * 2); }
+.tripeaks-top { align-items: center; }
+
+/* Grid layout for peaks - 19 columns for the 3 peaks structure */
+.tripeaks-grid {
+  display: grid;
+  grid-template-columns: repeat(19, calc(var(--card-width) * 0.5));
+  grid-template-rows: repeat(4, auto);
+  row-gap: calc(var(--card-height) * -0.68);
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.tripeaks-slot {
+  width: var(--card-width);
+  height: var(--card-height);
+  position: relative;
+}
+
+.tripeaks-slot .card,
+.tripeaks-slot .card-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Row 0: 3 peak tops at columns 3, 9, 15 (1-indexed, shifted right by 1) */
+.tripeaks-slot[data-row="0"][data-peak="0"] { grid-column: 4; grid-row: 1; z-index: 1; }
+.tripeaks-slot[data-row="0"][data-peak="1"] { grid-column: 10; grid-row: 1; z-index: 1; }
+.tripeaks-slot[data-row="0"][data-peak="2"] { grid-column: 16; grid-row: 1; z-index: 1; }
+
+/* Row 1: 2 cards per peak */
+.tripeaks-slot[data-row="1"][data-peak="0"][data-col="0"] { grid-column: 3; grid-row: 2; z-index: 2; }
+.tripeaks-slot[data-row="1"][data-peak="0"][data-col="1"] { grid-column: 5; grid-row: 2; z-index: 2; }
+.tripeaks-slot[data-row="1"][data-peak="1"][data-col="0"] { grid-column: 9; grid-row: 2; z-index: 2; }
+.tripeaks-slot[data-row="1"][data-peak="1"][data-col="1"] { grid-column: 11; grid-row: 2; z-index: 2; }
+.tripeaks-slot[data-row="1"][data-peak="2"][data-col="0"] { grid-column: 15; grid-row: 2; z-index: 2; }
+.tripeaks-slot[data-row="1"][data-peak="2"][data-col="1"] { grid-column: 17; grid-row: 2; z-index: 2; }
+
+/* Row 2: 3 cards per peak */
+.tripeaks-slot[data-row="2"][data-peak="0"][data-col="0"] { grid-column: 2; grid-row: 3; z-index: 3; }
+.tripeaks-slot[data-row="2"][data-peak="0"][data-col="1"] { grid-column: 4; grid-row: 3; z-index: 3; }
+.tripeaks-slot[data-row="2"][data-peak="0"][data-col="2"] { grid-column: 6; grid-row: 3; z-index: 3; }
+.tripeaks-slot[data-row="2"][data-peak="1"][data-col="0"] { grid-column: 8; grid-row: 3; z-index: 3; }
+.tripeaks-slot[data-row="2"][data-peak="1"][data-col="1"] { grid-column: 10; grid-row: 3; z-index: 3; }
+.tripeaks-slot[data-row="2"][data-peak="1"][data-col="2"] { grid-column: 12; grid-row: 3; z-index: 3; }
+.tripeaks-slot[data-row="2"][data-peak="2"][data-col="0"] { grid-column: 14; grid-row: 3; z-index: 3; }
+.tripeaks-slot[data-row="2"][data-peak="2"][data-col="1"] { grid-column: 16; grid-row: 3; z-index: 3; }
+.tripeaks-slot[data-row="2"][data-peak="2"][data-col="2"] { grid-column: 18; grid-row: 3; z-index: 3; }
+
+/* Row 3 (base): 10 cards spanning full width, shifted left by half card */
+.tripeaks-slot[data-row="3"][data-col="0"] { grid-column: 1; grid-row: 4; z-index: 4; }
+.tripeaks-slot[data-row="3"][data-col="1"] { grid-column: 3; grid-row: 4; z-index: 4; }
+.tripeaks-slot[data-row="3"][data-col="2"] { grid-column: 5; grid-row: 4; z-index: 4; }
+.tripeaks-slot[data-row="3"][data-col="3"] { grid-column: 7; grid-row: 4; z-index: 4; }
+.tripeaks-slot[data-row="3"][data-col="4"] { grid-column: 9; grid-row: 4; z-index: 4; }
+.tripeaks-slot[data-row="3"][data-col="5"] { grid-column: 11; grid-row: 4; z-index: 4; }
+.tripeaks-slot[data-row="3"][data-col="6"] { grid-column: 13; grid-row: 4; z-index: 4; }
+.tripeaks-slot[data-row="3"][data-col="7"] { grid-column: 15; grid-row: 4; z-index: 4; }
+.tripeaks-slot[data-row="3"][data-col="8"] { grid-column: 17; grid-row: 4; z-index: 4; }
+.tripeaks-slot[data-row="3"][data-col="9"] { grid-column: 19; grid-row: 4; z-index: 4; }
+
+.tripeaks .card.playable {
+  outline: 3px solid rgba(16,185,129,0.95);
+  outline-offset: -2px;
+  box-shadow: 0 10px 22px rgba(16,185,129,0.35);
+  cursor: pointer;
+}
+.tripeaks .card.playable:hover { transform: translateY(-2px); }
+.tripeaks .pile.stock { cursor: pointer; }
