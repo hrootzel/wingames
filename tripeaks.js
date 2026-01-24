@@ -7,11 +7,14 @@ const wasteEl = document.getElementById('waste');
 const scoreEl = document.getElementById('score');
 const movesEl = document.getElementById('moves');
 const statusEl = document.getElementById('status');
+const settingsModal = document.getElementById('settings-modal');
+const optShowHints = document.getElementById('opt-show-hints');
 
 const cardRenderer = new CardRenderer();
 const cardLayout = new CardLayout();
 
 let state = null, undoSnapshot = null;
+let showHints = false;
 
 const BASE_COUNT = 10;
 
@@ -34,7 +37,6 @@ function shuffle(arr) {
 function deal() {
   const deck = createDeck();
   shuffle(deck);
-  // peaks[p][r][c] for p=0..2, r=0..2
   const peaks = [[], [], []];
   for (let p = 0; p < 3; p++) {
     for (let r = 0; r < 3; r++) {
@@ -62,7 +64,6 @@ function clone(o) { return JSON.parse(JSON.stringify(o)); }
 function newGame() {
   state = deal();
   undoSnapshot = null;
-  updateFaceUp();
   render();
   statusEl.textContent = 'Ready';
 }
@@ -74,28 +75,27 @@ function isAdjacent(a, b) {
   return (a === 1 && b === 13) || (a === 13 && b === 1);
 }
 
+// A card is free if both cards below it (in the next row) are removed
 function isFree(loc) {
   if (loc.type === 'base') {
-    const i = loc.idx;
-    // base[i] covered by row2 cards: peak p col c covers base p*3+c and p*3+c+1
-    for (let p = 0; p < 3; p++) {
-      for (let c = 0; c < 3; c++) {
-        const covers = [p * 3 + c, p * 3 + c + 1];
-        if (covers.includes(i) && state.peaks[p][2][c]) return false;
-      }
-    }
-    return true;
+    return !!state.base[loc.idx];
   }
   const { p, r, c } = loc;
   if (!state.peaks[p][r][c]) return false;
-  if (r === 2) return true;
+  if (r === 2) {
+    // Row 2 cards are free if both base cards below them are gone
+    // Peak p row 2 col c sits above base indices: p*3+c and p*3+c+1
+    const b1 = p * 3 + c, b2 = p * 3 + c + 1;
+    return !state.base[b1] && !state.base[b2];
+  }
+  // Rows 0-1: free if both children in row below are gone
   const below = state.peaks[p][r + 1];
   return !below[c] && !below[c + 1];
 }
 
 function updateFaceUp() {
   for (let p = 0; p < 3; p++) {
-    for (let r = 0; r < 3; r++) {
+    for (let r = 2; r >= 0; r--) {
       for (let c = 0; c <= r; c++) {
         const card = state.peaks[p][r][c];
         if (card && !card.faceUp && isFree({ type: 'peak', p, r, c })) {
@@ -140,7 +140,7 @@ function removeCard(loc) {
 
 function playCard(loc) {
   const card = getCard(loc);
-  if (!card || !isFree(loc) || !canPlay(card)) return false;
+  if (!card || !card.faceUp || !canPlay(card)) return false;
   undoSnapshot = clone(state);
   removeCard(loc);
   card.faceUp = true;
@@ -175,7 +175,10 @@ function undo() {
 }
 
 function hasLegalMoves() {
-  return allLocations().some(loc => isFree(loc) && canPlay(getCard(loc)));
+  return allLocations().some(loc => {
+    const card = getCard(loc);
+    return card && card.faceUp && canPlay(card);
+  });
 }
 
 function checkWin() {
@@ -210,35 +213,31 @@ function createSlot(attrs) {
 function renderPeaks() {
   peaksEl.innerHTML = '';
   
-  // Row 0: peak tops (1 card each)
+  // Row 0: peak tops
   for (let p = 0; p < 3; p++) {
     const slot = createSlot({ row: '0', peak: String(p) });
     const card = state.peaks[p][0][0];
     if (card) {
-      const loc = { type: 'peak', p, r: 0, c: 0 };
-      const free = isFree(loc);
-      const playable = free && card.faceUp && canPlay(card);
+      const playable = card.faceUp && canPlay(card);
       const el = cardRenderer.getCardElement(card);
       cardRenderer.resetCardInlineStyles(el);
-      el.classList.toggle('playable', playable);
+      el.classList.toggle('playable', showHints && playable);
       el.dataset.locType = 'peak'; el.dataset.p = p; el.dataset.r = 0; el.dataset.c = 0;
       slot.appendChild(el);
     }
     peaksEl.appendChild(slot);
   }
 
-  // Row 1: 2 cards per peak
+  // Row 1
   for (let p = 0; p < 3; p++) {
     for (let c = 0; c < 2; c++) {
       const slot = createSlot({ row: '1', peak: String(p), col: String(c) });
       const card = state.peaks[p][1][c];
       if (card) {
-        const loc = { type: 'peak', p, r: 1, c };
-        const free = isFree(loc);
-        const playable = free && card.faceUp && canPlay(card);
+        const playable = card.faceUp && canPlay(card);
         const el = cardRenderer.getCardElement(card);
         cardRenderer.resetCardInlineStyles(el);
-        el.classList.toggle('playable', playable);
+        el.classList.toggle('playable', showHints && playable);
         el.dataset.locType = 'peak'; el.dataset.p = p; el.dataset.r = 1; el.dataset.c = c;
         slot.appendChild(el);
       }
@@ -246,18 +245,16 @@ function renderPeaks() {
     }
   }
 
-  // Row 2: 3 cards per peak
+  // Row 2
   for (let p = 0; p < 3; p++) {
     for (let c = 0; c < 3; c++) {
       const slot = createSlot({ row: '2', peak: String(p), col: String(c) });
       const card = state.peaks[p][2][c];
       if (card) {
-        const loc = { type: 'peak', p, r: 2, c };
-        const free = isFree(loc);
-        const playable = free && card.faceUp && canPlay(card);
+        const playable = card.faceUp && canPlay(card);
         const el = cardRenderer.getCardElement(card);
         cardRenderer.resetCardInlineStyles(el);
-        el.classList.toggle('playable', playable);
+        el.classList.toggle('playable', showHints && playable);
         el.dataset.locType = 'peak'; el.dataset.p = p; el.dataset.r = 2; el.dataset.c = c;
         slot.appendChild(el);
       }
@@ -265,17 +262,15 @@ function renderPeaks() {
     }
   }
 
-  // Row 3: base (10 cards)
+  // Base row
   for (let i = 0; i < BASE_COUNT; i++) {
     const slot = createSlot({ row: '3', col: String(i) });
     const card = state.base[i];
     if (card) {
-      const loc = { type: 'base', idx: i };
-      const free = isFree(loc);
-      const playable = free && canPlay(card);
+      const playable = canPlay(card);
       const el = cardRenderer.getCardElement(card);
       cardRenderer.resetCardInlineStyles(el);
-      el.classList.toggle('playable', playable);
+      el.classList.toggle('playable', showHints && playable);
       el.dataset.locType = 'base'; el.dataset.idx = i;
       slot.appendChild(el);
     }
@@ -320,6 +315,12 @@ stockEl.addEventListener('click', flipStock);
 document.getElementById('flip-stock').addEventListener('click', flipStock);
 document.getElementById('new-game').addEventListener('click', newGame);
 document.getElementById('undo').addEventListener('click', undo);
+
+// Settings
+document.getElementById('settings-toggle').addEventListener('click', () => settingsModal.classList.remove('hidden'));
+document.getElementById('settings-close').addEventListener('click', () => settingsModal.classList.add('hidden'));
+document.getElementById('settings-apply').addEventListener('click', () => settingsModal.classList.add('hidden'));
+optShowHints.addEventListener('change', () => { showHints = optShowHints.checked; render(); });
 
 cardLayout.init({ constraints: [{ columns: 10, element: peaksEl }], observeElements: [peaksEl], onUpdate: () => state && render() });
 newGame();

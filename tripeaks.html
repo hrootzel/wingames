@@ -18,6 +18,7 @@
         <div>Score: <span id="score">0</span></div>
         <div>Moves: <span id="moves">0</span></div>
       </div>
+      <button id="settings-toggle" class="icon-button" aria-label="Settings" title="Settings">⚙</button>
     </header>
     <div class="hud"><div class="status-row"><span id="status">Ready</span></div></div>
     <div class="board">
@@ -34,6 +35,25 @@
     </div>
     <p class="tips">Click a free card to play it on the waste (±1 rank, wrapping K↔A). Click stock to draw.</p>
   </div>
+
+  <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2>Settings</h2>
+        <button id="settings-close" class="icon-button" aria-label="Close">✕</button>
+      </header>
+      <div class="ms-form">
+        <label class="ms-toggle">
+          <input id="opt-show-hints" type="checkbox">
+          <span>Show valid moves</span>
+        </label>
+      </div>
+      <div class="ms-actions">
+        <button id="settings-apply">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="tripeaks.js"></script>
 </body>
 </html>

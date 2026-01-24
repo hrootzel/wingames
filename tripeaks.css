@@ -6,16 +6,16 @@
 .tripeaks-grid {
   display: grid;
   grid-template-columns: repeat(19, calc(var(--card-width) * 0.5));
-  grid-template-rows: repeat(4, auto);
-  row-gap: calc(var(--card-height) * -0.68);
+  grid-template-rows: repeat(3, calc(var(--card-height) * 0.4)) auto;
   justify-content: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .tripeaks-slot {
   width: var(--card-width);
   height: var(--card-height);
   position: relative;
+  pointer-events: none;
 }
 
 .tripeaks-slot .card,
@@ -23,6 +23,12 @@
   position: absolute;
   top: 0;
   left: 0;
+  pointer-events: auto;
+}
+
+/* Last row needs extra space for full card height */
+.tripeaks-slot[data-row="3"] {
+  height: var(--card-height);
 }
 
 /* Row 0: 3 peak tops at columns 3, 9, 15 (1-indexed, shifted right by 1) */
