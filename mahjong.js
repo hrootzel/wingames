@@ -233,12 +233,12 @@ function makeType(group, rank, emoji, opts = {}) {
 }
 
 function buildTileTypes() {
-  const people = ['🧑‍⚕️', '🧑‍🚒', '🧟‍♂️', '🧑‍🏫', '🧑‍🔧', '🧑‍🍳', '🧑‍💻', '🧑‍🚀', '🧑‍🎨'];
+  const sports = ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🥎', '🎱'];
   const animals = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨'];
   const foods = ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍒'];
 
   const types = [];
-  people.forEach((emoji, idx) => types.push(makeType(Group.PEOPLE, idx + 1, emoji)));
+  sports.forEach((emoji, idx) => types.push(makeType(Group.PEOPLE, idx + 1, emoji)));
   animals.forEach((emoji, idx) => types.push(makeType(Group.ANIMALS, idx + 1, emoji)));
   foods.forEach((emoji, idx) => types.push(makeType(Group.FOODS, idx + 1, emoji)));
 
@@ -246,9 +246,9 @@ function buildTileTypes() {
     types.push(makeType(Group.WIND, wind, wind, { isText: true, textColor: '#1f2937' }));
   });
 
-  types.push(makeType(Group.DRAGON, 'R', '🀄', { tintKey: 'dragonRed', badge: '🔴' }));
-  types.push(makeType(Group.DRAGON, 'G', '🀄', { tintKey: 'dragonGreen', badge: '🟢' }));
-  types.push(makeType(Group.DRAGON, 'W', '🀄', { tintKey: 'dragonWhite', badge: '⚪' }));
+  types.push(makeType(Group.DRAGON, 'R', '🐉', { tintKey: 'dragonRed' }));
+  types.push(makeType(Group.DRAGON, 'G', '🌿', { tintKey: 'dragonGreen' }));
+  types.push(makeType(Group.DRAGON, 'W', '🤍', { tintKey: 'dragonWhite' }));
 
   ['🌸', '🌼', '🌺', '🪷'].forEach((emoji, idx) => {
     types.push(makeType(Group.FLOWER, idx + 1, emoji));
@@ -501,6 +501,7 @@ function buildGame() {
     undoUsed: 0,
     moves: 0,
     view: null,
+    freeTilesDirty: true,
   };
 
   computeLayout();
@@ -521,6 +522,7 @@ function isTileFree(tile) {
 }
 
 function updateFreeTiles() {
+  if (!game.freeTilesDirty) return;
   for (const tile of game.tiles) {
     if (tile.removed) {
       tile.free = false;
@@ -528,6 +530,7 @@ function updateFreeTiles() {
     }
     tile.free = isTileFree(tile);
   }
+  game.freeTilesDirty = false;
 }
 
 function updateStats() {
@@ -703,13 +706,6 @@ function drawTile(tile, highlight) {
     ctx.fillText(tile.type.emoji, x + tileW / 2, y + tileH / 2);
   }
 
-  if (tile.type.badge) {
-    ctx.font = `${Math.floor(tileH * 0.22)}px "Segoe UI Emoji", "Apple Color Emoji", system-ui`;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(tile.type.badge, x + tileW * 0.08, y + tileH * 0.06);
-  }
-
   ctx.restore();
 }
 
@@ -790,6 +786,7 @@ function removePair(a, b) {
   b.removed = true;
   clearOcc(game.occ, a.slot);
   clearOcc(game.occ, b.slot);
+  game.freeTilesDirty = true;
   game.undoStack.push([a.id, b.id]);
   game.moves += 1;
   setStatus('Pair removed.');
@@ -923,6 +920,7 @@ function undoMove() {
     tile.removed = false;
     setOcc(game.occ, tile.slot, tile.id);
   }
+  game.freeTilesDirty = true;
   game.undoUsed += 1;
   clearSelection();
   setStatus('Undo complete.');
@@ -967,9 +965,9 @@ function onTouchStart(ev) {
   for (const touch of ev.changedTouches) {
     activeTouches.set(touch.identifier, touchPoint(touch));
   }
-  if (activeTouches.size >= 2 && !multiTouchActive) {
+  multiTouchActive = activeTouches.size >= 2;
+  if (multiTouchActive) {
     const points = Array.from(activeTouches.values()).slice(0, 2);
-    multiTouchActive = true;
     handleMultiTouch(points);
   }
 }

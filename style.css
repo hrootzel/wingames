@@ -226,7 +226,7 @@ select {
   line-height: 1.5;
 }
 
-@media (max-height: 720px) {
+@media (max-height: 600px) {
   #app {
     margin: 8px auto 16px;
     padding: 12px 14px 16px;
