@@ -37,7 +37,9 @@ const PIP_LAYOUTS = {
 const getPipsModifiers = (value) => {
   const classes = [];
   if (value === 1) classes.push('pips-ace');
-  if (value === 5 || value >= 7) classes.push('pips-compact');
+  if (value === 4 || value === 6) classes.push('pips-two-col');
+  if (value === 5) classes.push('pips-five');
+  if (value >= 7) classes.push('pips-compact');
   return classes;
 };
 

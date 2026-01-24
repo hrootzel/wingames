@@ -202,11 +202,29 @@
   font-size: calc(28px * var(--card-scale));
 }
 
-/* Compact 4-row grid for 7-10 */
+/* Two-column layouts (4, 6) - spread columns apart */
+.pips-two-col {
+  column-gap: calc(4px * var(--card-scale));
+}
+
+/* Compact 4-row grid for 5, 7-10 */
 .pips-compact {
   grid-template-rows: repeat(4, 1fr);
   inset: calc(18px * var(--card-scale)) calc(10px * var(--card-scale));
   font-size: calc(13px * var(--card-scale));
+}
+
+/* 5 card - center pip between rows */
+.pips-five {
+  grid-template-rows: repeat(4, 1fr);
+  inset: calc(18px * var(--card-scale)) calc(10px * var(--card-scale));
+  font-size: calc(13px * var(--card-scale));
+}
+
+.pips-five .pip:nth-child(5) {
+  grid-row: 2 / 4;
+  align-self: center;
+  transform: translateY(45%);
 }
 
 /* Face cards */
