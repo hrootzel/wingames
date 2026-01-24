@@ -105,11 +105,13 @@ function trySelect(loc) {
   }
 
   // Check if same card
-  if (selected.type === loc.type && selected.r === loc.r && selected.c === loc.c) {
-    selected = null;
-    render();
-    statusEl.textContent = 'Deselected.';
-    return;
+  if (selected.type === loc.type) {
+    if (selected.type === 'waste' || (selected.r === loc.r && selected.c === loc.c)) {
+      selected = null;
+      render();
+      statusEl.textContent = 'Deselected.';
+      return;
+    }
   }
 
   // Try to pair
