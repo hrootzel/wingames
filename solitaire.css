@@ -2,15 +2,11 @@
   --card-base-spacing: 26px;
 }
 
-.solitaire .top-row {
-  justify-content: space-between;
+.foundations-wrap {
+  margin-left: auto;
 }
 
-.solitaire .top-row > .pile-wrap:first-child {
-  margin-right: 0;
-}
-
-.solitaire .foundation-row {
+.foundation-row {
   flex-wrap: nowrap;
 }
 
