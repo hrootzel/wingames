@@ -1,4 +1,5 @@
 import { CardRenderer, SUITS } from './card_renderer.js';
+import { CardLayout } from './card_layout.js';
 
 const TABLEAU_COLS = 7;
 const TABLEAU_ROWS = 5;
@@ -51,22 +52,7 @@ const resultNextBtn = document.getElementById('result-next');
 const resultRestartBtn = document.getElementById('result-restart');
 
 const cardRenderer = new CardRenderer();
-
-cardRenderer.applyStackRowClasses(tableauEl);
-
-const layoutRoot = document.getElementById('app') || document.body;
-let layoutMetrics = readLayoutMetrics();
-
-function readLayoutMetrics() {
-  const styles = getComputedStyle(layoutRoot);
-  const stackSpacing = parseFloat(styles.getPropertyValue('--stack-spacing')) || DEFAULT_STACK_SPACING;
-  const wasteSpacing = parseFloat(styles.getPropertyValue('--waste-spacing')) || DEFAULT_WASTE_SPACING;
-  return { stackSpacing, wasteSpacing };
-}
-
-function refreshLayoutMetrics() {
-  layoutMetrics = readLayoutMetrics();
-}
+const cardLayout = new CardLayout();
 
 let options = loadOptions();
 let state = null;
@@ -458,13 +444,14 @@ function renderWaste() {
   wasteEl.innerHTML = '';
   const visible = Math.min(3, state.waste.length);
   const start = state.waste.length - visible;
+  const wasteSpacing = cardLayout.metrics.cardGap;
   for (let i = 0; i < visible; i++) {
     const card = state.waste[start + i];
     const el = cardRenderer.getCardElement(card);
     cardRenderer.resetCardInlineStyles(el);
     el.dataset.pile = 'waste';
     el.dataset.index = String(start + i);
-    el.style.left = `${i * layoutMetrics.wasteSpacing}px`;
+    el.style.left = `${i * wasteSpacing}px`;
     el.style.zIndex = String(i);
     wasteEl.appendChild(el);
   }
@@ -494,7 +481,7 @@ function renderTableau() {
       el.dataset.pile = 'tableau';
       el.dataset.col = String(colIdx);
       el.dataset.index = String(idx);
-      el.style.top = `${idx * layoutMetrics.stackSpacing}px`;
+      el.style.top = `${idx * cardLayout.metrics.stackSpacing}px`;
       const isPlayable = idx === stack.length - 1 && playable.has(colIdx);
       el.classList.toggle('playable', isPlayable);
       col.appendChild(el);
@@ -506,7 +493,6 @@ function renderTableau() {
 function render() {
   if (!state) return;
   updateHoleVisibility();
-  cardRenderer.updateScaleFromCSS();
   renderStock();
   renderWaste();
   renderTableau();
@@ -633,8 +619,14 @@ function attachEvents() {
 
   window.addEventListener('resize', () => {
     if (!state) return;
-    refreshLayoutMetrics();
     render();
+  });
+
+  // Initialize layout system
+  cardLayout.init({
+    constraints: [{ columns: TABLEAU_COLS, element: tableauEl }],
+    observeElements: [tableauEl],
+    onUpdate: () => state && render(),
   });
 }
 

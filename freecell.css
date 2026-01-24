@@ -1,71 +1,4 @@
-.freecell {
-  --fc-card-width: 88px;
-  --fc-card-height: 120px;
-  --fc-fan-spacing: 24px;
-  --fc-card-gap: 12px;
-  --card-base-width: var(--fc-card-width);
-  --card-base-height: var(--fc-card-height);
-  --card-base-gap: var(--fc-card-gap);
-  --card-base-spacing: var(--fc-fan-spacing);
-}
-
-.freecell[data-size="sm"] {
-  --fc-card-width: 72px;
-  --fc-card-height: 100px;
-  --fc-fan-spacing: 20px;
-  --fc-card-gap: 10px;
-}
-
-.freecell[data-size="sm"] .corner {
-  font-size: calc(11px * var(--card-scale));
-}
-
-.freecell[data-size="sm"] .pips {
-  inset: calc(14px * var(--card-scale)) calc(10px * var(--card-scale));
-  font-size: calc(14px * var(--card-scale));
-  row-gap: 2px;
-  column-gap: 1px;
-}
-
-.freecell[data-size="sm"] .pip {
-  font-size: calc(14px * var(--card-scale));
-}
-
-.freecell[data-size="sm"] .pip-small {
-  font-size: calc(10px * var(--card-scale));
-}
-
-.freecell[data-size="sm"] .pip-xsmall {
-  font-size: calc(8px * var(--card-scale));
-}
-
-.freecell[data-size="sm"] .pips-tight {
-  inset: calc(12px * var(--card-scale)) calc(8px * var(--card-scale));
-  row-gap: 0;
-  column-gap: 0;
-}
-
-.freecell[data-size="sm"] .face-label {
-  inset: calc(14px * var(--card-scale)) calc(10px * var(--card-scale));
-  font-size: calc(28px * var(--card-scale));
-}
-
-.freecell[data-size="lg"] {
-  --fc-card-width: 104px;
-  --fc-card-height: 144px;
-  --fc-fan-spacing: 28px;
-  --fc-card-gap: 14px;
-}
-
-.freecell .card {
-  width: var(--card-width);
-  height: var(--card-height);
-}
-
-.freecell .pile {
-  width: var(--card-width);
-  height: var(--card-height);
-}
+/* FreeCell uses data-card-size attribute for size presets (defined in cards.css) */
 
 .freecell .drop-ok,
 .freecell .drop-cap,
@@ -116,7 +49,6 @@
   min-height: 360px;
 }
 
-
 .freecell-slot,
 .foundation-slot {
   position: relative;
@@ -129,7 +61,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
+  font-size: calc(32px * var(--card-scale));
   color: rgba(255, 255, 255, 0.2);
   pointer-events: none;
 }

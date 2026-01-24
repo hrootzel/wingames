@@ -1,64 +1,29 @@
 ﻿/**
  * Unicode Solitaire (Klondike) compiled to plain JS for the browser.
- * Mirrors the logic in solitaire.ts.
  */
 
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_KLONDIKE } from './card_sfx_banks.js';
 import { CardRenderer, SUITS, cardColor } from './card_renderer.js';
-
-const DEFAULT_STACK_SPACING = 26;
-const DEFAULT_WASTE_SPACING = 16;
-const DEFAULT_CARD_WIDTH = 88;
-const DEFAULT_CARD_HEIGHT = 120;
-const VIEWPORT_BOTTOM_MARGIN = 28;
-const TIGHTEN_START = 10;
-const TIGHTEN_END = 24;
+import { CardLayout, calcStackSpacing, createDragPreviewCache, hideDragPreview } from './card_layout.js';
 
 const sfx = new SfxEngine({ master: 0.6 });
 const cardRenderer = new CardRenderer();
 let audioUnlocked = false;
 
-const layoutRoot = document.getElementById('app') || document.body;
-const layoutDefaults = {
-  cardWidth: DEFAULT_CARD_WIDTH,
-  cardHeight: DEFAULT_CARD_HEIGHT,
-  stackSpacing: DEFAULT_STACK_SPACING,
-  wasteSpacing: DEFAULT_WASTE_SPACING,
-};
-let layoutMetrics = cardRenderer.readLayoutMetrics({
-  root: layoutRoot,
-  defaults: layoutDefaults,
-  minStackSpacingMin: 10,
-});
+// Layout system
+const tableauEl = document.getElementById('tableau');
+const cardLayout = new CardLayout();
 
-function refreshLayoutMetrics() {
-  layoutMetrics = cardRenderer.readLayoutMetrics({
-    root: layoutRoot,
-    defaults: layoutDefaults,
-    minStackSpacingMin: 10,
+function getStackSpacing(stackLength) {
+  const m = cardLayout.metrics;
+  return calcStackSpacing({
+    stackLength,
+    containerTop: tableauEl?.getBoundingClientRect().top ?? 0,
+    cardHeight: m.cardHeight,
+    baseSpacing: m.stackSpacing,
+    minSpacing: 10,
   });
-}
-
-function applyBoardScale() {
-  if (!tableauEl) return;
-  cardRenderer.applyBoardScale({
-    root: document.documentElement,
-    constraints: [{ columns: 7, available: tableauEl.clientWidth }],
-    minScale: 0.6,
-  });
-}
-
-function tableauSpacingForStack(stackLength, tableauTop) {
-  const spacing = layoutMetrics.stackSpacing;
-  if (stackLength <= 1) return spacing;
-  const availableHeight = Math.max(0, window.innerHeight - tableauTop - VIEWPORT_BOTTOM_MARGIN);
-  const fitSpacing = (availableHeight - layoutMetrics.cardHeight) / (stackLength - 1);
-
-  const t = stackLength <= TIGHTEN_START ? 0 : Math.min(1, (stackLength - TIGHTEN_START) / (TIGHTEN_END - TIGHTEN_START));
-  const desiredSpacing = spacing - t * (spacing - layoutMetrics.minStackSpacing);
-
-  return Math.max(0, Math.min(spacing, desiredSpacing, fitSpacing));
 }
 
 let options = { drawCount: 3, scoreMode: 'standard', keepVegas: false };
@@ -74,9 +39,7 @@ let winFx = null;
 
 const stockEl = document.getElementById('stock');
 const wasteEl = document.getElementById('waste');
-const foundationRowEl = document.querySelector('.foundation-row');
 const foundationEls = Array.from(document.querySelectorAll('.foundation'));
-const tableauEl = document.getElementById('tableau');
 const scoreEl = document.getElementById('score');
 const timeEl = document.getElementById('time');
 const statusEl = document.getElementById('status');
@@ -87,17 +50,12 @@ const drawSelect = document.getElementById('draw-mode');
 const scoreSelect = document.getElementById('score-mode');
 const keepVegasCheckbox = document.getElementById('keep-vegas');
 
-cardRenderer.applyRowClasses(foundationRowEl);
-cardRenderer.applyStackRowClasses(tableauEl);
-
 let dragState = null;
-const dragPreviewCache = { el: null, cards: [] };
+const dragPreviewCache = createDragPreviewCache();
 
 function cleanupDanglingPreviews() {
   if (dragState && dragState.preview) return;
-  if (!dragPreviewCache.el) return;
-  dragPreviewCache.el.style.display = 'none';
-  dragPreviewCache.el.style.transform = 'translate(-9999px, -9999px)';
+  hideDragPreview(dragPreviewCache);
 }
 
 function createDeck() {
@@ -595,8 +553,8 @@ function startWinCelebration() {
     el.style.top = '0px';
     overlay.appendChild(el);
 
-    const startX = next.origin.left + Math.random() * Math.max(0, next.origin.width - layoutMetrics.cardWidth);
-    const startY = next.origin.top + Math.random() * Math.max(0, next.origin.height - layoutMetrics.cardHeight);
+    const startX = next.origin.left + Math.random() * Math.max(0, next.origin.width - cardLayout.metrics.cardWidth);
+    const startY = next.origin.top + Math.random() * Math.max(0, next.origin.height - cardLayout.metrics.cardHeight);
     const vx = (Math.random() * 2 - 1) * 760;
     const vy = -(720 + Math.random() * 980);
     const rot = (Math.random() * 2 - 1) * 35;
@@ -616,7 +574,7 @@ function startWinCelebration() {
     const gravity = 2600;
     const wallBounce = 0.86;
     const floorBounce = 0.78;
-    const maxY = window.innerHeight - layoutMetrics.cardHeight;
+    const maxY = window.innerHeight - cardLayout.metrics.cardHeight;
     const airDrag = 0.18;
     const groundDrag = 2.4;
     const groundFriction = 0.9;
@@ -650,7 +608,7 @@ function startWinCelebration() {
       }
       p.rot += p.vr * dt;
 
-      if (p.x + layoutMetrics.cardWidth < 0 || p.x > window.innerWidth) {
+      if (p.x + cardLayout.metrics.cardWidth < 0 || p.x > window.innerWidth) {
         p.el.remove();
         particles.splice(i, 1);
         continue;
@@ -754,7 +712,7 @@ function buildDragPreview(cards, source, startIndex, pileIndex) {
   const wrap = dragPreviewCache.el;
   wrap.style.display = '';
   wrap.style.transform = 'translate(-9999px, -9999px)';
-  const spacing = dragState && typeof dragState.stackSpacing === 'number' ? dragState.stackSpacing : layoutMetrics.stackSpacing;
+  const spacing = dragState?.stackSpacing ?? cardLayout.metrics.stackSpacing;
   cards.forEach((card, idx) => {
     let el = dragPreviewCache.cards[idx];
     if (!el) {
@@ -782,14 +740,11 @@ function updateDragPreviewPosition(clientX, clientY) {
 }
 
 function clearDragPreview() {
-  if (dragState && dragState.preview) {
+  if (dragState?.preview) {
     dragState.preview.style.display = 'none';
     dragState.preview.style.transform = 'translate(-9999px, -9999px)';
-  }
-  if (dragState) {
     dragState.preview = null;
   }
-  cardRenderer.cancelDragUpdate(dragState);
   cleanupDanglingPreviews();
 }
 
@@ -840,9 +795,9 @@ function handlePointerDown(ev) {
     pendingY: 0,
   };
   if (selection.source === 'tableau') {
-    dragState.stackSpacing = tableauSpacingForStack(state.tableau[selection.pileIndex].length, tableauEl.getBoundingClientRect().top);
+    dragState.stackSpacing = getStackSpacing(state.tableau[selection.pileIndex].length);
   } else {
-    dragState.stackSpacing = layoutMetrics.stackSpacing;
+    dragState.stackSpacing = cardLayout.metrics.stackSpacing;
   }
   sfx.play(BANK_KLONDIKE, 'pickup');
 }
@@ -861,7 +816,7 @@ function handlePointerMove(ev) {
     dragState.dragging = true;
   }
   ev.preventDefault();
-  cardRenderer.scheduleDragUpdate(dragState, ev.clientX, ev.clientY, updateDragPreviewPosition);
+  updateDragPreviewPosition(ev.clientX, ev.clientY);
 }
 
 function handlePointerUp(ev) {
@@ -947,10 +902,11 @@ function renderWaste() {
   wasteEl.innerHTML = '';
   const visible = options.drawCount === 3 ? Math.min(3, state.waste.length) : Math.min(1, state.waste.length);
   const start = state.waste.length - visible;
+  const wasteSpacing = cardLayout.metrics.cardGap;
   for (let i = 0; i < visible; i++) {
     const card = state.waste[start + i];
     const el = buildCardElement(card, 'waste', start + i);
-    el.style.left = `${i * layoutMetrics.wasteSpacing}px`;
+    el.style.left = `${i * wasteSpacing}px`;
     el.style.zIndex = `${i}`;
     wasteEl.appendChild(el);
   }
@@ -971,9 +927,8 @@ function renderFoundations() {
 
 function renderTableau() {
   tableauEl.innerHTML = '';
-  const tableauTop = tableauEl.getBoundingClientRect().top;
   state.tableau.forEach((stack, colIdx) => {
-    const spacing = tableauSpacingForStack(stack.length, tableauTop);
+    const spacing = getStackSpacing(stack.length);
     const col = cardRenderer.createStackElement({ className: 'tableau-col', dataset: { col: colIdx } });
     col.style.minHeight = '160px';
 
@@ -988,9 +943,6 @@ function renderTableau() {
 }
 
 function render() {
-  applyBoardScale();
-  refreshLayoutMetrics();
-  cardRenderer.updateScaleFromCSS();
   renderStock();
   renderWaste();
   renderFoundations();
@@ -1008,6 +960,13 @@ function attachEvents() {
   window.addEventListener('resize', () => {
     if (!state) return;
     render();
+  });
+
+  // Initialize layout system with ResizeObserver
+  cardLayout.init({
+    constraints: [{ columns: 7, element: tableauEl }],
+    observeElements: [tableauEl],
+    onUpdate: () => state && render(),
   });
 
   stockEl.addEventListener('click', () => {

@@ -1,6 +1,7 @@
 @import "cards.css";
 
 :root {
+  /* Theme colors */
   --felt: #0b4125;
   --felt2: #0f6c3c;
   --card: #fffdf7;
@@ -9,35 +10,20 @@
   --border: rgba(255, 255, 255, 0.08);
   --accent: #f59e0b;
   --muted: #d1d5db;
+
+  /* Card sizing - base values, scaled by --card-scale */
   --card-scale: 1;
   --card-base-width: 88px;
   --card-base-height: 120px;
   --card-base-gap: 12px;
   --card-base-spacing: 24px;
-  --card-base-waste-spacing: 16px;
+
+  /* Computed scaled values */
   --card-width: calc(var(--card-base-width) * var(--card-scale));
   --card-height: calc(var(--card-base-height) * var(--card-scale));
   --card-gap: calc(var(--card-base-gap) * var(--card-scale));
   --stack-spacing: calc(var(--card-base-spacing) * var(--card-scale));
-  --waste-spacing: calc(var(--card-base-waste-spacing) * var(--card-scale));
-  --card-content-inset: clamp(6px, calc(8px * var(--card-scale)), 8px);
-  --corner-font-size: clamp(9px, calc(13px * var(--card-scale)), 13px);
-  --corner-line-height: 1.05;
-  --pip-inset-y: clamp(12px, calc(18px * var(--card-scale)), 18px);
-  --pip-inset-x: clamp(8px, calc(12px * var(--card-scale)), 12px);
-  --pip-tight-inset-y: clamp(10px, calc(14px * var(--card-scale)), 14px);
-  --pip-tight-inset-x: clamp(6px, calc(10px * var(--card-scale)), 10px);
-  --pip-low-inset-top: clamp(14px, calc(18px * var(--card-scale)), 22px);
-  --pip-low-inset-bottom: clamp(18px, calc(22px * var(--card-scale)), 26px);
-  --pip-low-inset-x: clamp(12px, calc(16px * var(--card-scale)), 18px);
-  --pip-low-row-gap: clamp(1px, calc(2px * var(--card-scale)), 2px);
-  --pip-ace-font-size: clamp(18px, calc(var(--pip-font-size) * 2), 28px);
-  --face-label-inset-y: clamp(12px, calc(18px * var(--card-scale)), 18px);
-  --face-label-inset-x: clamp(8px, calc(12px * var(--card-scale)), 12px);
-  --face-label-font-size: clamp(22px, calc(34px * var(--card-scale)), 34px);
-  --pip-font-size: clamp(12px, calc(var(--card-width) * 0.18), 16px);
-  --pip-small-font-size: clamp(10px, calc(var(--card-width) * 0.15), 12px);
-  --pip-xsmall-font-size: clamp(8px, calc(var(--card-width) * 0.13), 10px);
+
   color-scheme: dark;
 }
 

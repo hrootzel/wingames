@@ -4,62 +4,30 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_SPIDER } from './card_sfx_banks.js';
 import { CardRenderer, SUITS } from './card_renderer.js';
-
-const DEFAULT_STACK_SPACING = 22;
-const DEFAULT_CARD_WIDTH = 88;
-const DEFAULT_CARD_HEIGHT = 120;
-const TIGHTEN_START = 14;
-const TIGHTEN_END = 42;
-const VIEWPORT_BOTTOM_MARGIN = 28;
+import { CardLayout, calcStackSpacing, createDragPreviewCache, hideDragPreview } from './card_layout.js';
 
 const sfx = new SfxEngine({ master: 0.6 });
 const cardRenderer = new CardRenderer();
 let audioUnlocked = false;
 
-const layoutRoot = document.getElementById('app') || document.body;
-const layoutDefaults = {
-  cardWidth: DEFAULT_CARD_WIDTH,
-  cardHeight: DEFAULT_CARD_HEIGHT,
-  stackSpacing: DEFAULT_STACK_SPACING,
-};
-let layoutMetrics = cardRenderer.readLayoutMetrics({
-  root: layoutRoot,
-  defaults: layoutDefaults,
-  minStackSpacingMin: 8,
-});
+const tableauEl = document.getElementById('tableau');
+const cardLayout = new CardLayout();
 
-function refreshLayoutMetrics() {
-  layoutMetrics = cardRenderer.readLayoutMetrics({
-    root: layoutRoot,
-    defaults: layoutDefaults,
-    minStackSpacingMin: 8,
+function getStackSpacing(stackLength) {
+  const m = cardLayout.metrics;
+  return calcStackSpacing({
+    stackLength,
+    containerTop: tableauEl?.getBoundingClientRect().top ?? 0,
+    cardHeight: m.cardHeight,
+    baseSpacing: m.stackSpacing,
+    minSpacing: 8,
+    tightenStart: 14,
+    tightenEnd: 42,
   });
-}
-
-function applyBoardScale() {
-  if (!tableauEl) return;
-  cardRenderer.applyBoardScale({
-    root: document.documentElement,
-    constraints: [{ columns: 10, available: tableauEl.clientWidth }],
-    minScale: 0.6,
-  });
-}
-
-function tableauSpacingForStack(stackLength, tableauTop) {
-  const spacing = layoutMetrics.stackSpacing;
-  if (stackLength <= 1) return spacing;
-  const availableHeight = Math.max(0, window.innerHeight - tableauTop - VIEWPORT_BOTTOM_MARGIN);
-  const fitSpacing = (availableHeight - layoutMetrics.cardHeight) / (stackLength - 1);
-
-  const t = stackLength <= TIGHTEN_START ? 0 : Math.min(1, (stackLength - TIGHTEN_START) / (TIGHTEN_END - TIGHTEN_START));
-  const desiredSpacing = spacing - t * (spacing - layoutMetrics.minStackSpacing);
-
-  return Math.max(0, Math.min(spacing, desiredSpacing, fitSpacing));
 }
 
 const stockEl = document.getElementById('stock');
 const completedAcesEl = document.getElementById('completed-aces');
-const tableauEl = document.getElementById('tableau');
 const completedEl = document.getElementById('completed');
 const dealsEl = document.getElementById('deals');
 const statusEl = document.getElementById('status');
@@ -68,13 +36,10 @@ const dealBtn = document.getElementById('deal');
 const undoBtn = document.getElementById('undo');
 const difficultySelect = document.getElementById('difficulty');
 
-cardRenderer.applyRowClasses(completedAcesEl, { nowrap: true });
-cardRenderer.applyStackRowClasses(tableauEl);
-
 let state;
 let selection = null;
 let dragState = null;
-const dragPreviewCache = { el: null, cards: [] };
+const dragPreviewCache = createDragPreviewCache();
 let ignoreClicksUntil = 0;
 let undoSnapshot = null;
 let winFx = null;
@@ -234,8 +199,8 @@ function startWinCelebration() {
     el.style.top = '0px';
     overlay.appendChild(el);
 
-    const startX = originRect.left + Math.random() * Math.max(0, originRect.width - layoutMetrics.cardWidth);
-    const startY = originRect.top + Math.random() * Math.max(0, originRect.height - layoutMetrics.cardHeight);
+    const startX = originRect.left + Math.random() * Math.max(0, originRect.width - cardLayout.metrics.cardWidth);
+    const startY = originRect.top + Math.random() * Math.max(0, originRect.height - cardLayout.metrics.cardHeight);
     const vx = (Math.random() * 2 - 1) * 720;
     const vy = -(650 + Math.random() * 900);
     const rot = (Math.random() * 2 - 1) * 35;
@@ -255,7 +220,7 @@ function startWinCelebration() {
     const gravity = 2600;
     const wallBounce = 0.86;
     const floorBounce = 0.78;
-    const maxY = window.innerHeight - layoutMetrics.cardHeight;
+    const maxY = window.innerHeight - cardLayout.metrics.cardHeight;
     const airDrag = 0.18;
     const groundDrag = 2.4;
     const groundFriction = 0.9;
@@ -289,7 +254,7 @@ function startWinCelebration() {
       }
       p.rot += p.vr * dt;
 
-      if (p.x + layoutMetrics.cardWidth < 0 || p.x > window.innerWidth) {
+      if (p.x + cardLayout.metrics.cardWidth < 0 || p.x > window.innerWidth) {
         p.el.remove();
         particles.splice(i, 1);
         continue;
@@ -345,10 +310,18 @@ function buildCardVisual(card) {
 }
 
 function render() {
-  applyBoardScale();
-  refreshLayoutMetrics();
-  cardRenderer.updateScaleFromCSS();
-  const tableauTop = tableauEl.getBoundingClientRect().top;
+  // tableau
+  tableauEl.innerHTML = '';
+  state.tableau.forEach((stack, colIdx) => {
+    const spacing = getStackSpacing(stack.length);
+    const col = cardRenderer.createStackElement({ className: 'tableau-col', dataset: { col: colIdx } });
+    stack.forEach((card, idx) => {
+      const el = buildCardElement(card, colIdx, idx);
+      el.style.top = `${idx * spacing}px`;
+      col.appendChild(el);
+    });
+    tableauEl.appendChild(col);
+  });
 
   // stock
   stockEl.innerHTML = '';
@@ -386,19 +359,6 @@ function render() {
       });
     }
   }
-
-  // tableau
-  tableauEl.innerHTML = '';
-  state.tableau.forEach((stack, colIdx) => {
-    const spacing = tableauSpacingForStack(stack.length, tableauTop);
-    const col = cardRenderer.createStackElement({ className: 'tableau-col', dataset: { col: colIdx } });
-    stack.forEach((card, idx) => {
-      const el = buildCardElement(card, colIdx, idx);
-      el.style.top = `${idx * spacing}px`;
-      col.appendChild(el);
-    });
-    tableauEl.appendChild(col);
-  });
 
   completedEl.textContent = String(state.completed);
   dealsEl.textContent = String(dealsLeft);
@@ -556,10 +516,7 @@ function handlePointerDown(ev) {
     startX: ev.clientX,
     startY: ev.clientY,
     dragging: false,
-    stackSpacing: tableauSpacingForStack(state.tableau[col].length, tableauEl.getBoundingClientRect().top),
-    raf: 0,
-    pendingX: 0,
-    pendingY: 0,
+    stackSpacing: getStackSpacing(state.tableau[col].length),
   };
   render();
   sfx.play(BANK_SPIDER, 'pickup');
@@ -606,12 +563,11 @@ function updateDragPreviewPosition(clientX, clientY) {
 }
 
 function clearDragPreview() {
-  if (dragState && dragState.preview) {
+  if (dragState?.preview) {
     dragState.preview.style.display = 'none';
     dragState.preview.style.transform = 'translate(-9999px, -9999px)';
+    dragState.preview = null;
   }
-  if (dragState) dragState.preview = null;
-  cardRenderer.cancelDragUpdate(dragState);
 }
 
 function attemptDrop(clientX, clientY) {
@@ -640,11 +596,11 @@ function handlePointerMove(ev) {
   if (!dragState.dragging) {
     const fromStack = state.tableau[selection.col];
     const cards = fromStack.slice(selection.index);
-    dragState.preview = buildDragPreview(cards, selection.col, selection.index, dragState.stackSpacing ?? layoutMetrics.stackSpacing);
+    dragState.preview = buildDragPreview(cards, selection.col, selection.index, dragState.stackSpacing ?? cardLayout.metrics.stackSpacing);
     dragState.dragging = true;
   }
   ev.preventDefault();
-  cardRenderer.scheduleDragUpdate(dragState, ev.clientX, ev.clientY, updateDragPreviewPosition);
+  updateDragPreviewPosition(ev.clientX, ev.clientY);
 }
 
 function handlePointerUp(ev) {
@@ -709,6 +665,13 @@ function attachEvents() {
   window.addEventListener('resize', () => {
     if (!state) return;
     render();
+  });
+
+  // Initialize layout system
+  cardLayout.init({
+    constraints: [{ columns: 10, element: tableauEl }],
+    observeElements: [tableauEl],
+    onUpdate: () => state && render(),
   });
 
   newBtn.addEventListener('click', () => newGame());

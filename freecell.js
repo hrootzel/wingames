@@ -1,12 +1,10 @@
 import { CardRenderer, SUITS, SUIT_SYMBOLS, cardColor } from './card_renderer.js';
+import { CardLayout, calcStackSpacing, createDragPreviewCache, hideDragPreview } from './card_layout.js';
 
 const TABLEAU_COLS = 8;
 const FREECELL_SLOTS = 4;
 const FOUNDATION_SLOTS = 4;
 const DEAL_MAX = 32000;
-const VIEWPORT_BOTTOM_MARGIN = 28;
-const TIGHTEN_START = 12;
-const TIGHTEN_END = 28;
 
 const SIZE_PRESETS = {
   sm: { width: 72, height: 100, spacing: 20 },
@@ -54,21 +52,28 @@ const optCardSize = document.getElementById('opt-card-size');
 const optionsCloseBtn = document.getElementById('options-close');
 
 const cardRenderer = new CardRenderer();
-const scaleRoot = document.documentElement;
-const topRowEl = document.querySelector('.freecell-top');
+const cardLayout = new CardLayout();
 
-cardRenderer.applyRowClasses(freecellsEl, { nowrap: true });
-cardRenderer.applyRowClasses(foundationsEl, { nowrap: true });
-cardRenderer.applyStackRowClasses(tableauEl);
+function getStackSpacing(stackLength) {
+  const m = cardLayout.metrics;
+  return calcStackSpacing({
+    stackLength,
+    containerTop: tableauEl?.getBoundingClientRect().top ?? 0,
+    cardHeight: m.cardHeight,
+    baseSpacing: m.stackSpacing,
+    minSpacing: 10,
+    tightenStart: 12,
+    tightenEnd: 28,
+  });
+}
 
 let options = loadOptions();
-let cardMetrics = getCardMetrics(options.cardSize);
 let stats = loadStats();
 
 let state = null;
 let selection = null;
 let dragState = null;
-const dragPreviewCache = { el: null, cards: [] };
+const dragPreviewCache = createDragPreviewCache();
 let dropIndicator = null;
 let undoStack = [];
 let timerId = null;
@@ -76,46 +81,6 @@ let clickTracker = { cardKey: null, time: 0 };
 let ignoreClicksUntil = 0;
 let currentDealNumber = 1;
 let winOverlay = null;
-
-function getCardMetrics(sizeKey) {
-  const preset = SIZE_PRESETS[sizeKey] || SIZE_PRESETS.md;
-  const styles = getComputedStyle(appEl || document.body);
-  const width = parseFloat(styles.getPropertyValue('--card-width')) || preset.width;
-  const height = parseFloat(styles.getPropertyValue('--card-height')) || preset.height;
-  const spacing = parseFloat(styles.getPropertyValue('--stack-spacing')) || preset.spacing;
-  return { width, height, spacing };
-}
-
-function applyBoardScale() {
-  if (!tableauEl) return;
-  const { cardBaseWidth, cardBaseGap } = cardRenderer.readBaseLayoutMetrics({
-    root: scaleRoot,
-    defaults: { cardBaseWidth: SIZE_PRESETS.md.width, cardBaseGap: 12 },
-  });
-  const constraints = [{ columns: TABLEAU_COLS, available: tableauEl.clientWidth }];
-
-  if (topRowEl) {
-    const topRowStyles = getComputedStyle(topRowEl);
-    const topRowGap =
-      parseFloat(topRowStyles.getPropertyValue('column-gap')) ||
-      parseFloat(topRowStyles.getPropertyValue('gap')) ||
-      0;
-    const topRowRequired =
-      FREECELL_SLOTS * cardBaseWidth +
-      (FREECELL_SLOTS - 1) * cardBaseGap +
-      FOUNDATION_SLOTS * cardBaseWidth +
-      (FOUNDATION_SLOTS - 1) * cardBaseGap;
-    const topRowAvailable = topRowEl.clientWidth - topRowGap;
-    constraints.push({ required: topRowRequired, available: topRowAvailable });
-  }
-  cardRenderer.applyBoardScale({
-    root: scaleRoot,
-    cardBaseWidth,
-    cardBaseGap,
-    constraints,
-    minScale: 0.6,
-  });
-}
 
 function loadOptions() {
   const raw = localStorage.getItem('freecellOptions');
@@ -245,10 +210,8 @@ function recordGameEnd(won) {
 }
 
 function applyOptions() {
-  appEl.dataset.size = options.cardSize;
-  document.body.dataset.size = options.cardSize;
-  cardMetrics = getCardMetrics(options.cardSize);
-  cardRenderer.size = options.cardSize;
+  appEl.dataset.cardSize = options.cardSize;
+  document.body.dataset.cardSize = options.cardSize;
   optDealMode.value = options.dealMode;
   optSupermove.checked = options.allowSupermove;
   optDisableCap.checked = options.disableSupermoveCap;
@@ -377,14 +340,8 @@ function startTimer() {
   }, 1000);
 }
 
-function tableauSpacingForStack(stackLength, tableauTop) {
-  if (stackLength <= 1) return cardMetrics.spacing;
-  const availableHeight = Math.max(0, window.innerHeight - tableauTop - VIEWPORT_BOTTOM_MARGIN);
-  const fitSpacing = (availableHeight - cardMetrics.height) / (stackLength - 1);
-  const minSpacing = Math.max(10, Math.round(cardMetrics.spacing * 0.5));
-  const t = stackLength <= TIGHTEN_START ? 0 : Math.min(1, (stackLength - TIGHTEN_START) / (TIGHTEN_END - TIGHTEN_START));
-  const desiredSpacing = cardMetrics.spacing - t * (cardMetrics.spacing - minSpacing);
-  return Math.max(0, Math.min(cardMetrics.spacing, desiredSpacing, fitSpacing));
+function tableauSpacingForStack(stackLength) {
+  return getStackSpacing(stackLength);
 }
 
 function canPlaceOnTableau(card, stack) {
@@ -696,9 +653,8 @@ function renderFoundations() {
 
 function renderTableau() {
   tableauEl.innerHTML = '';
-  const tableauTop = tableauEl.getBoundingClientRect().top;
   state.tableau.forEach((stack, colIdx) => {
-    const spacing = tableauSpacingForStack(stack.length, tableauTop);
+    const spacing = tableauSpacingForStack(stack.length);
     const col = cardRenderer.createStackElement({ className: 'tableau-col', dataset: { col: colIdx } });
     stack.forEach((card, idx) => {
       const el = buildCardElement(card, 'tableau', colIdx, idx);
@@ -711,9 +667,6 @@ function renderTableau() {
 
 function render() {
   if (!state) return;
-  applyBoardScale();
-  cardRenderer.updateScaleFromCSS();
-  cardMetrics = getCardMetrics(options.cardSize);
   renderFreecells();
   renderFoundations();
   renderTableau();
@@ -723,9 +676,7 @@ function render() {
 
 function cleanupDanglingPreviews() {
   if (dragState && dragState.preview) return;
-  if (!dragPreviewCache.el) return;
-  dragPreviewCache.el.style.display = 'none';
-  dragPreviewCache.el.style.transform = 'translate(-9999px, -9999px)';
+  hideDragPreview(dragPreviewCache);
 }
 
 function buildDragPreview(cards, pileType, startIndex, pileIndex) {
@@ -742,7 +693,7 @@ function buildDragPreview(cards, pileType, startIndex, pileIndex) {
   const wrap = dragPreviewCache.el;
   wrap.style.display = '';
   wrap.style.transform = 'translate(-9999px, -9999px)';
-  const spacing = dragState && typeof dragState.stackSpacing === 'number' ? dragState.stackSpacing : cardMetrics.spacing;
+  const spacing = dragState?.stackSpacing ?? cardLayout.metrics.stackSpacing;
   cards.forEach((card, idx) => {
     let el = dragPreviewCache.cards[idx];
     if (!el) {
@@ -770,12 +721,11 @@ function updateDragPreviewPosition(clientX, clientY) {
 }
 
 function clearDragPreview() {
-  if (dragState && dragState.preview) {
+  if (dragState?.preview) {
     dragState.preview.style.display = 'none';
     dragState.preview.style.transform = 'translate(-9999px, -9999px)';
+    dragState.preview = null;
   }
-  if (dragState) dragState.preview = null;
-  cardRenderer.cancelDragUpdate(dragState);
   clearDropIndicator();
   cleanupDanglingPreviews();
 }
@@ -1019,10 +969,8 @@ function handlePointerMove(ev) {
     dragState.dragging = true;
   }
   ev.preventDefault();
-  cardRenderer.scheduleDragUpdate(dragState, ev.clientX, ev.clientY, (x, y) => {
-    updateDragPreviewPosition(x, y);
-    updateDropIndicator(x, y);
-  });
+  updateDragPreviewPosition(ev.clientX, ev.clientY);
+  updateDropIndicator(ev.clientX, ev.clientY);
 }
 
 function attemptDrop(clientX, clientY) {
@@ -1184,6 +1132,13 @@ function attachEvents() {
 
   window.addEventListener('resize', () => {
     render();
+  });
+
+  // Initialize layout system
+  cardLayout.init({
+    constraints: [{ columns: TABLEAU_COLS, element: tableauEl }],
+    observeElements: [tableauEl],
+    onUpdate: () => state && render(),
   });
 
   document.addEventListener('keydown', (ev) => {
