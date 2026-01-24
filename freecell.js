@@ -926,7 +926,7 @@ function handlePointerDown(ev) {
     startX: ev.clientX,
     startY: ev.clientY,
     dragging: false,
-    stackSpacing: cardMetrics.spacing,
+    stackSpacing: cardLayout.metrics.stackSpacing,
     raf: 0,
     pendingX: 0,
     pendingY: 0,
@@ -937,7 +937,7 @@ function handlePointerDown(ev) {
     lastDropKey: null,
   };
   if (sel.source.type === 'tableau') {
-    dragState.stackSpacing = tableauSpacingForStack(state.tableau[sel.source.index].length, tableauEl.getBoundingClientRect().top);
+    dragState.stackSpacing = tableauSpacingForStack(state.tableau[sel.source.index].length);
   }
 }
 
