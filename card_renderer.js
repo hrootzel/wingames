@@ -24,11 +24,11 @@ const PIP_LAYOUTS = {
   1: [10],                              // center
   2: [1, 19],                           // top-center, bottom-center
   3: [1, 10, 19],                       // center column: top, middle, bottom
-  4: [3, 5, 15, 17],                    // rows 1 and 5, left/right
-  5: [0, 2, 9, 11, 4],                  // compact: rows 0,3 left/right + center row 1
+  4: [0, 2, 18, 20],                    // corners: rows 0,6 left/right
+  5: [0, 2, 9, 11, 4],                  // compact 4-row: rows 0,3 left/right + center row 1
   6: [0, 2, 9, 11, 18, 20],             // rows 0, 3, 6 left/right
   // 7-10 use compact 4-row grid (indices 0-11)
-  7: [0, 2, 3, 5, 9, 11, 7],            // rows 0,1,3 left/right + center row 2
+  7: [0, 2, 6, 8, 9, 11, 4],            // rows 0,2,3 left/right + center row 1 (top)
   8: [0, 2, 3, 5, 6, 8, 9, 11],         // rows 0,1,2,3 left/right
   9: [0, 2, 3, 5, 6, 8, 9, 11, 4],      // 8 + center row 1
   10: [0, 2, 3, 5, 6, 8, 9, 11, 1, 10], // 8 + center rows 0 and 3
