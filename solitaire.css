@@ -1,10 +1,21 @@
 :root {
   --card-base-spacing: 26px;
-  --card-base-waste-spacing: 16px;
+}
+
+.solitaire .top-row {
+  justify-content: space-between;
+}
+
+.solitaire .top-row > .pile-wrap:first-child {
+  margin-right: 0;
+}
+
+.solitaire .foundation-row {
+  flex-wrap: nowrap;
 }
 
 .pile.waste {
-  min-width: calc(var(--card-width) + (var(--waste-spacing) * 2));
+  min-width: calc(var(--card-width) + var(--card-gap) * 4);
 }
 
 .foundation.empty {

@@ -902,7 +902,7 @@ function renderWaste() {
   wasteEl.innerHTML = '';
   const visible = options.drawCount === 3 ? Math.min(3, state.waste.length) : Math.min(1, state.waste.length);
   const start = state.waste.length - visible;
-  const wasteSpacing = cardLayout.metrics.cardGap;
+  const wasteSpacing = Math.round(cardLayout.metrics.cardGap * 1.8);
   for (let i = 0; i < visible; i++) {
     const card = state.waste[start + i];
     const el = buildCardElement(card, 'waste', start + i);
