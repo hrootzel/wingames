@@ -149,15 +149,15 @@
   transform: rotate(180deg);
 }
 
-/* Pips grid - all sizing via CSS scale */
+/* Pips grid - 3 cols × 7 rows (default) */
 .pips {
   position: absolute;
-  inset: calc(18px * var(--card-scale)) calc(12px * var(--card-scale));
+  inset: calc(18px * var(--card-scale)) calc(16px * var(--card-scale));
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(7, 1fr);
   place-items: center;
-  font-size: calc(16px * var(--card-scale));
+  font-size: calc(14px * var(--card-scale));
   line-height: 1;
 }
 
@@ -170,27 +170,11 @@
   font-size: calc(28px * var(--card-scale));
 }
 
-.pips-low {
-  inset: calc(20px * var(--card-scale)) calc(14px * var(--card-scale)) calc(24px * var(--card-scale));
-}
-
-.pips-center {
-  transform: translateX(-8%);
-}
-
-.pips-tight {
-  inset: calc(14px * var(--card-scale)) calc(10px * var(--card-scale));
-  font-size: calc(14px * var(--card-scale));
-  row-gap: 1px;
-  column-gap: 1px;
-}
-
-.pips-compact-4 {
+/* Compact 4-row grid for 7-10 */
+.pips-compact {
   grid-template-rows: repeat(4, 1fr);
-}
-
-.pips-seven {
-  transform: translateY(12.5%);
+  inset: calc(18px * var(--card-scale)) calc(10px * var(--card-scale));
+  font-size: calc(13px * var(--card-scale));
 }
 
 /* Face cards */

@@ -18,26 +18,26 @@ const DEFAULT_STATE_CLASSES = {
   red: 'red',
 };
 
+// Grid: 3 columns × 7 rows for 1-4,6; 3 columns × 4 rows for 5,7-10
+// Col: 0=left, 1=center, 2=right | Row index = row * 3 + col
 const PIP_LAYOUTS = {
-  1: [10],
-  2: [1, 19],
-  3: [1, 10, 19],
-  4: [0, 2, 18, 20],
-  5: [0, 2, 10, 18, 20],
-  6: [0, 2, 9, 11, 18, 20],
-  7: [0, 2, 3, 5, 6, 8, 4],
-  8: [0, 2, 3, 5, 6, 8, 9, 11],
-  9: [0, 2, 3, 5, 6, 8, 9, 11, 4],
-  10: [0, 2, 3, 5, 6, 8, 9, 11, 4, 7],
+  1: [10],                              // center
+  2: [1, 19],                           // top-center, bottom-center
+  3: [1, 10, 19],                       // center column: top, middle, bottom
+  4: [3, 5, 15, 17],                    // rows 1 and 5, left/right
+  5: [0, 2, 9, 11, 4],                  // compact: rows 0,3 left/right + center row 1
+  6: [0, 2, 9, 11, 18, 20],             // rows 0, 3, 6 left/right
+  // 7-10 use compact 4-row grid (indices 0-11)
+  7: [0, 2, 3, 5, 9, 11, 7],            // rows 0,1,3 left/right + center row 2
+  8: [0, 2, 3, 5, 6, 8, 9, 11],         // rows 0,1,2,3 left/right
+  9: [0, 2, 3, 5, 6, 8, 9, 11, 4],      // 8 + center row 1
+  10: [0, 2, 3, 5, 6, 8, 9, 11, 1, 10], // 8 + center rows 0 and 3
 };
 
 const getPipsModifiers = (value) => {
   const classes = [];
   if (value === 1) classes.push('pips-ace');
-  if (value >= 2 && value <= 6) classes.push('pips-low');
-  if (value === 4 || value === 5) classes.push('pips-center');
-  if (value >= 7) classes.push('pips-tight', 'pips-compact-4');
-  if (value === 7) classes.push('pips-seven');
+  if (value === 5 || value >= 7) classes.push('pips-compact');
   return classes;
 };
 
