@@ -35,6 +35,7 @@ let score = 0;
 let wave = 1;
 let lives = 3;
 let highScore = parseInt(localStorage.getItem(STORAGE_HIGH)) || 0;
+let nextBonusAt = 10000; // First bonus at 10k
 let keys = {};
 let mouseX = W / 2;
 let mouseY = H - CELL * 2;
@@ -172,6 +173,7 @@ function startGame() {
   score = 0;
   wave = 1;
   lives = 3;
+  nextBonusAt = 10000;
   state = State.PLAYING;
   init();
   statusEl.textContent = 'Playing...';
@@ -181,6 +183,15 @@ function updateHud() {
   scoreEl.textContent = score;
   waveEl.textContent = wave;
   livesEl.textContent = lives;
+  
+  // Check for bonus life
+  if (score >= nextBonusAt) {
+    lives++;
+    livesEl.textContent = lives;
+    sfx.play(BANK_MYRIAPOD, 'bonusLife');
+    nextBonusAt += 10000; // Next bonus every 10k
+    statusEl.textContent = 'Bonus Life!';
+  }
 }
 
 function tick() {
