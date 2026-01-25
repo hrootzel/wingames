@@ -1374,13 +1374,16 @@ function generatePuzzle(diff) {
     const clues = countClues(puzzle);
     const report = rateByLogicalSolve(puzzle, solution);
     if (!report.solved) continue;
-    if (report.maxLevelUsed > profile.maxLevel) continue;
+    if (report.maxLevelUsed > profile.maxLevel) {
+      if (!fallback) fallback = { puzzle, solution };
+      continue;
+    }
     if (clues >= profile.minClues && clues <= profile.maxClues) {
       return { puzzle, solution };
     }
     fallback = { puzzle, solution };
   }
-  return fallback || { puzzle: Array(81).fill(0), solution: Array(81).fill(0) };
+  return fallback;
 }
 
 function attachEvents() {
