@@ -1,0 +1,61 @@
+.memory #app { max-width: 900px; }
+
+.memory-board {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.memory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, var(--card-width));
+  gap: var(--card-gap);
+  justify-content: center;
+}
+
+.memory-slot {
+  width: var(--card-width);
+  height: var(--card-height);
+  position: relative;
+  cursor: pointer;
+}
+
+.memory-slot .card,
+.memory-slot .card-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.memory-slot .card-back {
+  width: var(--card-width);
+  height: var(--card-height);
+  border-radius: calc(10px * var(--card-scale));
+  border: 2px solid #102d65;
+  background: linear-gradient(145deg, #1d3b85, #102c5f);
+}
+
+/* Default: show back, hide face */
+.memory-slot .card {
+  display: none;
+}
+
+/* When flipped: show face, hide back */
+.memory-slot.flipped .card {
+  display: block;
+}
+
+.memory-slot.flipped .card-back {
+  display: none;
+}
+
+.memory-slot.matched {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.memory-slot.matched .card {
+  outline: 4px solid #fbbf24;
+  outline-offset: -3px;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
+}

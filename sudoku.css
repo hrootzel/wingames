@@ -169,6 +169,10 @@ body.sudoku[data-theme="light"] {
   animation: shake 120ms linear 2;
 }
 
+.cell.highlight-digit {
+  background: rgba(96, 165, 250, 0.25);
+}
+
 .value {
   font-size: clamp(18px, 4vmin, 34px);
   line-height: 1;

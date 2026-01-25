@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
+  <title>Myriapod</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="myriapod.css">
+</head>
+<body class="myriapod">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>Myriapod</h1>
+        <p class="subtitle">Shoot the descending centipede before it reaches you.</p>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Move mouse to start.</span>
+      </div>
+    </div>
+
+    <div class="board myriapod-board">
+      <div class="myriapod-stage">
+        <canvas id="myriapod-canvas" width="240" height="256"></canvas>
+      </div>
+
+      <div class="myriapod-side">
+        <div class="panel-box">
+          <h3>Score</h3>
+          <div class="myriapod-stats">
+            <div>Score: <span id="score">0</span></div>
+            <div>Wave: <span id="wave">1</span></div>
+            <div>Lives: <span id="lives">3</span></div>
+            <div>High: <span id="high">0</span></div>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <div class="myriapod-controls">
+            <button id="new-game">New Game</button>
+            <button id="pause">Pause</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="myriapod-footer">
+      <div class="panel-box">
+        <h3>Controls</h3>
+        <div class="key-hints">
+          <div><span class="key">Mouse</span> Move</div>
+          <div><span class="key">Click</span> Shoot</div>
+          <div><span class="key">P</span> Pause</div>
+          <div><span class="key">R</span> Restart</div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="myriapod.js"></script>
+</body>
+</html>

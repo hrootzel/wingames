@@ -6,10 +6,10 @@ const DIFF_LABELS = {
   extreme: 'Extreme',
 };
 const DIFF_PROFILE = {
-  easy: { minClues: 36, maxClues: 40, maxLevel: 1, allowGuess: false, requireGuess: false },
-  medium: { minClues: 32, maxClues: 35, maxLevel: 2, allowGuess: false, requireGuess: false },
-  hard: { minClues: 28, maxClues: 31, maxLevel: 3, allowGuess: false, requireGuess: false },
-  extreme: { minClues: 24, maxClues: 27, maxLevel: 4, allowGuess: true, requireGuess: true },
+  easy: { minClues: 36, maxClues: 40, maxLevel: 1 },
+  medium: { minClues: 32, maxClues: 35, maxLevel: 2 },
+  hard: { minClues: 28, maxClues: 31, maxLevel: 3 },
+  extreme: { minClues: 24, maxClues: 27, maxLevel: 4 },
 };
 
 const appState = {
@@ -376,18 +376,120 @@ function techXWing(board, cand) {
   return actions;
 }
 
+function techSwordfish(board, cand) {
+  const actions = [];
+  for (let d = 1; d <= 9; d++) {
+    // Row-based Swordfish
+    const rowData = [];
+    for (let r = 0; r < 9; r++) {
+      const cols = [];
+      for (let c = 0; c < 9; c++) {
+        if (board[idx(r, c)] === 0 && (cand[idx(r, c)] & bit(d))) cols.push(c);
+      }
+      if (cols.length >= 2 && cols.length <= 3) rowData.push({ r, cols });
+    }
+    for (let a = 0; a < rowData.length; a++) {
+      for (let b = a + 1; b < rowData.length; b++) {
+        for (let c = b + 1; c < rowData.length; c++) {
+          const colSet = new Set([...rowData[a].cols, ...rowData[b].cols, ...rowData[c].cols]);
+          if (colSet.size !== 3) continue;
+          const rows = [rowData[a].r, rowData[b].r, rowData[c].r];
+          for (const col of colSet) {
+            for (let r = 0; r < 9; r++) {
+              if (rows.includes(r)) continue;
+              const i = idx(r, col);
+              if (board[i] === 0 && (cand[i] & bit(d))) {
+                actions.push({ type: 'elim', i, mask: bit(d), level: 4 });
+              }
+            }
+          }
+        }
+      }
+    }
+    // Column-based Swordfish
+    const colData = [];
+    for (let c = 0; c < 9; c++) {
+      const rows = [];
+      for (let r = 0; r < 9; r++) {
+        if (board[idx(r, c)] === 0 && (cand[idx(r, c)] & bit(d))) rows.push(r);
+      }
+      if (rows.length >= 2 && rows.length <= 3) colData.push({ c, rows });
+    }
+    for (let a = 0; a < colData.length; a++) {
+      for (let b = a + 1; b < colData.length; b++) {
+        for (let c = b + 1; c < colData.length; c++) {
+          const rowSet = new Set([...colData[a].rows, ...colData[b].rows, ...colData[c].rows]);
+          if (rowSet.size !== 3) continue;
+          const cols = [colData[a].c, colData[b].c, colData[c].c];
+          for (const row of rowSet) {
+            for (let col = 0; col < 9; col++) {
+              if (cols.includes(col)) continue;
+              const i = idx(row, col);
+              if (board[i] === 0 && (cand[i] & bit(d))) {
+                actions.push({ type: 'elim', i, mask: bit(d), level: 4 });
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return actions;
+}
+
+function techXYWing(board, cand) {
+  const actions = [];
+  for (let pivot = 0; pivot < 81; pivot++) {
+    if (board[pivot] !== 0) continue;
+    const pMask = cand[pivot];
+    if (popcount(pMask) !== 2) continue;
+    const [x, y] = maskToDigits(pMask);
+    const peers = PEERS[pivot];
+    const wingCells = [];
+    for (const p of peers) {
+      if (board[p] !== 0) continue;
+      const m = cand[p];
+      if (popcount(m) !== 2) continue;
+      if ((m & pMask) && m !== pMask) wingCells.push({ i: p, mask: m });
+    }
+    for (let a = 0; a < wingCells.length; a++) {
+      for (let b = a + 1; b < wingCells.length; b++) {
+        const wA = wingCells[a], wB = wingCells[b];
+        if (PEERS[wA.i].includes(wB.i)) continue;
+        let z = 0;
+        if ((wA.mask & bit(x)) && (wB.mask & bit(y))) z = wA.mask & ~bit(x);
+        else if ((wA.mask & bit(y)) && (wB.mask & bit(x))) z = wA.mask & ~bit(y);
+        if (!z || popcount(z) !== 1) continue;
+        const zDigit = firstDigit(z);
+        if (!(wB.mask & bit(zDigit))) continue;
+        for (let t = 0; t < 81; t++) {
+          if (t === pivot || t === wA.i || t === wB.i) continue;
+          if (board[t] !== 0) continue;
+          if (!PEERS[wA.i].includes(t) || !PEERS[wB.i].includes(t)) continue;
+          if (cand[t] & z) {
+            actions.push({ type: 'elim', i: t, mask: z, level: 4 });
+          }
+        }
+      }
+    }
+  }
+  return actions;
+}
+
 const TECHS = [
   techNakedSingles,
   techHiddenSingles,
   techLockedCandidates,
   techNakedPairs,
   techXWing,
+  techSwordfish,
+  techXYWing,
 ];
 
-function solveByTechniques(puzzle, allowGuess, maxGuessDepth) {
+function solveByTechniques(puzzle) {
   const board = puzzle.slice();
   let cand = computeCandidates(board);
-  const report = { solved: false, steps: 0, maxLevelUsed: 0, usedGuess: false };
+  const report = { solved: false, steps: 0, maxLevelUsed: 0 };
 
   function applyActions(actions) {
     let assigned = false;
@@ -428,51 +530,14 @@ function solveByTechniques(puzzle, allowGuess, maxGuessDepth) {
         break;
       }
     }
-    if (progressed) continue;
-
-    if (!allowGuess || maxGuessDepth <= 0) {
+    if (!progressed) {
       return { board, report };
     }
-
-    report.usedGuess = true;
-    let bestI = -1;
-    let bestMask = 0;
-    let bestCount = 10;
-    for (let i = 0; i < 81; i++) {
-      if (board[i] !== 0) continue;
-      const count = popcount(cand[i]);
-      if (count === 0) return { board, report };
-      if (count < bestCount) {
-        bestCount = count;
-        bestMask = cand[i];
-        bestI = i;
-        if (count === 1) break;
-      }
-    }
-
-    if (bestI < 0) return { board, report };
-    const digits = maskToDigits(bestMask);
-    for (const d of digits) {
-      const next = board.slice();
-      next[bestI] = d;
-      const sub = solveByTechniques(next, allowGuess, maxGuessDepth - 1);
-      if (sub.report.solved) {
-        for (let i = 0; i < 81; i++) {
-          board[i] = sub.board[i];
-        }
-        report.steps += sub.report.steps;
-        report.maxLevelUsed = Math.max(report.maxLevelUsed, 4, sub.report.maxLevelUsed);
-        report.solved = true;
-        return { board, report };
-      }
-    }
-
-    return { board, report };
   }
 }
 
-function rateByLogicalSolve(puzzle, solution, allowGuess) {
-  const { board, report } = solveByTechniques(puzzle, allowGuess, allowGuess ? 2 : 0);
+function rateByLogicalSolve(puzzle, solution) {
+  const { board, report } = solveByTechniques(puzzle);
   if (report.solved) {
     for (let i = 0; i < 81; i++) {
       if (board[i] !== solution[i]) {
@@ -630,6 +695,7 @@ function renderKeypad() {
 
 function renderBoard() {
   if (!gameState) return;
+  const activeDigit = gameState.input.mode !== 'eraser' ? gameState.input.digit : null;
   for (let i = 0; i < 81; i++) {
     const cell = cellEls[i];
     const value = gameState.board[i];
@@ -639,6 +705,7 @@ function renderBoard() {
     cell.classList.toggle('revealed', gameState.revealed[i]);
     cell.classList.toggle('error', gameState.errors[i]);
     cell.classList.toggle('selected', gameState.selection && gameState.selection.i === i);
+    cell.classList.toggle('highlight-digit', activeDigit && (value === activeDigit || hasNote(gameState.notes[i], activeDigit)));
 
     const valueEl = valueEls[i];
     const notesEl = notesEls[i];
@@ -824,6 +891,7 @@ function setDigit(d, applyNow) {
   gameState.input.digit = d;
   updateLabels();
   renderKeypad();
+  renderBoard();
   if (applyNow && gameState.selection) {
     applyInputToCell(gameState.selection.i, d);
   }
@@ -835,6 +903,7 @@ function setEraser(applyNow) {
   gameState.input.digit = null;
   updateLabels();
   renderKeypad();
+  renderBoard();
   if (applyNow && gameState.selection) {
     applyInputToCell(gameState.selection.i, 0);
   }
@@ -1303,17 +1372,10 @@ function generatePuzzle(diff) {
     const solution = generateSolvedGrid();
     const puzzle = digHolesUnique(solution, profile.minClues, profile.maxClues);
     const clues = countClues(puzzle);
-    const report = rateByLogicalSolve(puzzle, solution, profile.allowGuess);
-    if (!report.solved) {
-      continue;
-    }
-    if (!profile.allowGuess && report.usedGuess) {
-      continue;
-    }
-    if (profile.requireGuess && !report.usedGuess) {
-      continue;
-    }
+    const report = rateByLogicalSolve(puzzle, solution);
+    if (!report.solved) continue;
     if (report.maxLevelUsed > profile.maxLevel) {
+      if (!fallback) fallback = { puzzle, solution };
       continue;
     }
     if (clues >= profile.minClues && clues <= profile.maxClues) {
@@ -1321,7 +1383,7 @@ function generatePuzzle(diff) {
     }
     fallback = { puzzle, solution };
   }
-  return fallback || { puzzle: Array(81).fill(0), solution: Array(81).fill(0) };
+  return fallback;
 }
 
 function attachEvents() {
