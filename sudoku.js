@@ -630,6 +630,7 @@ function renderKeypad() {
 
 function renderBoard() {
   if (!gameState) return;
+  const activeDigit = gameState.input.mode !== 'eraser' ? gameState.input.digit : null;
   for (let i = 0; i < 81; i++) {
     const cell = cellEls[i];
     const value = gameState.board[i];
@@ -639,6 +640,7 @@ function renderBoard() {
     cell.classList.toggle('revealed', gameState.revealed[i]);
     cell.classList.toggle('error', gameState.errors[i]);
     cell.classList.toggle('selected', gameState.selection && gameState.selection.i === i);
+    cell.classList.toggle('highlight-digit', activeDigit && (value === activeDigit || hasNote(gameState.notes[i], activeDigit)));
 
     const valueEl = valueEls[i];
     const notesEl = notesEls[i];
@@ -824,6 +826,7 @@ function setDigit(d, applyNow) {
   gameState.input.digit = d;
   updateLabels();
   renderKeypad();
+  renderBoard();
   if (applyNow && gameState.selection) {
     applyInputToCell(gameState.selection.i, d);
   }
@@ -835,6 +838,7 @@ function setEraser(applyNow) {
   gameState.input.digit = null;
   updateLabels();
   renderKeypad();
+  renderBoard();
   if (applyNow && gameState.selection) {
     applyInputToCell(gameState.selection.i, 0);
   }
