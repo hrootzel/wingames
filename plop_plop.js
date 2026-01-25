@@ -374,41 +374,58 @@ function keyFor(r, c) {
   return r * W + c;
 }
 
+// Pre-allocated buffers for flood-fill (arcade-style optimization)
+const _visited = new Uint8Array(H * W);
+const _stack = new Uint16Array(H * W);
+const _groupCells = new Uint16Array(H * W);
+// Neighbor offsets: down, up, right, left (matches arcade loc_00004F90)
+const _neighborOffsets = [W, -W, 1, -1];
+const _neighborColDelta = [0, 0, 1, -1];
+
 function findPopGroups() {
-  const visited = Array.from({ length: H }, () => Array(W).fill(false));
+  _visited.fill(0);
   const groups = [];
+  const cells = game.board.cells;
 
   for (let r = 0; r < H; r++) {
     for (let c = 0; c < W; c++) {
-      if (visited[r][c]) continue;
-      const cell = game.board.get(r, c);
-      if (!cell || cell.kind !== Kind.COLOR) continue;
+      const idx = r * W + c;
+      if (_visited[idx]) continue;
+      const cell = cells[r][c];
+      if (cell.kind !== Kind.COLOR) continue;
       const color = cell.color;
-      const stack = [{ row: r, col: c }];
-      const cells = [];
-      visited[r][c] = true;
 
-      while (stack.length) {
-        const cur = stack.pop();
-        cells.push(cur);
-        const neighbors = [
-          { row: cur.row + 1, col: cur.col },
-          { row: cur.row - 1, col: cur.col },
-          { row: cur.row, col: cur.col + 1 },
-          { row: cur.row, col: cur.col - 1 },
-        ];
-        for (const n of neighbors) {
-          if (!game.board.inBounds(n.row, n.col)) continue;
-          if (visited[n.row][n.col]) continue;
-          const next = game.board.get(n.row, n.col);
-          if (!next || next.kind !== Kind.COLOR || next.color !== color) continue;
-          visited[n.row][n.col] = true;
-          stack.push(n);
+      // Flood-fill using pre-allocated stack
+      let stackLen = 1, groupLen = 0;
+      _stack[0] = idx;
+      _visited[idx] = 1;
+
+      while (stackLen > 0) {
+        const cur = _stack[--stackLen];
+        _groupCells[groupLen++] = cur;
+        const curCol = cur % W;
+
+        for (let i = 0; i < 4; i++) {
+          const ni = cur + _neighborOffsets[i];
+          const nc = curCol + _neighborColDelta[i];
+          // Bounds check: column wrap and array bounds
+          if (nc < 0 || nc >= W || ni < 0 || ni >= H * W) continue;
+          if (_visited[ni]) continue;
+          const nr = (ni / W) | 0;
+          const next = cells[nr][nc];
+          if (next.kind !== Kind.COLOR || next.color !== color) continue;
+          _visited[ni] = 1;
+          _stack[stackLen++] = ni;
         }
       }
 
-      if (cells.length >= 4) {
-        groups.push({ color, cells });
+      if (groupLen >= 4) {
+        const groupCells = [];
+        for (let i = 0; i < groupLen; i++) {
+          const gi = _groupCells[i];
+          groupCells.push({ row: (gi / W) | 0, col: gi % W });
+        }
+        groups.push({ color, cells: groupCells });
       }
     }
   }
@@ -480,42 +497,42 @@ function clearGroups(groups) {
   // Second pass: find adjacent garbage blobs to clear
   const garbageToRemove = new Set();
   for (const id of popSet) {
-    const row = Math.floor(id / W);
+    const row = (id / W) | 0;
     const col = id % W;
-    const neighbors = [
-      { row: row + 1, col },
-      { row: row - 1, col },
-      { row, col: col + 1 },
-      { row, col: col - 1 },
-    ];
-    for (const n of neighbors) {
-      if (!game.board.inBounds(n.row, n.col)) continue;
-      const cell = game.board.get(n.row, n.col);
-      if (cell && cell.kind === Kind.COLOR && cell.color === GARBAGE_COLOR) {
-        garbageToRemove.add(keyFor(n.row, n.col));
-      }
+    // Check 4 neighbors without object allocation
+    if (row + 1 < H) {
+      const cell = game.board.cells[row + 1][col];
+      if (cell.kind === Kind.COLOR && cell.color === GARBAGE_COLOR)
+        garbageToRemove.add(keyFor(row + 1, col));
+    }
+    if (row > 0) {
+      const cell = game.board.cells[row - 1][col];
+      if (cell.kind === Kind.COLOR && cell.color === GARBAGE_COLOR)
+        garbageToRemove.add(keyFor(row - 1, col));
+    }
+    if (col + 1 < W) {
+      const cell = game.board.cells[row][col + 1];
+      if (cell.kind === Kind.COLOR && cell.color === GARBAGE_COLOR)
+        garbageToRemove.add(keyFor(row, col + 1));
+    }
+    if (col > 0) {
+      const cell = game.board.cells[row][col - 1];
+      if (cell.kind === Kind.COLOR && cell.color === GARBAGE_COLOR)
+        garbageToRemove.add(keyFor(row, col - 1));
     }
   }
 
   // Clear colored blobs
   for (const id of popSet) {
-    const row = Math.floor(id / W);
-    const col = id % W;
-    game.board.set(row, col, makeEmptyCell());
+    game.board.set((id / W) | 0, id % W, makeEmptyCell());
   }
 
   // Clear garbage blobs
   for (const id of garbageToRemove) {
-    const row = Math.floor(id / W);
-    const col = id % W;
-    game.board.set(row, col, makeEmptyCell());
+    game.board.set((id / W) | 0, id % W, makeEmptyCell());
   }
 
-  return {
-    clearedCount,
-    distinctColors: colors.size,
-    groupSizes,
-  };
+  return { clearedCount, distinctColors: colors.size, groupSizes };
 }
 
 function isBoardEmpty() {
