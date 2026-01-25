@@ -220,13 +220,16 @@ function tick() {
       e.y += e.dy;
       if (e.x < 0 || e.x > W - CELL) e.dx *= -1;
       if (e.y < H - CELL * PLAYER_AREA || e.y > H - CELL) e.dy *= -1;
+      if (frameCount % 30 === 0) sfx.play(BANK_MYRIAPOD, 'spider');
     } else if (e.type === 'flea') {
       e.y += 2;
       if (Math.random() < 0.1) {
         mushrooms.push({ x: e.x, y: e.y, hits: 0 });
       }
+      if (frameCount % 20 === 0) sfx.play(BANK_MYRIAPOD, 'flea');
     } else if (e.type === 'scorpion') {
       e.x += e.dx * 2;
+      if (frameCount % 40 === 0) sfx.play(BANK_MYRIAPOD, 'scorpion');
     }
   });
   
