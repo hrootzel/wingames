@@ -211,6 +211,7 @@ body.sudoku[data-theme="light"] {
 }
 
 .key {
+  position: relative;
   border: 2px solid var(--sudoku-key-border);
   border-radius: 10px;
   display: grid;
@@ -223,6 +224,14 @@ body.sudoku[data-theme="light"] {
   transition: transform 120ms ease, box-shadow 120ms ease;
   aspect-ratio: 1 / 1;
   width: 100%;
+}
+
+.key .count {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 10px;
+  opacity: 0.7;
 }
 
 .key:hover {

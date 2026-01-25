@@ -656,6 +656,9 @@ function buildKeypad() {
     if (typeof k === 'number') {
       el.dataset.digit = String(k);
       el.textContent = String(k);
+      const countEl = document.createElement('span');
+      countEl.className = 'count';
+      el.appendChild(countEl);
     } else {
       el.dataset.tool = k.tool;
       el.classList.add('tool');
@@ -681,11 +684,18 @@ function renderKeypad() {
   if (!gameState) return;
   const mode = gameState.input.mode;
   const activeDigit = gameState.input.digit;
+  const counts = Array(10).fill(0);
+  for (let i = 0; i < 81; i++) {
+    const v = gameState.board[i];
+    if (v) counts[v]++;
+  }
   for (const key of keyEls) {
     key.classList.remove('active');
     const digit = key.dataset.digit ? Number(key.dataset.digit) : null;
-    if (digit && digit === activeDigit && mode !== 'eraser') {
-      key.classList.add('active');
+    if (digit) {
+      if (digit === activeDigit && mode !== 'eraser') key.classList.add('active');
+      const countEl = key.querySelector('.count');
+      if (countEl) countEl.textContent = counts[digit];
     }
     const tool = key.dataset.tool;
     if (tool === 'pencil' && mode === 'pencil') key.classList.add('active');
