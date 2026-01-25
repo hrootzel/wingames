@@ -38,6 +38,7 @@ let highScore = parseInt(localStorage.getItem(STORAGE_HIGH)) || 0;
 let keys = {};
 let mouseX = W / 2;
 let mouseY = H - CELL * 2;
+let mouseDown = false;
 let accum = 0;
 let lastTime = 0;
 let frameCount = 0;
@@ -190,6 +191,11 @@ function tick() {
   // Player movement
   player.x = Math.max(0, Math.min(W - CELL, mouseX - CELL / 2));
   player.y = Math.max(H - CELL * PLAYER_AREA, Math.min(H - CELL, mouseY - CELL / 2));
+  
+  // Auto-fire when mouse held
+  if (mouseDown && frameCount % 10 === 0) {
+    shoot();
+  }
   
   // Bullet movement
   if (bullet) {
@@ -529,9 +535,18 @@ canvas.addEventListener('mousemove', (e) => {
   if (state === State.IDLE) startGame();
 });
 
-canvas.addEventListener('click', () => {
+canvas.addEventListener('mousedown', () => {
   if (!audioUnlocked) { sfx.unlock(); audioUnlocked = true; }
+  mouseDown = true;
   shoot();
+});
+
+canvas.addEventListener('mouseup', () => {
+  mouseDown = false;
+});
+
+canvas.addEventListener('mouseleave', () => {
+  mouseDown = false;
 });
 
 document.addEventListener('keydown', (e) => {
