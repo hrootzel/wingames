@@ -42,3 +42,7 @@
   visibility: hidden;
   pointer-events: none;
 }
+
+#deal {
+  min-width: 120px;
+}

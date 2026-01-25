@@ -22,6 +22,10 @@ const surrenderBtn = document.getElementById('surrender');
 const hintBtn = document.getElementById('hint');
 const newRoundBtn = document.getElementById('new-round');
 
+const optionsBtn = document.getElementById('options');
+const optionsModal = document.getElementById('options-modal');
+const optionsCloseBtn = document.getElementById('options-close');
+
 const decksSelect = document.getElementById('decks');
 const optEuropean = document.getElementById('opt-european');
 const optSurrender = document.getElementById('opt-surrender');
@@ -802,6 +806,25 @@ function unlockAudio() {
   sfx.unlock();
 }
 
+function openModal(modalEl) {
+  if (!modalEl) return;
+  modalEl.classList.remove('hidden');
+}
+
+function closeModal(modalEl) {
+  if (!modalEl) return;
+  modalEl.classList.add('hidden');
+}
+
+function syncOptionsForm() {
+  decksSelect.value = String(state.options.decks);
+  optEuropean.checked = state.options.europeanNoHoleCard;
+  optSurrender.checked = state.options.allowSurrender;
+  optDAS.checked = state.options.allowDAS;
+  optDoubleAny.checked = state.options.doubleAny;
+  optHitSoft17.checked = state.options.dealerHitsSoft17;
+}
+
 function attachEvents() {
   dealBtn.addEventListener('click', startRound);
   hitBtn.addEventListener('click', hit);
@@ -819,6 +842,51 @@ function attachEvents() {
   [decksSelect, optEuropean, optSurrender, optDAS, optDoubleAny, optHitSoft17].forEach((el) =>
     el.addEventListener('change', updateOptionsFromUI),
   );
+
+  optionsBtn.addEventListener('click', () => {
+    syncOptionsForm();
+    openModal(optionsModal);
+  });
+  optionsCloseBtn.addEventListener('click', () => closeModal(optionsModal));
+  optionsModal.addEventListener('click', (ev) => {
+    if (ev.target === optionsModal) closeModal(optionsModal);
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      closeModal(optionsModal);
+      return;
+    }
+    
+    // Keyboard shortcuts
+    const key = ev.key.toLowerCase();
+    if (key === 'd' || key === ' ') {
+      if (!dealBtn.disabled) {
+        ev.preventDefault();
+        startRound();
+      } else if (!newRoundBtn.disabled) {
+        ev.preventDefault();
+        newRound();
+      }
+    } else if (key === 'h' && !hitBtn.disabled) {
+      ev.preventDefault();
+      hit();
+    } else if (key === 's' && !standBtn.disabled) {
+      ev.preventDefault();
+      stand();
+    } else if (key === 'o' && !doubleBtn.disabled) {
+      ev.preventDefault();
+      doubleDown();
+    } else if (key === 'p' && !splitBtn.disabled) {
+      ev.preventDefault();
+      splitHand();
+    } else if (key === 'r' && !surrenderBtn.disabled) {
+      ev.preventDefault();
+      surrender();
+    } else if (key === '?' && !hintBtn.disabled) {
+      ev.preventDefault();
+      hint();
+    }
+  });
 }
 
 state = initialState();

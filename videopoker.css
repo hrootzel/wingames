@@ -127,3 +127,7 @@
 .vp-controls {
   justify-content: flex-end;
 }
+
+#deal {
+  min-width: 160px;
+}
