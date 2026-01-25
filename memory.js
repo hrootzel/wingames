@@ -9,6 +9,7 @@ const totalPairsEl = document.getElementById('total-pairs');
 const timeEl = document.getElementById('time');
 const newBtn = document.getElementById('new-game');
 const gridSizeSelect = document.getElementById('grid-size');
+const orientationSelect = document.getElementById('orientation');
 
 const cardRenderer = new CardRenderer();
 const cardLayout = new CardLayout();
@@ -75,7 +76,17 @@ function newGame() {
 }
 
 function updateGrid() {
-  const cols = state.cards.length === 12 ? 4 : 4;
+  const totalCards = state.cards.length;
+  const orientation = orientationSelect.value;
+  
+  const gridConfigs = {
+    12: { h: [4, 3], v: [3, 4] },
+    16: { h: [4, 4], v: [4, 4] },
+    20: { h: [5, 4], v: [4, 5] },
+    24: { h: [6, 4], v: [4, 6] }
+  };
+  
+  const [cols, rows] = gridConfigs[totalCards][orientation === 'vertical' ? 'v' : 'h'];
   gridEl.style.gridTemplateColumns = `repeat(${cols}, var(--card-width))`;
   gridEl.innerHTML = '';
   
@@ -193,6 +204,7 @@ gridEl.addEventListener('click', (e) => {
 
 newBtn.addEventListener('click', newGame);
 gridSizeSelect.addEventListener('change', newGame);
+orientationSelect.addEventListener('change', () => state && updateGrid());
 
 cardLayout.init({
   constraints: [{ columns: 4, element: gridEl }],
