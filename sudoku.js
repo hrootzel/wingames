@@ -802,6 +802,9 @@ function applyInputToCell(i, d, modeOverride) {
     gameState.notes[i] = 0;
     gameState.revealed[i] = false;
     gameState.errors[i] = false;
+    for (const p of PEERS[i]) {
+      gameState.notes[p] &= ~bit(d);
+    }
     afterMove();
     return;
   }
