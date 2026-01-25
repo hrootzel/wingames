@@ -17,23 +17,33 @@ const GameState = {
   SPAWN: 'SPAWN',
   FALLING: 'FALLING',
   RESOLVE: 'RESOLVE',
+  GARBAGE_DROP: 'GARBAGE_DROP',
   GAME_OVER: 'GAME_OVER',
 };
 
 const COLORS = ['R', 'G', 'B', 'Y'];
+// Nuisance/garbage blob color (gray)
+const GARBAGE_COLOR = 'X';
 const PALETTE = {
   R: { base: '#ef4444', light: '#fecaca', dark: '#b91c1c' },
   G: { base: '#22c55e', light: '#bbf7d0', dark: '#15803d' },
   B: { base: '#3b82f6', light: '#bfdbfe', dark: '#1d4ed8' },
   Y: { base: '#facc15', light: '#fef3c7', dark: '#d97706' },
+  X: { base: '#6b7280', light: '#d1d5db', dark: '#374151' }, // Garbage blob
 };
 
+// Chain 1 has power 0, chain 2 = 8, then doubles/increases per arcade formula
 const CHAIN_POWER = [
   0, 8, 16, 32, 64, 96, 128, 160, 192, 224, 256, 288,
   320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672,
 ];
 
-const ALL_CLEAR_BONUS = 5000;
+// Margin time constants (arcade: ~96 frames countdown before garbage drops)
+const MARGIN_TIME_FRAMES = 96;
+
+// Arcade nuisance rate: 70 points per garbage
+const NUISANCE_RATE = 70;
+const ALL_CLEAR_BONUS = 2100; // Arcade: 30 garbage worth = 30 * 70
 const DAS = 160;
 const ARR = 60;
 const FIXED_DT = 1000 / 60;
@@ -139,6 +149,9 @@ function makeGame() {
     level: 1,
     score: 0,
     lastChain: 0,
+    maxChain: 0, // Track best chain for display
+    pendingGarbage: 0, // Nuisance blobs waiting to drop
+    garbageCounter: 0, // Accumulated points toward garbage
     status: 'Ready.',
     statusBeforePause: 'Ready.',
     timers: { gravityElapsed: 0 },
@@ -454,6 +467,7 @@ function clearGroups(groups) {
   const groupSizes = [];
   let clearedCount = 0;
 
+  // First pass: mark all colored blobs to clear
   for (const group of groups) {
     groupSizes.push(group.cells.length);
     colors.add(group.color);
@@ -463,7 +477,35 @@ function clearGroups(groups) {
     }
   }
 
+  // Second pass: find adjacent garbage blobs to clear
+  const garbageToRemove = new Set();
   for (const id of popSet) {
+    const row = Math.floor(id / W);
+    const col = id % W;
+    const neighbors = [
+      { row: row + 1, col },
+      { row: row - 1, col },
+      { row, col: col + 1 },
+      { row, col: col - 1 },
+    ];
+    for (const n of neighbors) {
+      if (!game.board.inBounds(n.row, n.col)) continue;
+      const cell = game.board.get(n.row, n.col);
+      if (cell && cell.kind === Kind.COLOR && cell.color === GARBAGE_COLOR) {
+        garbageToRemove.add(keyFor(n.row, n.col));
+      }
+    }
+  }
+
+  // Clear colored blobs
+  for (const id of popSet) {
+    const row = Math.floor(id / W);
+    const col = id % W;
+    game.board.set(row, col, makeEmptyCell());
+  }
+
+  // Clear garbage blobs
+  for (const id of garbageToRemove) {
     const row = Math.floor(id / W);
     const col = id % W;
     game.board.set(row, col, makeEmptyCell());
@@ -491,6 +533,7 @@ function resolveBoard(dt) {
     clearedAny: false,
     settling: false,
     settleTimer: 0,
+    totalScore: 0, // Track score for this chain sequence
   };
 
   if (resolve.settling) {
@@ -511,10 +554,18 @@ function resolveBoard(dt) {
   if (groups.length === 0) {
     game.lastChain = resolve.clearedAny ? resolve.chainIndex - 1 : 0;
     if (game.lastChain < 2) game.lastChain = 0;
+    if (game.lastChain > game.maxChain) game.maxChain = game.lastChain;
+
+    // Calculate garbage generated from this chain sequence
+    if (resolve.totalScore > 0) {
+      const garbageGenerated = Math.floor(resolve.totalScore / NUISANCE_RATE);
+      game.garbageCounter += garbageGenerated;
+    }
 
     if (resolve.clearedAny && isBoardEmpty()) {
       game.score += ALL_CLEAR_BONUS;
-      game.status = `All clear +${ALL_CLEAR_BONUS}`;
+      game.garbageCounter += Math.floor(ALL_CLEAR_BONUS / NUISANCE_RATE);
+      game.status = `All clear! +${ALL_CLEAR_BONUS}`;
       sfx.play(BANK_PLOPPLOP, 'allClear');
     }
 
@@ -527,11 +578,16 @@ function resolveBoard(dt) {
   const chainIndex = resolve.chainIndex;
   const linkScore = scoreLink(chainIndex, info.clearedCount, info.distinctColors, info.groupSizes);
   game.score += linkScore;
-  game.status = `Link ${chainIndex} +${linkScore}`;
+  resolve.totalScore += linkScore;
+  
+  // Status shows chain count and score
   if (chainIndex >= 2) {
-    sfx.play(BANK_PLOPPLOP, 'chain', { chain: chainIndex, chainIndex });
+    game.status = `${chainIndex}-Chain! +${linkScore}`;
+    sfx.play(BANK_PLOPPLOP, 'chain', { chain: chainIndex });
+  } else {
+    game.status = `Pop! +${linkScore}`;
   }
-  sfx.play(BANK_PLOPPLOP, 'clear', { cleared: info.clearedCount, chain: chainIndex, chainIndex });
+  sfx.play(BANK_PLOPPLOP, 'clear', { cleared: info.clearedCount, chain: chainIndex });
   resolve.clearedAny = true;
   resolve.chainIndex += 1;
   resolve.settling = true;
@@ -716,7 +772,14 @@ function getFallOffset(alpha) {
 
 function updateHud() {
   scoreEl.textContent = game.score.toString();
-  chainEl.textContent = game.lastChain >= 2 ? `${game.lastChain}x` : '-';
+  // Show current chain or max chain achieved
+  if (game.lastChain >= 2) {
+    chainEl.textContent = `${game.lastChain}x`;
+  } else if (game.maxChain >= 2) {
+    chainEl.textContent = `(${game.maxChain}x)`;
+  } else {
+    chainEl.textContent = '-';
+  }
   levelEl.textContent = game.level.toString();
   piecesEl.textContent = game.pieceIndex.toString();
   statusEl.textContent = game.paused ? 'Paused' : game.status;
@@ -855,6 +918,9 @@ function newGame() {
   game.level = 1;
   game.score = 0;
   game.lastChain = 0;
+  game.maxChain = 0;
+  game.pendingGarbage = 0;
+  game.garbageCounter = 0;
   game.status = 'Ready.';
   game.statusBeforePause = 'Ready.';
   game.resolve = null;
