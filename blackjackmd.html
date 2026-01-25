@@ -5,6 +5,7 @@
   <meta name="color-scheme" content="dark">
   <title>Blackjack, M.D.</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="cards.css">
   <link rel="stylesheet" href="blackjackmd.css">
 </head>
 <body class="blackjackmd">
@@ -17,24 +18,8 @@
           <a href="https://wizardofodds.com/games/blackjack/strategy/calculator/" target="_blank" rel="noopener noreferrer">Odds Calculator.</a>
         </p>
       </div>
+      <button id="options" class="icon-button" aria-label="Options" title="Options">&#9881;</button>
     </header>
-
-    <div class="options-row">
-      <label>Decks
-        <select id="decks">
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="4">4</option>
-          <option value="6">6</option>
-          <option value="8" selected>8</option>
-        </select>
-      </label>
-      <label><input type="checkbox" id="opt-european"> European (no hole card)</label>
-      <label><input type="checkbox" id="opt-surrender"> Allow surrender</label>
-      <label><input type="checkbox" id="opt-das" checked> Double after split (DAS)</label>
-      <label><input type="checkbox" id="opt-double-any" checked> Double on any two</label>
-      <label><input type="checkbox" id="opt-hit-soft17"> Dealer hits soft 17</label>
-    </div>
 
     <div class="hud">
       <div class="status-row">
@@ -70,6 +55,49 @@
         <button id="deal">Deal</button>
         <button id="stand" disabled>Stand</button>
         <button id="hit" disabled>Hit</button>
+      </div>
+    </div>
+
+    <p class="tips">
+      Place your bet and click Deal. Use Hit, Stand, Double, Split, or Surrender as needed. Click Hint for basic strategy advice.
+      Adjust rules in the settings (⚙) to match your preferred casino conditions.
+      Keyboard: D/Space = Deal, H = Hit, S = Stand, O = Double, P = Split, R = Surrender, ? = Hint.
+    </p>
+  </div>
+
+  <div id="options-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="options-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="options-title">Options</h2>
+      </header>
+      <div class="ms-modal-body">
+        <label>Decks
+          <select id="decks">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+            <option value="8" selected>8</option>
+          </select>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="opt-european"> European (no hole card)
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="opt-surrender"> Allow surrender
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="opt-das" checked> Double after split (DAS)
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="opt-double-any" checked> Double on any two
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" id="opt-hit-soft17"> Dealer hits soft 17
+        </label>
+      </div>
+      <div class="ms-modal-actions">
+        <button id="options-close">Close</button>
       </div>
     </div>
   </div>
