@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
+  <title>Memory</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="memory.css">
+</head>
+<body class="memory">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>Memory</h1>
+        <p class="subtitle">Flip cards to find matching pairs.</p>
+      </div>
+      <div class="quick-stats">
+        <div>Moves: <span id="moves">0</span></div>
+        <div>Pairs: <span id="pairs">0</span> / <span id="total-pairs">8</span></div>
+        <div>Time: <span id="time">0:00</span></div>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Click any card to start.</span>
+      </div>
+    </div>
+
+    <div class="board memory-board">
+      <div id="grid" class="memory-grid"></div>
+    </div>
+
+    <div class="control-group bottom-controls">
+      <button id="new-game">New Game</button>
+      <label>
+        Grid:
+        <select id="grid-size">
+          <option value="12">3×4 (Easy)</option>
+          <option value="16" selected>4×4 (Medium)</option>
+          <option value="20">4×5 (Hard)</option>
+        </select>
+      </label>
+    </div>
+
+    <p class="tips">
+      Click two cards to flip them. If they match, they stay face up. Match all pairs to win!
+    </p>
+  </div>
+
+  <script type="module" src="memory.js"></script>
+</body>
+</html>
