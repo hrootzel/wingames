@@ -227,6 +227,7 @@ function tick() {
       if (e.x < 0 || e.x > W - CELL) e.dx *= -1;
       if (e.y < H - CELL * PLAYER_AREA || e.y > H - CELL) e.dy *= -1;
       if (frameCount % 30 === 0) sfx.play(BANK_MYRIAPOD, 'spider');
+      e.timer--;
     } else if (e.type === 'flea') {
       e.y += 2;
       if (Math.random() < 0.1) {
@@ -239,8 +240,9 @@ function tick() {
     }
   });
   
-  // Remove off-screen enemies
+  // Remove off-screen enemies or expired timers
   enemies = enemies.filter(e => {
+    if (e.type === 'spider' && e.timer <= 0) return false;
     if (e.type === 'flea' && e.y > H) return false;
     if (e.type === 'scorpion' && (e.x < -CELL || e.x > W)) return false;
     return true;
@@ -297,13 +299,14 @@ function moveCentipede() {
 }
 
 function spawnSpider() {
-  const side = Math.random() < 0.5 ? -CELL : W;
+  const side = Math.random() < 0.5 ? 0 : 1;
   enemies.push({
     type: 'spider',
-    x: side,
+    x: side === 0 ? CELL : W - CELL * 2,
     y: H - CELL * 4,
-    dx: side < 0 ? 1 : -1,
+    dx: side === 0 ? 1 : -1,
     dy: 1,
+    timer: 300, // despawn after ~5 seconds
   });
 }
 
