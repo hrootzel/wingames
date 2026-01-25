@@ -26,7 +26,7 @@ const STORAGE_HIGH = 'myriapod.high';
 const State = { IDLE: 0, PLAYING: 1, PAUSED: 2, DEAD: 3, WAVE_COMPLETE: 4 };
 
 let state = State.IDLE;
-let player = { x: 0, y: 0, speed: 3 };
+let player = { x: 0, y: 0, speed: 3, invincible: 0 };
 let bullet = null;
 let centipede = [];
 let mushrooms = [];
@@ -187,6 +187,9 @@ function tick() {
   if (state !== State.PLAYING) return;
   
   frameCount++;
+  
+  // Decrement invincibility
+  if (player.invincible > 0) player.invincible--;
   
   // Player movement
   player.x = Math.max(0, Math.min(W - CELL, mouseX - CELL / 2));
@@ -388,18 +391,20 @@ function checkCollisions() {
   }
   
   // Player vs centipede
-  for (let seg of centipede) {
-    if (Math.abs(player.x - seg.x) < CELL && Math.abs(player.y - seg.y) < CELL) {
-      loseLife();
-      return;
+  if (player.invincible === 0) {
+    for (let seg of centipede) {
+      if (Math.abs(player.x - seg.x) < CELL && Math.abs(player.y - seg.y) < CELL) {
+        loseLife();
+        return;
+      }
     }
-  }
-  
-  // Player vs enemies
-  for (let e of enemies) {
-    if (Math.abs(player.x - e.x) < CELL && Math.abs(player.y - e.y) < CELL) {
-      loseLife();
-      return;
+    
+    // Player vs enemies
+    for (let e of enemies) {
+      if (Math.abs(player.x - e.x) < CELL && Math.abs(player.y - e.y) < CELL) {
+        loseLife();
+        return;
+      }
     }
   }
 }
@@ -420,6 +425,7 @@ function loseLife() {
   } else {
     player.x = W / 2;
     player.y = H - CELL * 2;
+    player.invincible = 120; // 2 seconds of invincibility
     bullet = null;
     statusEl.textContent = `${lives} lives left.`;
   }
@@ -462,7 +468,11 @@ function render() {
   }
   
   // Player
-  drawSprite(SPRITES.player, player.x, player.y, '#00ff00');
+  if (player.invincible > 0 && Math.floor(player.invincible / 10) % 2 === 0) {
+    // Flashing effect during invincibility
+  } else {
+    drawSprite(SPRITES.player, player.x, player.y, '#00ff00');
+  }
   
   // Player area line
   ctx.strokeStyle = '#444';
