@@ -1,116 +1,9 @@
-// Hashi Bridges implementation.
-const HASHI_PACKS = {
-  easy: [
-    {
-      id: 'easy-cross-5x5',
-      name: 'Crossroads',
-      w: 5,
-      h: 5,
-      islands: [
-        { r: 0, c: 2, target: 1 },
-        { r: 2, c: 0, target: 1 },
-        { r: 2, c: 2, target: 4 },
-        { r: 2, c: 4, target: 1 },
-        { r: 4, c: 2, target: 1 },
-      ],
-    },
-    {
-      id: 'easy-columns-6x6',
-      name: 'Twin Towers',
-      w: 6,
-      h: 6,
-      islands: [
-        { r: 0, c: 1, target: 2 },
-        { r: 0, c: 4, target: 2 },
-        { r: 2, c: 1, target: 4 },
-        { r: 2, c: 4, target: 4 },
-        { r: 4, c: 1, target: 2 },
-        { r: 4, c: 4, target: 2 },
-      ],
-    },
-  ],
-  medium: [
-    {
-      id: 'medium-grid-7x7',
-      name: 'Nine Patch',
-      w: 7,
-      h: 7,
-      islands: [
-        { r: 0, c: 1, target: 2 },
-        { r: 0, c: 3, target: 4 },
-        { r: 0, c: 5, target: 2 },
-        { r: 3, c: 1, target: 4 },
-        { r: 3, c: 3, target: 5 },
-        { r: 3, c: 5, target: 4 },
-        { r: 6, c: 1, target: 3 },
-        { r: 6, c: 3, target: 3 },
-        { r: 6, c: 5, target: 3 },
-      ],
-    },
-    {
-      id: 'medium-causeway-7x7',
-      name: 'Causeway',
-      w: 7,
-      h: 7,
-      islands: [
-        { r: 0, c: 1, target: 1 },
-        { r: 0, c: 5, target: 1 },
-        { r: 2, c: 1, target: 4 },
-        { r: 2, c: 3, target: 4 },
-        { r: 2, c: 5, target: 4 },
-        { r: 4, c: 1, target: 4 },
-        { r: 4, c: 3, target: 4 },
-        { r: 4, c: 5, target: 4 },
-        { r: 6, c: 1, target: 1 },
-        { r: 6, c: 5, target: 1 },
-      ],
-    },
-  ],
-  hard: [
-    {
-      id: 'hard-delta-9x9',
-      name: 'Delta Links',
-      w: 9,
-      h: 9,
-      islands: [
-        { r: 0, c: 2, target: 3 },
-        { r: 0, c: 6, target: 2 },
-        { r: 2, c: 0, target: 2 },
-        { r: 2, c: 4, target: 4 },
-        { r: 2, c: 8, target: 2 },
-        { r: 4, c: 4, target: 4 },
-        { r: 4, c: 6, target: 4 },
-        { r: 6, c: 0, target: 2 },
-        { r: 6, c: 4, target: 3 },
-        { r: 6, c: 8, target: 2 },
-        { r: 8, c: 2, target: 3 },
-        { r: 8, c: 6, target: 3 },
-      ],
-    },
-    {
-      id: 'hard-matrix-8x8',
-      name: 'Matrix',
-      w: 8,
-      h: 8,
-      islands: [
-        { r: 0, c: 1, target: 2 },
-        { r: 0, c: 4, target: 4 },
-        { r: 0, c: 7, target: 2 },
-        { r: 2, c: 1, target: 4 },
-        { r: 2, c: 4, target: 5 },
-        { r: 2, c: 7, target: 4 },
-        { r: 4, c: 1, target: 4 },
-        { r: 4, c: 4, target: 4 },
-        { r: 4, c: 7, target: 4 },
-        { r: 6, c: 1, target: 2 },
-        { r: 6, c: 4, target: 3 },
-        { r: 6, c: 7, target: 2 },
-      ],
-    },
-  ],
-};
+import { HASHI_PACKS } from './hashi_packs.js';
 
-const DIFFS = Object.keys(HASHI_PACKS);
+// Hashi Bridges implementation.
+
+const NORMALIZED_PACKS = normalizePacks(HASHI_PACKS);
+const DIFFS = Object.keys(NORMALIZED_PACKS);
 const DIFF_LABELS = {
   easy: 'Easy',
   medium: 'Medium',
@@ -167,7 +60,7 @@ let settings = loadSettings();
 
 const puzzleIndex = new Map();
 for (const diff of DIFFS) {
-  for (const puzzle of HASHI_PACKS[diff]) {
+  for (const puzzle of NORMALIZED_PACKS[diff]) {
     puzzleIndex.set(puzzle.id, { ...puzzle, diff });
   }
 }
@@ -231,6 +124,93 @@ function saveSettings(next) {
   } catch (err) {
     // ignore
   }
+}
+
+function canonicalizeIslands(w, islands) {
+  return islands
+    .map((island) => ({
+      r: Math.max(0, Math.floor(island.r)),
+      c: Math.max(0, Math.floor(island.c)),
+      target: Math.max(0, Math.floor(island.target)),
+    }))
+    .sort((a, b) => (a.r * w + a.c) - (b.r * w + b.c));
+}
+
+function decodeTR1(code) {
+  const match = /^TR1:([0-9a-z]+)x([0-9a-z]+):(.+)$/i.exec(code);
+  if (!match) throw new Error('Invalid TR1 code');
+  const w = parseInt(match[1], 36);
+  const h = parseInt(match[2], 36);
+  if (!w || !h) throw new Error('Invalid TR1 dimensions');
+  const task = match[3];
+  const islands = [];
+  const total = w * h;
+  let t = 0;
+  for (const ch of task) {
+    if (ch >= '0' && ch <= '9') {
+      const target = Number.parseInt(ch, 10);
+      if (t >= total) throw new Error('TR1 overflow');
+      islands.push({ r: Math.floor(t / w), c: t % w, target });
+      t += 1;
+    } else if (ch >= 'a' && ch <= 'z') {
+      const skip = ch.charCodeAt(0) - 96;
+      t += skip;
+      if (t > total) throw new Error('TR1 overflow');
+    } else if (ch >= 'A' && ch <= 'Z') {
+      const skip = ch.charCodeAt(0) - 64;
+      t += skip;
+      if (t > total) throw new Error('TR1 overflow');
+    }
+  }
+  if (t < total) {
+    // trailing empties are implied
+  }
+  return { w, h, islands: canonicalizeIslands(w, islands) };
+}
+
+function decodePuzzleEntry(entry) {
+  if (entry.code) {
+    if (entry.code.startsWith('TR1:')) {
+      return decodeTR1(entry.code);
+    }
+    throw new Error(`Unknown puzzle code: ${entry.code}`);
+  }
+  if (entry.task && entry.w && entry.h) {
+    return decodeTR1(`TR1:${entry.w.toString(36)}x${entry.h.toString(36)}:${entry.task}`);
+  }
+  return entry;
+}
+
+function normalizePuzzleEntry(entry, diff, index) {
+  const id = entry.id || `${diff}-${String(index + 1).padStart(3, '0')}`;
+  const name = entry.name || id;
+  let decoded;
+  try {
+    decoded = decodePuzzleEntry(entry);
+  } catch (err) {
+    console.warn('Failed to decode puzzle', id, err);
+    return null;
+  }
+  if (!decoded || !decoded.w || !decoded.h || !Array.isArray(decoded.islands)) return null;
+  return {
+    id,
+    name,
+    w: decoded.w,
+    h: decoded.h,
+    islands: canonicalizeIslands(decoded.w, decoded.islands),
+    diff,
+    code: entry.code || null,
+  };
+}
+
+function normalizePacks(packs) {
+  const out = {};
+  for (const [diff, list] of Object.entries(packs)) {
+    out[diff] = (list || [])
+      .map((entry, idx) => normalizePuzzleEntry(entry, diff, idx))
+      .filter(Boolean);
+  }
+  return out;
 }
 
 function updateThemeMenuLabel() {
@@ -965,7 +945,7 @@ function populateDiffs() {
 
 function populatePuzzles(diff) {
   puzzleSelect.innerHTML = '';
-  const list = HASHI_PACKS[diff] || [];
+  const list = NORMALIZED_PACKS[diff] || [];
   list.forEach((puzzle, idx) => {
     const opt = document.createElement('option');
     opt.value = puzzle.id;
@@ -988,7 +968,7 @@ function selectDefaultPuzzle() {
   const diff = DIFFS[0];
   diffSelect.value = diff;
   populatePuzzles(diff);
-  const list = HASHI_PACKS[diff];
+  const list = NORMALIZED_PACKS[diff];
   if (list && list.length) {
     puzzleSelect.value = list[0].id;
     loadPuzzle({ ...list[0], diff }, true);
@@ -1220,7 +1200,7 @@ function attachEvents() {
     }
   });
   randomBtn.addEventListener('click', () => {
-    const list = HASHI_PACKS[diffSelect.value] || [];
+    const list = NORMALIZED_PACKS[diffSelect.value] || [];
     if (!list.length) return;
     const pick = list[Math.floor(Math.random() * list.length)];
     puzzleSelect.value = pick.id;
@@ -1230,7 +1210,7 @@ function attachEvents() {
   diffSelect.addEventListener('change', () => {
     const diff = diffSelect.value;
     populatePuzzles(diff);
-    const list = HASHI_PACKS[diff] || [];
+    const list = NORMALIZED_PACKS[diff] || [];
     if (list.length) {
       puzzleSelect.value = list[0].id;
       loadPuzzle({ ...list[0], diff }, true);
