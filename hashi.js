@@ -123,6 +123,8 @@ const STORAGE = {
   savePrefix: 'hashi:v1:save:',
 };
 
+const THEME_KEY = 'hashi_theme';
+
 const DEFAULT_SETTINGS = {
   strict: true,
   showErrors: true,
@@ -157,6 +159,7 @@ const strictToggle = document.getElementById('opt-strict');
 const errorsToggle = document.getElementById('opt-errors');
 const gridToggle = document.getElementById('opt-grid');
 const remainingToggle = document.getElementById('opt-remaining');
+const settingsThemeBtn = document.getElementById('settings-theme');
 
 let settings = loadSettings();
 
@@ -226,6 +229,40 @@ function saveSettings(next) {
   } catch (err) {
     // ignore
   }
+}
+
+function updateThemeMenuLabel() {
+  if (!settingsThemeBtn) return;
+  const current = document.body.dataset.theme === 'light' ? 'light' : 'dark';
+  settingsThemeBtn.textContent = current === 'dark' ? 'Light Theme' : 'Dark Theme';
+}
+
+function setTheme(theme, persist = true) {
+  const next = theme === 'light' ? 'light' : 'dark';
+  document.body.dataset.theme = next;
+  updateThemeMenuLabel();
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch (err) {
+      // ignore
+    }
+  }
+}
+
+function initTheme() {
+  let theme = 'dark';
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') {
+      theme = saved;
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      theme = 'light';
+    }
+  } catch (err) {
+    // ignore
+  }
+  setTheme(theme, false);
 }
 
 function buildTopology(puzzle) {
@@ -843,6 +880,7 @@ function openSettings() {
   errorsToggle.checked = settings.showErrors;
   gridToggle.checked = settings.showGrid;
   remainingToggle.checked = settings.showRemaining;
+  updateThemeMenuLabel();
   settingsModal.classList.remove('hidden');
   settingsToggle.setAttribute('aria-expanded', 'true');
 }
@@ -1189,6 +1227,12 @@ function attachEvents() {
     applySettingsFromUI();
     closeSettings();
   });
+  if (settingsThemeBtn) {
+    settingsThemeBtn.addEventListener('click', () => {
+      const next = document.body.dataset.theme === 'light' ? 'dark' : 'light';
+      setTheme(next);
+    });
+  }
   settingsModal.addEventListener('click', (ev) => {
     if (ev.target === settingsModal) closeSettings();
   });
@@ -1200,6 +1244,7 @@ function attachEvents() {
 }
 
 function init() {
+  initTheme();
   populateDiffs();
   const lastPuzzleId = localStorage.getItem(STORAGE.lastPuzzle);
   if (lastPuzzleId && selectPuzzleById(lastPuzzleId, true)) {

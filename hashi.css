@@ -47,6 +47,36 @@ body.hashi .tips {
   color: var(--hb-tip-text);
 }
 
+body.hashi[data-theme="light"] {
+  --hb-bg-top: #f8fafc;
+  --hb-bg-bottom: #e2e8f0;
+  --hb-panel: #f3f4f6;
+  --hb-panel-dark: #9ca3af;
+  --hb-panel-light: #ffffff;
+  --hb-border: #9ca3af;
+  --hb-text: #111827;
+  --hb-page-text: #0f172a;
+  --hb-status: rgba(15, 23, 42, 0.75);
+  --hb-tip-bg: rgba(15, 23, 42, 0.08);
+  --hb-tip-text: #1f2937;
+  --hb-shadow: rgba(15, 23, 42, 0.2);
+  --hb-accent: #2563eb;
+  --hb-icon-bg: rgba(255, 255, 255, 0.8);
+  --hb-icon-border: rgba(15, 23, 42, 0.3);
+  --hb-surface-bg: #e5e7eb;
+  --hb-surface-grid: rgba(15, 23, 42, 0.12);
+  --hb-island-bg: #ffffff;
+  --hb-island-border: #94a3b8;
+  --hb-island-text: #0f172a;
+  --hb-island-ok: #bbf7d0;
+  --hb-island-over: #fecaca;
+  --hb-island-miss: #f59e0b;
+  --hb-bridge: #475569;
+  --hb-bridge-strong: #0f172a;
+  --hb-bridge-preview: #2563eb;
+  --hb-chip: #0f172a;
+}
+
 .hashi-board {
   background: var(--hb-panel);
   border: 2px solid var(--hb-panel-dark);
@@ -348,6 +378,10 @@ body.hashi .tips {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.ms-theme-button {
+  width: 100%;
 }
 
 button.secondary {
