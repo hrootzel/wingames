@@ -493,6 +493,10 @@ body.sudoku[data-theme="light"] {
     background: transparent;
   }
 
+  #screen-game {
+    padding: 0 14px 18px;
+  }
+
   #screen-title {
     padding: 28px 18px 28px;
     min-height: 100svh;
