@@ -3003,6 +3003,606 @@ export const HASHI_PACKS = {
         "dbl": 0.32754674223251645,
         "seed": "HASHI_PACK_V1|hard|0049|try:0"
       }
+    },
+    {
+      "id": "H0051",
+      "name": "Hard 051",
+      "code": "TR1:gxg:2j1b2b3b3c1c2b1p3zd2zh2a2c3c4a5r2j2e4b3b2e3b1t2b3k4b1i1k1a4d5c2b2b2",
+      "meta": {
+        "rows": 16,
+        "cols": 16,
+        "islands": 33,
+        "dbl": 0.24504060605540873,
+        "seed": "HASHI_PACK_V1|hard|0060|try:2"
+      }
+    },
+    {
+      "id": "H0052",
+      "name": "Hard 052",
+      "code": "TR1:hxh:1a2b5a3a2b3b3q14a3a2b2g3za1a1c2zp2c2c1f4c3b4c33n1e2a2a2h2k2h1l1g3c4b4q1e2b2c2b2a1a3c3b4c4b2",
+      "meta": {
+        "rows": 17,
+        "cols": 17,
+        "islands": 46,
+        "dbl": 0.22258544750511647,
+        "seed": "HASHI_PACK_V1|hard|0061|try:2"
+      }
+    },
+    {
+      "id": "H0053",
+      "name": "Hard 053",
+      "code": "TR1:gxj:a3d3a2e1r2n3d2d1c2y2a2a2q3c1b2j4c3a5e2zy3a1n2b3q2e2c3s4c2h1j1c3a1a3e4c4a",
+      "meta": {
+        "rows": 19,
+        "cols": 16,
+        "islands": 35,
+        "dbl": 0.23926217784173787,
+        "seed": "HASHI_PACK_V1|hard|0062|try:0"
+      }
+    },
+    {
+      "id": "H0054",
+      "name": "Hard 054",
+      "code": "TR1:gxi:1b3b6c4c2f1g2h3a1h1a1r2c5b5s3c4d2b2b4h4d3zg1zn3b2c4m4r2d4g4a2p1a2b5a3c1a1a",
+      "meta": {
+        "rows": 18,
+        "cols": 16,
+        "islands": 36,
+        "dbl": 0.39712936114519837,
+        "seed": "HASHI_PACK_V1|hard|0063|try:3"
+      }
+    },
+    {
+      "id": "H0055",
+      "name": "Hard 055",
+      "code": "TR1:hxm:a1b2j2a2f3b2g2c4g2e1i3b4zu4a2d2b4i4zp3f2l2d4s5a2h2b6k1o2b3b4b2v3a3c3c3d3t2e3b1c3a4e3c1a1l3a",
+      "meta": {
+        "rows": 22,
+        "cols": 17,
+        "islands": 44,
+        "dbl": 0.37307675615884367,
+        "seed": "HASHI_PACK_V1|hard|0064|try:0"
+      }
+    },
+    {
+      "id": "H0056",
+      "name": "Hard 056",
+      "code": "TR1:lxl:3d4a1d2b1a2b3zb2d4d4zzn1d4f4zzj2zzq1v2d5e2zu5a3v3a1s2c5c2g1c2n3b2a2",
+      "meta": {
+        "rows": 21,
+        "cols": 21,
+        "islands": 30,
+        "dbl": 0.3339786247350276,
+        "seed": "HASHI_PACK_V1|hard|0065|try:3"
+      }
+    },
+    {
+      "id": "H0057",
+      "name": "Hard 057",
+      "code": "TR1:gxl:a2b2b4c1d1m1zx5b6b5f2r1zd3d4b5d3a1zza2j4c3c4f2p2zd1a2f4d1b1p1c1b4e2a",
+      "meta": {
+        "rows": 21,
+        "cols": 16,
+        "islands": 31,
+        "dbl": 0.34660243382677436,
+        "seed": "HASHI_PACK_V1|hard|0066|try:1"
+      }
+    },
+    {
+      "id": "H0058",
+      "name": "Hard 058",
+      "code": "TR1:gxm:a1a1c2g21a1c5c5c2r3d2i2y3a3b2a3d2i2zq2a1a2e4c4d2zh2zc3zt1p6a7c4y2a2c4a3a2c1a",
+      "meta": {
+        "rows": 22,
+        "cols": 16,
+        "islands": 36,
+        "dbl": 0.3560927296523005,
+        "seed": "HASHI_PACK_V1|hard|0067|try:0"
+      }
+    },
+    {
+      "id": "H0059",
+      "name": "Hard 059",
+      "code": "TR1:ixj:s1b2k2a3d3d3b1c1o1c2a3a2a1h2a3t1p2g4b4a2t2a1j1e4h4a4b3zi3b1e2e3m1f3c4h3c5a4zi1b3b2e1c2b2",
+      "meta": {
+        "rows": 19,
+        "cols": 18,
+        "islands": 43,
+        "dbl": 0.23174023446626962,
+        "seed": "HASHI_PACK_V1|hard|0068|try:0"
+      }
+    },
+    {
+      "id": "H0060",
+      "name": "Hard 060",
+      "code": "TR1:jxj:2a3b2g1b1l2h2l1zza4b5b6a2e2e3b1f2zzu3e3d6d4a3zzd2zl2d1b1b4b1k1d2c3a1",
+      "meta": {
+        "rows": 19,
+        "cols": 19,
+        "islands": 31,
+        "dbl": 0.2789079011883587,
+        "seed": "HASHI_PACK_V1|hard|0069|try:2"
+      }
+    },
+    {
+      "id": "H0061",
+      "name": "Hard 061",
+      "code": "TR1:gxm:3b2b1c2d4h1c5a2zm3e4b5zzl2e2a2a2c1q3b4k4zg2a1d2b5a2b1zf3b3f7c4p2a3h5a3a2p1j2a1a1",
+      "meta": {
+        "rows": 22,
+        "cols": 16,
+        "islands": 38,
+        "dbl": 0.371200662618503,
+        "seed": "HASHI_PACK_V1|hard|0070|try:3"
+      }
+    },
+    {
+      "id": "H0062",
+      "name": "Hard 062",
+      "code": "TR1:lxm:1a3b1b1f3d2zu2b2f6b3a11p2zs3a6b5i5a3zm1zzp3d5n2a2o1v1a1zzk6c6e3e4a3w2c2e2a1c1b2",
+      "meta": {
+        "rows": 22,
+        "cols": 21,
+        "islands": 37,
+        "dbl": 0.3532437017653138,
+        "seed": "HASHI_PACK_V1|hard|0071|try:0"
+      }
+    },
+    {
+      "id": "H0063",
+      "name": "Hard 063",
+      "code": "TR1:gxj:a1b3g1a1zg2c6i3r1b4g1c4d3g3s3f2d3s3i2a1b4g3e4d3c3b2b2f2a2s2e3a2d1f3g1c2a1c1a1a2c4d3e2j2a",
+      "meta": {
+        "rows": 19,
+        "cols": 16,
+        "islands": 43,
+        "dbl": 0.2175710170995444,
+        "seed": "HASHI_PACK_V1|hard|0072|try:3"
+      }
+    },
+    {
+      "id": "H0064",
+      "name": "Hard 064",
+      "code": "TR1:gxk:3n3a3b4h2zi3a1b2f2zu2zzd2f3c1b3j5l3a1q4a2n1n1a1a3c3c4a1r2m3",
+      "meta": {
+        "rows": 20,
+        "cols": 16,
+        "islands": 28,
+        "dbl": 0.25565703599713746,
+        "seed": "HASHI_PACK_V1|hard|0073|try:1"
+      }
+    },
+    {
+      "id": "H0065",
+      "name": "Hard 065",
+      "code": "TR1:kxk:c1f2h21d4j4a1g3d4b3m2a1h22b2n1c1k2l1z1h2r2y3b5d3a4zi1c3d3d4a2w3d43a2c3a2r2b2l2b1a2b4b2b1b3d4m2t",
+      "meta": {
+        "rows": 20,
+        "cols": 20,
+        "islands": 48,
+        "dbl": 0.2175330056808889,
+        "seed": "HASHI_PACK_V1|hard|0074|try:0"
+      }
+    },
+    {
+      "id": "H0066",
+      "name": "Hard 066",
+      "code": "TR1:kxl:b2d1a1b4d4a3t1a5i4c3v42a3zzu1w3l1z3r2zq1e3g5a4zzy2e2e4c2a1d3f1i1a2",
+      "meta": {
+        "rows": 21,
+        "cols": 20,
+        "islands": 31,
+        "dbl": 0.3007307287771255,
+        "seed": "HASHI_PACK_V1|hard|0075|try:0"
+      }
+    },
+    {
+      "id": "H0067",
+      "name": "Hard 067",
+      "code": "TR1:gxm:a1b1e4a2b1q4h5d3r3d3r3a5b5b2a1zb4d1k3d3d3a1w1k4b2zb2a3a2h1q2b1m4d5b6d2w1b4b1d2f2d1b1a1k2",
+      "meta": {
+        "rows": 22,
+        "cols": 16,
+        "islands": 43,
+        "dbl": 0.29946993975900116,
+        "seed": "HASHI_PACK_V1|hard|0076|try:1"
+      }
+    },
+    {
+      "id": "H0068",
+      "name": "Hard 068",
+      "code": "TR1:gxj:1a2k4q3m4c3b3a2c6a3w3c2c1d3h6b3d1c3b3zi1s3d3l3a3c3c2zi3a3i3g1c1e1a2d3k2g5b2a",
+      "meta": {
+        "rows": 19,
+        "cols": 16,
+        "islands": 37,
+        "dbl": 0.3934620451182127,
+        "seed": "HASHI_PACK_V1|hard|0077|try:0"
+      }
+    },
+    {
+      "id": "H0069",
+      "name": "Hard 069",
+      "code": "TR1:gxi:1b4h3a2f2c5a3a1q23b6b4a2d1zs1g3e5c3x3b3t1j3a2c4p1w1d2h3b2d1a1b3k3p",
+      "meta": {
+        "rows": 18,
+        "cols": 16,
+        "islands": 33,
+        "dbl": 0.32605171324685217,
+        "seed": "HASHI_PACK_V1|hard|0078|try:0"
+      }
+    },
+    {
+      "id": "H0070",
+      "name": "Hard 070",
+      "code": "TR1:jxm:b2c4k32f4f4b3d2b2a3c3b2b2n1a1j3v2b1zw2e4a3zg2x2p1p4b3zh3a1za1a1x3a2x2c3d4b2a1a2q2",
+      "meta": {
+        "rows": 22,
+        "cols": 19,
+        "islands": 39,
+        "dbl": 0.20843307129107416,
+        "seed": "HASHI_PACK_V1|hard|0079|try:2"
+      }
+    },
+    {
+      "id": "H0071",
+      "name": "Hard 071",
+      "code": "TR1:kxl:a2c3f3d4a1zo3g3e1o1g1x1d2zw2a5i4d2zb3k4a4zh1b2g3b3i2b4b3n4x3f2c3c3y1i3e2k2c1a1",
+      "meta": {
+        "rows": 21,
+        "cols": 20,
+        "islands": 37,
+        "dbl": 0.2812674610409886,
+        "seed": "HASHI_PACK_V1|hard|0080|try:2"
+      }
+    },
+    {
+      "id": "H0072",
+      "name": "Hard 072",
+      "code": "TR1:hxm:c1b2b2c2b11y2c4zj2q3j1g2f2c3v1b1d3a1zk33i5b4a4d2b5a2h1zv2a1a3c4c5e3c1m1a2u2b5c4a21b3b3b3c2c",
+      "meta": {
+        "rows": 22,
+        "cols": 17,
+        "islands": 45,
+        "dbl": 0.2645635550376028,
+        "seed": "HASHI_PACK_V1|hard|0081|try:0"
+      }
+    },
+    {
+      "id": "H0073",
+      "name": "Hard 073",
+      "code": "TR1:jxl:b1p1c2d3g2c3zb3c3zzb1zd2zh1n3a5d4y2d1u1c2h2d4f6b4a2d1i4e3d3d4v3e4e1b3b2h2a2b3c3a1a1c2a",
+      "meta": {
+        "rows": 21,
+        "cols": 19,
+        "islands": 40,
+        "dbl": 0.2996842243243009,
+        "seed": "HASHI_PACK_V1|hard|0082|try:3"
+      }
+    },
+    {
+      "id": "H0074",
+      "name": "Hard 074",
+      "code": "TR1:hxi:1n2b2b1a4c4b1e1b2a1z1w2b3d3r2e3g1t3c6f3a3s3u3b2e3c4m4s3h4a3a1b4n3r",
+      "meta": {
+        "rows": 18,
+        "cols": 17,
+        "islands": 33,
+        "dbl": 0.3490435424726457,
+        "seed": "HASHI_PACK_V1|hard|0083|try:0"
+      }
+    },
+    {
+      "id": "H0075",
+      "name": "Hard 075",
+      "code": "TR1:gxj:a2b3c1a1e1m1r1b3c5a2zi2b2b2zt1d5e4t1d4b2zj3d5c4b1zr3a1e1c4h3a",
+      "meta": {
+        "rows": 19,
+        "cols": 16,
+        "islands": 28,
+        "dbl": 0.2675008093006909,
+        "seed": "HASHI_PACK_V1|hard|0084|try:2"
+      }
+    },
+    {
+      "id": "H0076",
+      "name": "Hard 076",
+      "code": "TR1:gxk:3k4a2d2a1i23a1zf5c3g2ze1zzo2l3f5g4r2d5a1f4g3b2a1k2b3b3a1b2c3d3b3i1g2d3e4a1",
+      "meta": {
+        "rows": 20,
+        "cols": 16,
+        "islands": 36,
+        "dbl": 0.3316093804780394,
+        "seed": "HASHI_PACK_V1|hard|0085|try:0"
+      }
+    },
+    {
+      "id": "H0077",
+      "name": "Hard 077",
+      "code": "TR1:hxm:p1a2b4c5c2a1b2o2zh4b3d6e3a3zz2f5e1o2b3zi2c5b4f2w2zq2zc2c2a2a3e2s1e",
+      "meta": {
+        "rows": 22,
+        "cols": 17,
+        "islands": 30,
+        "dbl": 0.38727934802882374,
+        "seed": "HASHI_PACK_V1|hard|0086|try:0"
+      }
+    },
+    {
+      "id": "H0078",
+      "name": "Hard 078",
+      "code": "TR1:hxm:2j4a2b1zb2c1a3o3zi2n4j1d2r2zr2b1zzh3c5b1zq2j4i5c2a1c1b2h3a2c2f3b2a",
+      "meta": {
+        "rows": 22,
+        "cols": 17,
+        "islands": 30,
+        "dbl": 0.21347123798914255,
+        "seed": "HASHI_PACK_V1|hard|0087|try:4"
+      }
+    },
+    {
+      "id": "H0079",
+      "name": "Hard 079",
+      "code": "TR1:jxl:2b2h2d1c1m3a1zl3b5l6a3l1b4a1a1zo1d3e6b1zze3b4k4b2q2zl2c3j3zf1d3g1a2e3c3a3a2i1g1",
+      "meta": {
+        "rows": 21,
+        "cols": 19,
+        "islands": 37,
+        "dbl": 0.2656547704245895,
+        "seed": "HASHI_PACK_V1|hard|0088|try:0"
+      }
+    },
+    {
+      "id": "H0080",
+      "name": "Hard 080",
+      "code": "TR1:jxm:1b3e1za1zi1b1zzw4b4b4b5c3b2zzr2d3a23zzm4a3b1d2za4b1c2a2s3a4c2q1c5d3c1",
+      "meta": {
+        "rows": 22,
+        "cols": 19,
+        "islands": 31,
+        "dbl": 0.3015795618761331,
+        "seed": "HASHI_PACK_V1|hard|0089|try:1"
+      }
+    },
+    {
+      "id": "H0081",
+      "name": "Hard 081",
+      "code": "TR1:mxm:a1b2a2e3c5d21m2b1b2b1zl2y2v2b4i6a4a3a2zzzk5c6h2v3a1za3zzzo2f5f2w1e1f3c1e2b5b3b3e1e",
+      "meta": {
+        "rows": 22,
+        "cols": 22,
+        "islands": 37,
+        "dbl": 0.3266470647417009,
+        "seed": "HASHI_PACK_V1|hard|0090|try:0"
+      }
+    },
+    {
+      "id": "H0082",
+      "name": "Hard 082",
+      "code": "TR1:jxl:a1b1b1j3t2b4b3h4a4l1g3b5m2zzm2c2g2zk1f4b5d4a4zd3b1a1y4c1zb1d2q1c4a4g3t1f2a1g1a",
+      "meta": {
+        "rows": 21,
+        "cols": 19,
+        "islands": 36,
+        "dbl": 0.25338488579727714,
+        "seed": "HASHI_PACK_V1|hard|0091|try:0"
+      }
+    },
+    {
+      "id": "H0083",
+      "name": "Hard 083",
+      "code": "TR1:gxl:1p3c2d3d1p2l2a3a3e2a1v2p3e2x3zzj3d3b5a2u2i2j1t1g2e6b3d1p3f3a3c4a1",
+      "meta": {
+        "rows": 21,
+        "cols": 16,
+        "islands": 32,
+        "dbl": 0.250805398542434,
+        "seed": "HASHI_PACK_V1|hard|0092|try:0"
+      }
+    },
+    {
+      "id": "H0084",
+      "name": "Hard 084",
+      "code": "TR1:gxl:b2d5g21g1i1zc2g2c3b3r4d5g3r2m3b4c4c3b2zzm1i1l2m1h2a2b3c2b2s1a1a2b3e3c2p",
+      "meta": {
+        "rows": 21,
+        "cols": 16,
+        "islands": 34,
+        "dbl": 0.20975138903595508,
+        "seed": "HASHI_PACK_V1|hard|0093|try:0"
+      }
+    },
+    {
+      "id": "H0085",
+      "name": "Hard 085",
+      "code": "TR1:hxi:a1e3b3d2a4b5h3a1a1q3d4d5d4q21l1j2a2zzk3a4a3m1c4b2c2b6k6r2b4f4a2x2b3a2c1b3a2d1a1b3e2",
+      "meta": {
+        "rows": 18,
+        "cols": 17,
+        "islands": 41,
+        "dbl": 0.38138164398260416,
+        "seed": "HASHI_PACK_V1|hard|0094|try:0"
+      }
+    },
+    {
+      "id": "H0086",
+      "name": "Hard 086",
+      "code": "TR1:hxk:1b1g3d2zh3j4a2a1m1c2m3a1a4h1y2i3a5b2r4b2g2d3q4f5b4d3q1k2b2i3b4g2b3f2c34l6a3q14e2f4a2a",
+      "meta": {
+        "rows": 20,
+        "cols": 17,
+        "islands": 43,
+        "dbl": 0.37698084488511086,
+        "seed": "HASHI_PACK_V1|hard|0095|try:0"
+      }
+    },
+    {
+      "id": "H0087",
+      "name": "Hard 087",
+      "code": "TR1:ixi:b1c3d2d1a2t1b3d1zp5e5i3i3a1zzj3d3zd1zi2b4c6g4a3a1p2b3c2b1d1a3e4j2",
+      "meta": {
+        "rows": 18,
+        "cols": 18,
+        "islands": 30,
+        "dbl": 0.33287701606750486,
+        "seed": "HASHI_PACK_V1|hard|0096|try:0"
+      }
+    },
+    {
+      "id": "H0088",
+      "name": "Hard 088",
+      "code": "TR1:jxl:1b4d3h2s21b6b1a4g3zh2g1zh3f2l1zh1e5b3f5c3t4a3zz2zg4a2a2a2b2d4e3a1s1a1a3e3d2d2s",
+      "meta": {
+        "rows": 21,
+        "cols": 19,
+        "islands": 37,
+        "dbl": 0.3016647358890623,
+        "seed": "HASHI_PACK_V1|hard|0097|try:1"
+      }
+    },
+    {
+      "id": "H0089",
+      "name": "Hard 089",
+      "code": "TR1:hxm:2e3c3b3b3o2s3b2c1zi3a3zy2c1k2y2h2c1g2g4m2x1y1d3d3a2g4q5i6d4q22b2f6b2a1a",
+      "meta": {
+        "rows": 22,
+        "cols": 17,
+        "islands": 35,
+        "dbl": 0.3243600679561496,
+        "seed": "HASHI_PACK_V1|hard|0098|try:0"
+      }
+    },
+    {
+      "id": "H0090",
+      "name": "Hard 090",
+      "code": "TR1:kxk:f2i3b32a4j3d3t31o2j2zd2zk4a2zn3zn4a3zi1b2e5e5b4zj2b2w1b2c4h2b3a2o1b",
+      "meta": {
+        "rows": 20,
+        "cols": 20,
+        "islands": 31,
+        "dbl": 0.35634594331495467,
+        "seed": "HASHI_PACK_V1|hard|0099|try:2"
+      }
+    },
+    {
+      "id": "H0091",
+      "name": "Hard 091",
+      "code": "TR1:jxl:3b2h2d1s12p1zm4k3x2a1c5b2c1d4zzf3d6k4z2e3n1zzo2d3y3d3a3a2b2b3a2g2",
+      "meta": {
+        "rows": 21,
+        "cols": 19,
+        "islands": 31,
+        "dbl": 0.3215521757956594,
+        "seed": "HASHI_PACK_V1|hard|0100|try:3"
+      }
+    },
+    {
+      "id": "H0092",
+      "name": "Hard 092",
+      "code": "TR1:gxi:a2c1b2d3a41z1b2zh3f4b3b3c3c1zr3d7e3zl1e1b2za2d5a1q1k12a5b5b5e1a",
+      "meta": {
+        "rows": 18,
+        "cols": 16,
+        "islands": 30,
+        "dbl": 0.35329176792874933,
+        "seed": "HASHI_PACK_V1|hard|0101|try:0"
+      }
+    },
+    {
+      "id": "H0093",
+      "name": "Hard 093",
+      "code": "TR1:hxi:1a3c3a2b3a3b2c2m1f1c4a2b1t3b4a2a1f3a4h5v2b3c2c3a4b3t3c3d2f2j3a1t3h3b1b4n2zh1b2l3a3m3a2",
+      "meta": {
+        "rows": 18,
+        "cols": 17,
+        "islands": 43,
+        "dbl": 0.2993408720009029,
+        "seed": "HASHI_PACK_V1|hard|0102|try:4"
+      }
+    },
+    {
+      "id": "H0094",
+      "name": "Hard 094",
+      "code": "TR1:gxi:c1c1a2b1a2a2c1n2e3d3l1a2u2p5b6a5a3a5a3n1e2d2c1q14b5c5f5q2a2ze1d4b3b1v1b5b6b3b3b4a1h2a",
+      "meta": {
+        "rows": 18,
+        "cols": 16,
+        "islands": 42,
+        "dbl": 0.3823435993399471,
+        "seed": "HASHI_PACK_V1|hard|0103|try:0"
+      }
+    },
+    {
+      "id": "H0095",
+      "name": "Hard 095",
+      "code": "TR1:gxk:a1a1d2a2a1b1s4d7e3j1b3f3c2b1r2c2u1b3zn1j2b3f6a6b4y1i3d1h2j3a4d3e2f1j1b2f1d3d3c3h3d2",
+      "meta": {
+        "rows": 20,
+        "cols": 16,
+        "islands": 41,
+        "dbl": 0.24689896851778032,
+        "seed": "HASHI_PACK_V1|hard|0104|try:0"
+      }
+    },
+    {
+      "id": "H0096",
+      "name": "Hard 096",
+      "code": "TR1:ixk:2a1a2c1h3r3c6l4h2f3zl2c5j4a2e2b4b4d1t1f2n1ze2b5f5d2a3a2n1y1c4b1y1a1d3a1f1d1h2a2d3f4d2",
+      "meta": {
+        "rows": 20,
+        "cols": 18,
+        "islands": 42,
+        "dbl": 0.23906489163637162,
+        "seed": "HASHI_PACK_V1|hard|0105|try:0"
+      }
+    },
+    {
+      "id": "H0097",
+      "name": "Hard 097",
+      "code": "TR1:hxk:3m2a1a3m3t1c2f2d2b3e2w3l3d3a2l2zk1ze5k5a3a3u2b2b1c1a2w2e4a2w2i2b3f3g2",
+      "meta": {
+        "rows": 20,
+        "cols": 17,
+        "islands": 34,
+        "dbl": 0.25823690462857485,
+        "seed": "HASHI_PACK_V1|hard|0106|try:2"
+      }
+    },
+    {
+      "id": "H0098",
+      "name": "Hard 098",
+      "code": "TR1:gxk:3a1b3d2b1a1p5a4b7i4a1g3b3a1s5a3e2d3r2a1a1b4d1zh4a4zb3b2j2c1b4c3e3q3c4c3x1b4b2h1g2e22b3f4c2a",
+      "meta": {
+        "rows": 20,
+        "cols": 16,
+        "islands": 45,
+        "dbl": 0.3635102761443705,
+        "seed": "HASHI_PACK_V1|hard|0107|try:0"
+      }
+    },
+    {
+      "id": "H0099",
+      "name": "Hard 099",
+      "code": "TR1:gxg:1a5d3c2b1t1d3b4a1b2a6k3s3d2c3a3t2g1h1i2t4k3zi3c3f2r2b1a2h3a",
+      "meta": {
+        "rows": 16,
+        "cols": 16,
+        "islands": 29,
+        "dbl": 0.28078178684227173,
+        "seed": "HASHI_PACK_V1|hard|0108|try:0"
+      }
+    },
+    {
+      "id": "H0100",
+      "name": "Hard 100",
+      "code": "TR1:hxm:q2k1a2a1zg2b3i3h2c3a3r4y1g2f6e3b1b4a4c1c2b4a1u3a5k4u3e4c2d4h3c1b1k1b5e1e4b2e2l5a1q3j2d1q",
+      "meta": {
+        "rows": 22,
+        "cols": 17,
+        "islands": 43,
+        "dbl": 0.3321020315866917,
+        "seed": "HASHI_PACK_V1|hard|0109|try:0"
+      }
     }
   ]
 };
