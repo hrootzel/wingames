@@ -31,13 +31,12 @@
 body.hashi {
   background: radial-gradient(circle at top, var(--hb-bg-top), var(--hb-bg-bottom));
   color: var(--hb-page-text);
-  overflow: hidden;
+  overflow: auto;
 }
 
 body.hashi #app {
   max-width: 980px;
-  max-height: calc(100vh - 16px);
-  overflow: hidden;
+  overflow: visible;
 }
 
 body.hashi .subtitle,
