@@ -14,7 +14,6 @@ const STORAGE = {
   settings: 'hashi:v1:settings',
   lastPuzzle: 'hashi:v1:lastPuzzle',
   savePrefix: 'hashi:v1:save:',
-  seed: 'hashi:v1:seed',
   diff: 'hashi:v1:diff',
 };
 
@@ -35,7 +34,6 @@ const bridgeCountEl = document.getElementById('bridge-count');
 const diffSelect = document.getElementById('diff-select');
 const puzzleSelect = document.getElementById('puzzle-select');
 const seedInput = document.getElementById('seed-input');
-const seedBtn = document.getElementById('btn-seed');
 const appEl = document.getElementById('app');
 const surfaceWrap = document.querySelector('.hashi-surface-wrap');
 const surfaceEl = document.getElementById('hashi-surface');
@@ -130,36 +128,6 @@ function saveSettings(next) {
   }
 }
 
-function hash32FNV1a(str) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return h >>> 0;
-}
-
-function pickPuzzleBySeed(seed, diff) {
-  const list = NORMALIZED_PACKS[diff] || [];
-  if (!list.length) return null;
-  const idx = hash32FNV1a(`${seed}|${diff}`) % list.length;
-  return list[idx];
-}
-
-function applySeedSelection(seed, diff) {
-  const trimmed = (seed || '').trim();
-  if (!trimmed) return false;
-  const puzzle = pickPuzzleBySeed(trimmed, diff);
-  if (!puzzle) {
-    setStatus('No puzzles available for this difficulty.');
-    return false;
-  }
-  puzzleSelect.value = puzzle.id;
-  loadPuzzle(puzzle, true);
-  setStatus(`Seed "${trimmed}" → ${puzzle.name}`);
-  return true;
-}
-
 function canonicalizeIslands(w, islands) {
   return islands
     .map((island) => ({
@@ -218,6 +186,7 @@ function decodePuzzleEntry(entry) {
 function normalizePuzzleEntry(entry, diff, index) {
   const id = entry.id || `${diff}-${String(index + 1).padStart(3, '0')}`;
   const name = entry.name || id;
+  const seed = entry?.meta?.seed || entry?.seed || null;
   let decoded;
   try {
     decoded = decodePuzzleEntry(entry);
@@ -233,6 +202,7 @@ function normalizePuzzleEntry(entry, diff, index) {
     h: decoded.h,
     islands: canonicalizeIslands(decoded.w, decoded.islands),
     diff,
+    seed,
     code: entry.code || null,
   };
 }
@@ -945,6 +915,10 @@ function loadPuzzle(puzzle, resume) {
   game.elapsedMs = 0;
   game.startedAt = null;
   stopTimer();
+  if (seedInput) {
+    seedInput.value = puzzle.seed || '';
+    seedInput.title = puzzle.seed ? 'Generated seed' : '';
+  }
 
   const saved = resume ? loadSave(puzzle.id) : null;
   if (saved && saved.edgeCounts && saved.edgeCounts.length === game.topo.edges.length) {
@@ -1241,43 +1215,18 @@ function attachEvents() {
     puzzleSelect.value = pick.id;
     loadPuzzle({ ...pick, diff: diffSelect.value }, true);
   });
-  if (seedBtn && seedInput) {
-    seedBtn.addEventListener('click', () => {
-      const seed = seedInput.value.trim();
-      if (!seed) {
-        try {
-          localStorage.removeItem(STORAGE.seed);
-        } catch (err) {
-          // ignore
-        }
-        setStatus('Seed cleared.');
-        return;
-      }
+    diffSelect.addEventListener('change', () => {
+      const diff = diffSelect.value;
+      populatePuzzles(diff);
       try {
-        localStorage.setItem(STORAGE.seed, seed);
+        localStorage.setItem(STORAGE.diff, diff);
       } catch (err) {
         // ignore
       }
-      applySeedSelection(seed, diffSelect.value);
-    });
-  }
-
-  diffSelect.addEventListener('change', () => {
-    const diff = diffSelect.value;
-    populatePuzzles(diff);
-    try {
-      localStorage.setItem(STORAGE.diff, diff);
-    } catch (err) {
-      // ignore
-    }
-    const seed = seedInput ? seedInput.value.trim() : '';
-    if (seed && applySeedSelection(seed, diff)) {
-      return;
-    }
-    const list = NORMALIZED_PACKS[diff] || [];
-    if (list.length) {
-      puzzleSelect.value = list[0].id;
-      loadPuzzle({ ...list[0], diff }, true);
+      const list = NORMALIZED_PACKS[diff] || [];
+      if (list.length) {
+        puzzleSelect.value = list[0].id;
+        loadPuzzle({ ...list[0], diff }, true);
     }
   });
 
@@ -1317,19 +1266,14 @@ function attachEvents() {
 
 function init() {
   initTheme();
+  if (seedInput) {
+    seedInput.readOnly = true;
+  }
   populateDiffs();
   const savedDiff = localStorage.getItem(STORAGE.diff);
   if (savedDiff && DIFFS.includes(savedDiff)) {
     diffSelect.value = savedDiff;
     populatePuzzles(savedDiff);
-  }
-
-  const savedSeed = localStorage.getItem(STORAGE.seed);
-  if (seedInput && savedSeed) {
-    seedInput.value = savedSeed;
-    if (applySeedSelection(savedSeed, diffSelect.value)) {
-      return;
-    }
   }
 
   const lastPuzzleId = localStorage.getItem(STORAGE.lastPuzzle);
