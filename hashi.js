@@ -184,7 +184,6 @@ const game = {
   startedAt: null,
   elapsedMs: 0,
   saveTimer: null,
-  drag: null,
 };
 
 function clamp(value, lo, hi) {
@@ -323,6 +322,8 @@ function buildTopology(puzzle) {
     islandEdges,
     edgeByPair,
     neighbors,
+    rowBuckets,
+    colBuckets,
   };
 }
 
@@ -930,74 +931,118 @@ function selectDefaultPuzzle() {
   }
 }
 
+function getClosestIslandByCoords(r, c, dir) {
+  if (!game.topo) return null;
+  if (dir === 'up' || dir === 'down') {
+    const col = game.topo.colBuckets[c];
+    if (!col || !col.length) return null;
+    if (dir === 'up') {
+      let best = null;
+      for (const island of col) {
+        if (island.r < r) best = island;
+        if (island.r >= r) break;
+      }
+      return best ? best.id : null;
+    }
+    for (const island of col) {
+      if (island.r > r) return island.id;
+    }
+    return null;
+  }
+  const row = game.topo.rowBuckets[r];
+  if (!row || !row.length) return null;
+  if (dir === 'left') {
+    let best = null;
+    for (const island of row) {
+      if (island.c < c) best = island;
+      if (island.c >= c) break;
+    }
+    return best ? best.id : null;
+  }
+  for (const island of row) {
+    if (island.c > c) return island.id;
+  }
+  return null;
+}
+
+function getClickBetweenIslands(ev) {
+  if (!game.topo) return null;
+  const rect = surfaceEl.getBoundingClientRect();
+  const x = ev.clientX - rect.left;
+  const y = ev.clientY - rect.top;
+  if (x < 0 || y < 0 || x > rect.width || y > rect.height) return null;
+  const cell = parseFloat(getComputedStyle(surfaceEl).getPropertyValue('--cell')) || 48;
+  const col = Math.floor(x / cell);
+  const row = Math.floor(y / cell);
+  if (row < 0 || row >= game.topo.h || col < 0 || col >= game.topo.w) return null;
+
+  const up = getClosestIslandByCoords(row, col, 'up');
+  const down = getClosestIslandByCoords(row, col, 'down');
+  const left = getClosestIslandByCoords(row, col, 'left');
+  const right = getClosestIslandByCoords(row, col, 'right');
+  const canVert = up !== null && down !== null && getEdgeId(up, down) !== undefined;
+  const canHoriz = left !== null && right !== null && getEdgeId(left, right) !== undefined;
+
+  if (!canVert && !canHoriz) return null;
+  if (canVert && !canHoriz) return { from: up, to: down, dir: 'down' };
+  if (!canVert && canHoriz) return { from: left, to: right, dir: 'right' };
+
+  const offsetX = Math.abs(x - (col + 0.5) * cell);
+  const offsetY = Math.abs(y - (row + 0.5) * cell);
+  if (offsetX <= offsetY) return { from: up, to: down, dir: 'down' };
+  return { from: left, to: right, dir: 'right' };
+}
+
 function handlePointerDown(ev) {
   if (!game.topo || settingsModal && !settingsModal.classList.contains('hidden')) return;
+  const bridgeEl = ev.target.closest('.bridge');
+  if (bridgeEl) {
+    ev.preventDefault();
+    const edgeId = Number(bridgeEl.dataset.edgeId);
+    const dir = ev.button === 2 ? -1 : 1;
+    cycleEdge(edgeId, dir);
+    return;
+  }
+
   const islandEl = ev.target.closest('.island');
   if (!islandEl) {
+    const between = getClickBetweenIslands(ev);
+    if (between) {
+      const edgeId = getEdgeId(between.from, between.to);
+      if (edgeId !== undefined) {
+        const dir = ev.button === 2 ? -1 : 1;
+        cycleEdge(edgeId, dir);
+        game.lastDir = between.dir;
+        selectIsland(between.to);
+        return;
+      }
+    }
     clearSelection();
     return;
   }
   ev.preventDefault();
   const id = Number(islandEl.dataset.id);
-  game.drag = {
-    id,
-    button: ev.button,
-    pointerId: ev.pointerId,
-    startX: ev.clientX,
-    startY: ev.clientY,
-    dir: null,
-    moved: false,
-  };
-  selectIsland(id);
-  surfaceEl.setPointerCapture(ev.pointerId);
-}
-
-function handlePointerMove(ev) {
-  if (!game.drag || ev.pointerId !== game.drag.pointerId) return;
-  const dx = ev.clientX - game.drag.startX;
-  const dy = ev.clientY - game.drag.startY;
-  if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-  game.drag.moved = true;
-  const dir = Math.abs(dx) > Math.abs(dy)
-    ? (dx > 0 ? 'right' : 'left')
-    : (dy > 0 ? 'down' : 'up');
-  game.drag.dir = dir;
-  if (game.selected !== null) {
-    const neighbor = game.topo.neighbors[game.selected][dir];
-    if (neighbor !== null) {
-      const edgeId = getEdgeId(game.selected, neighbor);
-      setHoverEdge(edgeId ?? null);
-    }
-  }
-}
-
-function handlePointerUp(ev) {
-  if (!game.drag || ev.pointerId !== game.drag.pointerId) return;
-  surfaceEl.releasePointerCapture(ev.pointerId);
-  const startId = game.drag.id;
-  const button = game.drag.button;
-  const dir = game.drag.dir;
-  game.drag = null;
-  const targetEl = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.island');
-  const targetId = targetEl ? Number(targetEl.dataset.id) : null;
-  setHoverEdge(null);
-
-  if (targetId !== null && targetId !== startId) {
-    attemptEdge(startId, targetId, button === 2 ? -1 : 1);
+  if (game.selected === null) {
+    selectIsland(id);
     return;
   }
-  if (dir && game.selected !== null) {
-    attemptEdgeDir(startId, dir, button === 2 ? 'cycleBack' : 'cycle');
+  if (game.selected === id) {
+    selectIsland(id);
+    return;
   }
-}
-
-function handlePointerLeave() {
-  if (game.drag) return;
-  setHoverEdge(null);
+  const edgeId = getEdgeId(game.selected, id);
+  if (edgeId !== undefined) {
+    const dir = ev.button === 2 ? -1 : 1;
+    cycleEdge(edgeId, dir);
+    game.lastDir = directionFromTo(game.selected, id);
+    selectIsland(id);
+    return;
+  }
+  selectIsland(id);
 }
 
 function handleHover(ev) {
-  if (!game.topo || game.drag) return;
+  if (!game.topo) return;
   const islandEl = ev.target.closest('.island');
   if (!islandEl || game.selected === null) {
     setHoverEdge(null);
@@ -1095,9 +1140,6 @@ function handleKeyDown(ev) {
 
 function attachEvents() {
   surfaceEl.addEventListener('pointerdown', handlePointerDown);
-  surfaceEl.addEventListener('pointermove', handlePointerMove);
-  surfaceEl.addEventListener('pointerup', handlePointerUp);
-  surfaceEl.addEventListener('pointerleave', handlePointerLeave);
   surfaceEl.addEventListener('mousemove', handleHover);
   document.addEventListener('contextmenu', handleContextMenu);
   document.addEventListener('keydown', handleKeyDown);
