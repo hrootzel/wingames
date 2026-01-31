@@ -59,7 +59,12 @@ body.sudoku[data-theme="light"] {
 
 #screen-title {
   text-align: center;
-  padding: 24px 12px 16px;
+  padding: 24px 16px 24px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
 }
 
 #screen-title .menu {
@@ -407,7 +412,14 @@ body.sudoku[data-theme="light"] {
 
 @media (max-width: 1100px) {
   body.sudoku {
-    --sudoku-board-size: min(92vmin, 540px);
+    --sudoku-board-size: min(96vmin, 620px);
+  }
+
+  body.sudoku #app {
+    max-width: 100%;
+    margin: 0;
+    padding: 12px 12px 16px;
+    border-radius: 0;
   }
 
   .game-layout {
@@ -430,12 +442,22 @@ body.sudoku[data-theme="light"] {
 }
 
 @media (max-width: 720px) {
+  body.sudoku #app {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
   #screen-title {
-    padding: 20px 16px 18px;
+    padding: 28px 18px 28px;
+    min-height: 100svh;
   }
 
   #screen-title h1 {
-    font-size: 36px;
+    font-size: 40px;
     letter-spacing: 0.4px;
   }
 
@@ -444,24 +466,35 @@ body.sudoku[data-theme="light"] {
   }
 
   #screen-title .menu {
-    gap: 14px;
-    max-width: 90vw;
+    gap: 16px;
+    width: min(92vw, 420px);
+    max-width: none;
   }
 
   #screen-title .menu button {
-    width: min(320px, 100%);
-    font-size: 18px;
-    padding: 14px 16px;
+    width: 100%;
+    font-size: 20px;
+    padding: 16px 18px;
   }
 
   #screen-title .title-actions button {
-    width: min(260px, 100%);
+    width: min(92vw, 320px);
     font-size: 16px;
     padding: 12px 16px;
   }
 
   .panel {
     padding: 12px;
+  }
+
+  body.sudoku #screen-game .app-header {
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+  }
+
+  body.sudoku #screen-game .settings {
+    margin-left: 0;
   }
 }
 
