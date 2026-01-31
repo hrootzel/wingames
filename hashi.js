@@ -670,7 +670,8 @@ function layoutBoard() {
 
   const sizeByW = Math.floor(availableW / game.topo.w);
   const sizeByH = Math.floor(availableH / game.topo.h);
-  const cell = clamp(Math.min(sizeByW, sizeByH, 64), 28, 72);
+  const rawCell = Math.max(1, Math.min(sizeByW, sizeByH, 64));
+  const cell = rawCell < 28 ? rawCell : clamp(rawCell, 28, 72);
   const islandSize = Math.round(cell * 0.66);
   const bridgeStroke = Math.max(3, Math.round(cell * 0.12));
   const bridgeBand = Math.max(bridgeStroke * 3, Math.round(cell * 0.28));
