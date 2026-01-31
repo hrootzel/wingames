@@ -24,6 +24,23 @@
   --sudoku-board-size: min(70vmin, 540px);
 }
 
+@media (min-width: 1101px) {
+  body.sudoku {
+    --sudoku-board-size: min(70vmin, 540px, calc(100svh - 260px));
+  }
+}
+
+@media (min-width: 1101px) and (max-height: 800px) {
+  body.sudoku {
+    --sudoku-board-size: min(70vmin, 480px, calc(100svh - 220px));
+  }
+
+  .game-layout {
+    margin-top: 10px;
+    gap: 10px;
+  }
+}
+
 body.sudoku {
   background: linear-gradient(135deg, var(--sudoku-bg-top), var(--sudoku-bg-bottom));
   color: var(--sudoku-text);
@@ -438,6 +455,31 @@ body.sudoku[data-theme="light"] {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     max-width: var(--sudoku-board-size);
     margin: 0 auto;
+  }
+}
+
+@media (max-width: 1100px) and (orientation: landscape) {
+  body.sudoku {
+    --sudoku-board-size: min(70vmin, 440px);
+  }
+
+  body.sudoku #app {
+    padding: 8px 10px 12px;
+  }
+
+  .game-layout {
+    grid-template-columns: auto minmax(160px, 220px);
+    align-items: start;
+  }
+
+  .panel {
+    width: auto;
+  }
+
+  .keypad {
+    grid-template-columns: repeat(2, var(--key-size));
+    max-width: none;
+    margin: 0;
   }
 }
 
