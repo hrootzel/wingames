@@ -148,6 +148,15 @@ body.hashi[data-theme="light"] {
   min-width: 140px;
 }
 
+.hashi-options input {
+  min-width: 160px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--hb-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+}
+
 .hashi-surface-wrap {
   margin-top: 10px;
   padding: 10px;
