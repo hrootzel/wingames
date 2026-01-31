@@ -39,6 +39,7 @@
         <div class="settings">
           <button id="settings-toggle" class="icon-button" aria-expanded="false" aria-controls="settings-menu" aria-label="Settings" title="Settings">⚙️</button>
           <div id="settings-menu" class="settings-menu hidden">
+            <button type="button" data-action="new">New game</button>
             <button type="button" data-action="reset">Reset</button>
             <button type="button" data-action="solve">Solve</button>
             <button type="button" data-action="hint">Hint</button>
@@ -93,6 +94,24 @@
       </div>
     </div>
   </div>
+
+    <div id="win-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="win-title">
+      <div class="modal-card sudoku-win-card">
+        <header class="sudoku-win-header">
+          <h2 id="win-title">Puzzle Complete</h2>
+          <button id="win-close" class="icon-button" aria-label="Close">&#10005;</button>
+        </header>
+        <p id="win-message" class="sudoku-win-message">You solved the puzzle.</p>
+        <div class="sudoku-win-stats">
+          <div>Time</div><div id="win-time">00:00</div>
+          <div>Difficulty</div><div id="win-diff">-</div>
+        </div>
+        <div class="modal-actions">
+          <button id="win-new">New Game</button>
+          <button id="win-replay" class="secondary">Replay</button>
+        </div>
+      </div>
+    </div>
 
   <script type="module" src="sudoku.js"></script>
 </body>

@@ -15,6 +15,7 @@ Local, dependency-free implementations of card, puzzle, and arcade games using J
 ## Puzzle Games
 - **Bombflagger**: Minesweeper-style presets, custom boards, and emoji flags.
 - **Mahjong Solitaire**: Multiple layouts with matching free pairs and solvable-by-construction deals.
+- **Hashi Bridges**: Connect islands with 1-2 bridges, no crossings, and all islands connected.
 - **Hackerman**: Mastermind/Bulls & Cows hybrid with colors or digits mode.
 - **Sudoku**: Difficulty-based logic puzzle with notes, eraser, and resume support.
 - **Tile Toggle**: Lights Out puzzle - click tiles to toggle neighbors, turn all off.
