@@ -57,6 +57,15 @@ const gridToggle = document.getElementById('opt-grid');
 const remainingToggle = document.getElementById('opt-remaining');
 const codeInput = document.getElementById('opt-code');
 const settingsThemeBtn = document.getElementById('settings-theme');
+const winModal = document.getElementById('win-modal');
+const winClose = document.getElementById('win-close');
+const winNext = document.getElementById('win-next');
+const winReplay = document.getElementById('win-replay');
+const winMessage = document.getElementById('win-message');
+const winTime = document.getElementById('win-time');
+const winBridges = document.getElementById('win-bridges');
+const winIslands = document.getElementById('win-islands');
+const winName = document.getElementById('win-name');
 
 let settings = loadSettings();
 
@@ -84,6 +93,7 @@ const game = {
   startedAt: null,
   elapsedMs: 0,
   saveTimer: null,
+  wasSolved: false,
 };
 
 function clamp(value, lo, hi) {
@@ -436,6 +446,11 @@ function updateTimer() {
   timeEl.textContent = `Time: ${formatTime(elapsed)}`;
 }
 
+function getElapsedMs() {
+  if (game.timerId && game.startedAt) return Date.now() - game.startedAt;
+  return game.elapsedMs;
+}
+
 function startTimer() {
   if (game.timerId) return;
   if (!game.startedAt) {
@@ -531,6 +546,33 @@ function updateStats() {
   islandCountEl.textContent = String(total);
   satisfiedCountEl.textContent = String(satisfied);
   bridgeCountEl.textContent = String(bridges);
+}
+
+function showWinModal() {
+  if (!winModal || !game.topo || !game.state) return;
+  if (winMessage) {
+    winMessage.textContent = `You solved ${game.puzzle?.name || 'the puzzle'}!`;
+  }
+  if (winTime) {
+    winTime.textContent = formatTime(getElapsedMs());
+  }
+  if (winBridges) {
+    let bridges = 0;
+    for (const v of game.state.edgeCounts) bridges += v;
+    winBridges.textContent = String(bridges);
+  }
+  if (winIslands) {
+    winIslands.textContent = String(game.topo.islands.length);
+  }
+  if (winName) {
+    winName.textContent = game.puzzle?.name || '-';
+  }
+  winModal.classList.remove('hidden');
+}
+
+function closeWinModal() {
+  if (!winModal) return;
+  winModal.classList.add('hidden');
 }
 
 function setHoverEdge(edgeId) {
@@ -757,8 +799,13 @@ function applyMove(edgeId, nextCount) {
   if (game.state.solved) {
     stopTimer();
     setStatus('Solved!');
+    if (!game.wasSolved) {
+      game.wasSolved = true;
+      showWinModal();
+    }
   } else {
     setStatus('Move recorded.');
+    game.wasSolved = false;
   }
   scheduleSave();
   render();
@@ -814,6 +861,7 @@ function undoMove() {
   const diff = game.undo.pop();
   setEdgeCount(game.topo, game.state, diff.edgeId, diff.prev);
   game.state.solved = isSolved(game.topo, game.state);
+  game.wasSolved = game.state.solved;
   game.redo.push(diff);
   setStatus('Undid move.');
   scheduleSave();
@@ -828,6 +876,7 @@ function redoMove() {
   const diff = game.redo.pop();
   setEdgeCount(game.topo, game.state, diff.edgeId, diff.next);
   game.state.solved = isSolved(game.topo, game.state);
+  game.wasSolved = game.state.solved;
   game.undo.push(diff);
   setStatus('Redid move.');
   scheduleSave();
@@ -841,6 +890,7 @@ function resetPuzzle(clearSaveFlag) {
   game.redo = [];
   game.selected = null;
   game.lastDir = null;
+  game.wasSolved = false;
   resetTimer();
   if (clearSaveFlag && game.puzzle) clearSave(game.puzzle.id);
   setStatus('Puzzle reset.');
@@ -973,9 +1023,11 @@ function loadPuzzle(puzzle, resume) {
       startTimer();
     }
     game.state.solved = isSolved(game.topo, game.state);
+    game.wasSolved = game.state.solved;
     setStatus(saved.solved || game.state.solved ? 'Solved!' : 'Resumed puzzle.');
   } else {
     setStatus('Ready.');
+    game.wasSolved = false;
   }
 
   rebuildBoard();
@@ -1023,6 +1075,18 @@ function selectDefaultPuzzle() {
     puzzleSelect.value = list[0].id;
     loadPuzzle({ ...list[0], diff }, true);
   }
+}
+
+function selectNextPuzzle() {
+  const diff = diffSelect.value;
+  const list = NORMALIZED_PACKS[diff] || [];
+  if (!list.length) return;
+  const currentId = puzzleSelect.value;
+  let idx = list.findIndex((puzzle) => puzzle.id === currentId);
+  if (idx < 0) idx = 0;
+  const next = list[(idx + 1) % list.length];
+  puzzleSelect.value = next.id;
+  loadPuzzle({ ...next, diff }, true);
 }
 
 function getClosestIslandByCoords(r, c, dir) {
@@ -1297,6 +1361,27 @@ settingsApply.addEventListener('click', () => {
   settingsModal.addEventListener('click', (ev) => {
     if (ev.target === settingsModal) closeSettings();
   });
+
+  if (winClose) {
+    winClose.addEventListener('click', closeWinModal);
+  }
+  if (winReplay) {
+    winReplay.addEventListener('click', () => {
+      closeWinModal();
+      resetPuzzle(true);
+    });
+  }
+  if (winNext) {
+    winNext.addEventListener('click', () => {
+      closeWinModal();
+      selectNextPuzzle();
+    });
+  }
+  if (winModal) {
+    winModal.addEventListener('click', (ev) => {
+      if (ev.target === winModal) closeWinModal();
+    });
+  }
 
   window.addEventListener('resize', scheduleLayout);
   if ('ResizeObserver' in window) {

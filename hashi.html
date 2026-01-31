@@ -107,6 +107,28 @@
     </div>
   </div>
 
+  <div id="win-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="win-title">
+    <div class="ms-modal-card hashi-win-card">
+      <header class="ms-modal-header">
+        <h2 id="win-title">Puzzle Complete</h2>
+        <button id="win-close" class="icon-button" aria-label="Close">&#10005;</button>
+      </header>
+      <div class="hashi-win-body">
+        <p id="win-message" class="hashi-win-message">You solved the puzzle.</p>
+        <div class="hashi-win-stats">
+          <div>Time</div><div id="win-time">00:00</div>
+          <div>Bridges</div><div id="win-bridges">0</div>
+          <div>Islands</div><div id="win-islands">0</div>
+          <div>Puzzle</div><div id="win-name">-</div>
+        </div>
+      </div>
+      <div class="ms-actions">
+        <button id="win-next">Next Puzzle</button>
+        <button id="win-replay" class="secondary">Replay</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="hashi.js"></script>
 </body>
 </html>

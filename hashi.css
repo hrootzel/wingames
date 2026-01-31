@@ -118,7 +118,7 @@ body.hashi[data-theme="light"] {
   display: flex;
   flex-wrap: wrap;
   gap: 6px 14px;
-  color: var(--hb-text);
+  color: var(--hb-page-text);
   font-weight: 700;
   font-size: 13px;
 }
@@ -444,6 +444,39 @@ body.hashi[data-theme="light"] {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.hashi-win-card {
+  border: 2px solid var(--hb-panel-dark);
+  box-shadow: inset 1px 1px 0 var(--hb-panel-light),
+    inset -1px -1px 0 var(--hb-panel-dark),
+    0 24px 40px rgba(0, 0, 0, 0.45);
+}
+
+.hashi-win-body {
+  margin-top: 10px;
+  display: grid;
+  gap: 12px;
+}
+
+.hashi-win-message {
+  margin: 0;
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  font-size: 18px;
+}
+
+.hashi-win-stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--hb-panel-dark);
+  background: var(--hb-panel-light);
+  font-weight: 700;
+  font-size: 12px;
 }
 
 .ms-theme-button {
