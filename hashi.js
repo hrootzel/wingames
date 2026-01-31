@@ -669,12 +669,9 @@ function layoutBoard() {
   const padY = parseFloat(wrapStyles.paddingTop) + parseFloat(wrapStyles.paddingBottom);
   const wrapRect = surfaceWrap.getBoundingClientRect();
   const availableW = surfaceWrap.clientWidth - padX;
-  const appStyles = appEl ? window.getComputedStyle(appEl) : null;
-  const appPadBottom = appStyles ? parseFloat(appStyles.paddingBottom) : 0;
-  const footerSpace = 16 + appPadBottom;
-  let availableH = window.innerHeight - wrapRect.top - footerSpace - padY;
+  let availableH = window.innerHeight - wrapRect.top - padY - 8;
   if (!Number.isFinite(availableH)) {
-    availableH = Math.min(window.innerHeight * 0.55, 760) - padY;
+    availableH = Math.min(window.innerHeight * 0.6, 820) - padY;
   }
   availableH = Math.max(180, availableH);
 

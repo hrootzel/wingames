@@ -42,6 +42,17 @@ body.hashi {
 body.hashi #app {
   max-width: 980px;
   overflow: visible;
+  margin: 10px auto 18px;
+  padding: 10px 12px 14px;
+}
+
+body.hashi .app-header h1 {
+  font-size: 24px;
+  letter-spacing: 0.3px;
+}
+
+body.hashi .subtitle {
+  font-size: 13px;
 }
 
 body.hashi .subtitle,
