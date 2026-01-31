@@ -126,7 +126,7 @@ const STORAGE = {
 const THEME_KEY = 'hashi_theme';
 
 const DEFAULT_SETTINGS = {
-  strict: true,
+  strict: false,
   showErrors: true,
   showGrid: true,
   showRemaining: false,
@@ -654,7 +654,6 @@ function layoutBoard() {
   }
   availableH = Math.max(180, availableH);
 
-  surfaceWrap.style.height = `${availableH + padY}px`;
   const sizeByW = Math.floor(availableW / game.topo.w);
   const sizeByH = Math.floor(availableH / game.topo.h);
   const cell = clamp(Math.min(sizeByW, sizeByH, 64), 28, 72);
@@ -670,6 +669,9 @@ function layoutBoard() {
   surfaceEl.style.setProperty('--bridge-offset', `${bridgeOffset}px`);
   surfaceEl.style.width = `${game.topo.w * cell}px`;
   surfaceEl.style.height = `${game.topo.h * cell}px`;
+  const boardHeight = game.topo.h * cell;
+  const wrapHeight = Math.min(availableH, boardHeight) + padY;
+  surfaceWrap.style.height = `${wrapHeight}px`;
 }
 
 function positionPieces() {
