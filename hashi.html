@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hashi Bridges</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="hashi.css">
+</head>
+<body class="hashi">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>Hashi Bridges</h1>
+        <p class="subtitle">Connect every island with 1 or 2 bridges without crossings.</p>
+      </div>
+      <div class="settings">
+        <button id="settings-toggle" class="icon-button" aria-expanded="false" aria-controls="settings-modal" aria-label="Settings" title="Settings">&#9881;</button>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Ready.</span>
+      </div>
+      <div class="status-row">
+        <span id="time">Time: 00:00</span>
+      </div>
+    </div>
+
+    <div class="board hashi-board">
+      <div class="hashi-topbar">
+        <div class="hashi-stats">
+          <div>Islands: <span id="island-count">0</span></div>
+          <div>Satisfied: <span id="satisfied-count">0</span></div>
+          <div>Bridges: <span id="bridge-count">0</span></div>
+        </div>
+        <div class="control-group hashi-actions">
+          <button id="btn-undo">Undo</button>
+          <button id="btn-redo">Redo</button>
+          <button id="btn-reset">Reset</button>
+          <button id="btn-check">Check</button>
+        </div>
+      </div>
+
+      <div class="options-row hashi-options">
+        <label>
+          <span>Difficulty</span>
+          <select id="diff-select"></select>
+        </label>
+        <label>
+          <span>Puzzle</span>
+          <select id="puzzle-select"></select>
+        </label>
+        <button id="btn-new">New</button>
+        <button id="btn-random" class="secondary">Random</button>
+      </div>
+
+      <div class="hashi-surface-wrap">
+        <div id="hashi-surface" class="hashi-surface" role="img" aria-label="Hashi board" tabindex="0"></div>
+      </div>
+    </div>
+
+    <p class="tips">
+      Click an island, then click a neighbor to add bridges. Right click cycles backward.
+      Shift + arrow places a bridge in that direction. Space cycles the last direction.
+    </p>
+  </div>
+
+  <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="settings-title">Settings</h2>
+        <button id="settings-close" class="icon-button" aria-label="Close settings">&#10005;</button>
+      </header>
+
+      <div class="ms-form">
+        <label class="ms-toggle">
+          <input id="opt-strict" type="checkbox">
+          <span>Prevent exceeding island counts</span>
+        </label>
+        <label class="ms-toggle">
+          <input id="opt-errors" type="checkbox">
+          <span>Highlight mismatches</span>
+        </label>
+        <label class="ms-toggle">
+          <input id="opt-grid" type="checkbox">
+          <span>Show grid</span>
+        </label>
+        <label class="ms-toggle">
+          <input id="opt-remaining" type="checkbox">
+          <span>Show remaining counts</span>
+        </label>
+
+        <p id="settings-error" class="ms-error" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="ms-actions">
+        <button id="settings-apply">Apply</button>
+        <button id="settings-cancel" class="secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="hashi.js"></script>
+</body>
+</html>
