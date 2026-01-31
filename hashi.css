@@ -26,6 +26,11 @@
   --hb-bridge-strong: #f8fafc;
   --hb-bridge-preview: #7dd3fc;
   --hb-chip: #0f172a;
+  --hb-modal-bg: var(--hb-panel);
+  --hb-modal-text: var(--hb-page-text);
+  --hb-modal-overlay: rgba(15, 23, 42, 0.55);
+  --hb-input-bg: var(--hb-panel-light);
+  --hb-input-border: var(--hb-border);
 }
 
 body.hashi {
@@ -77,6 +82,11 @@ body.hashi[data-theme="light"] {
   --hb-bridge-strong: #0f172a;
   --hb-bridge-preview: #2563eb;
   --hb-chip: #0f172a;
+  --hb-modal-bg: var(--hb-panel);
+  --hb-modal-text: var(--hb-text);
+  --hb-modal-overlay: rgba(148, 163, 184, 0.35);
+  --hb-input-bg: var(--hb-panel-light);
+  --hb-input-border: var(--hb-border);
 }
 
 .hashi-board {
@@ -155,6 +165,11 @@ body.hashi[data-theme="light"] {
   border: 1px solid var(--hb-border);
   background: rgba(0, 0, 0, 0.25);
   color: inherit;
+}
+
+.hashi-option-actions {
+  margin-left: auto;
+  align-items: center;
 }
 
 .hashi-surface-wrap {
@@ -351,15 +366,15 @@ body.hashi[data-theme="light"] {
 .ms-modal {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
+  background: var(--hb-modal-overlay);
   display: grid;
   place-items: center;
   z-index: 3000;
 }
 
 .ms-modal-card {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--hb-modal-bg);
+  color: var(--hb-modal-text);
   border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.4);
   width: min(92vw, 440px);
@@ -378,6 +393,32 @@ body.hashi[data-theme="light"] {
   margin-top: 12px;
   display: grid;
   gap: 12px;
+}
+
+.ms-modal-card label {
+  color: var(--hb-modal-text);
+}
+
+.ms-field {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.ms-field input,
+.ms-field textarea {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--hb-input-border);
+  background: var(--hb-input-bg);
+  color: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+}
+
+.ms-field textarea {
+  min-height: 72px;
+  resize: vertical;
 }
 
 .ms-toggle {

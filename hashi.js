@@ -33,7 +33,6 @@ const satisfiedCountEl = document.getElementById('satisfied-count');
 const bridgeCountEl = document.getElementById('bridge-count');
 const diffSelect = document.getElementById('diff-select');
 const puzzleSelect = document.getElementById('puzzle-select');
-const seedInput = document.getElementById('seed-input');
 const appEl = document.getElementById('app');
 const surfaceWrap = document.querySelector('.hashi-surface-wrap');
 const surfaceEl = document.getElementById('hashi-surface');
@@ -56,6 +55,7 @@ const strictToggle = document.getElementById('opt-strict');
 const errorsToggle = document.getElementById('opt-errors');
 const gridToggle = document.getElementById('opt-grid');
 const remainingToggle = document.getElementById('opt-remaining');
+const codeInput = document.getElementById('opt-code');
 const settingsThemeBtn = document.getElementById('settings-theme');
 
 let settings = loadSettings();
@@ -186,7 +186,6 @@ function decodePuzzleEntry(entry) {
 function normalizePuzzleEntry(entry, diff, index) {
   const id = entry.id || `${diff}-${String(index + 1).padStart(3, '0')}`;
   const name = entry.name || id;
-  const seed = entry?.meta?.seed || entry?.seed || null;
   let decoded;
   try {
     decoded = decodePuzzleEntry(entry);
@@ -202,7 +201,6 @@ function normalizePuzzleEntry(entry, diff, index) {
     h: decoded.h,
     islands: canonicalizeIslands(decoded.w, decoded.islands),
     diff,
-    seed,
     code: entry.code || null,
   };
 }
@@ -875,6 +873,7 @@ function checkPuzzle() {
 }
 
 function applySettingsFromUI() {
+  settingsError.textContent = '';
   settings = {
     strict: strictToggle.checked,
     showErrors: errorsToggle.checked,
@@ -883,6 +882,49 @@ function applySettingsFromUI() {
   };
   saveSettings(settings);
   render();
+  if (!codeInput) return true;
+  const rawCode = codeInput.value.trim();
+  const currentCode = game.puzzle?.code || '';
+  if (!rawCode || rawCode === currentCode) return true;
+
+  let decoded;
+  try {
+    if (!rawCode.startsWith('TR1:')) {
+      throw new Error('Only TR1 codes are supported.');
+    }
+    decoded = decodeTR1(rawCode);
+  } catch (err) {
+    settingsError.textContent = 'Invalid board code.';
+    return false;
+  }
+
+  const diff = diffSelect.value;
+  const customId = `custom-${Date.now()}`;
+  const puzzle = {
+    id: customId,
+    name: 'Custom Code',
+    diff,
+    w: decoded.w,
+    h: decoded.h,
+    islands: decoded.islands,
+    code: rawCode,
+  };
+  puzzleIndex.set(customId, puzzle);
+  if (diffSelect.value !== diff) {
+    diffSelect.value = diff;
+    populatePuzzles(diff);
+  }
+  let opt = puzzleSelect.querySelector(`option[value="${customId}"]`);
+  if (!opt) {
+    opt = document.createElement('option');
+    opt.value = customId;
+    opt.textContent = 'Custom Code';
+    puzzleSelect.appendChild(opt);
+  }
+  puzzleSelect.value = customId;
+  loadPuzzle(puzzle, false);
+  setStatus('Loaded custom board code.');
+  return true;
 }
 
 function openSettings() {
@@ -891,6 +933,9 @@ function openSettings() {
   errorsToggle.checked = settings.showErrors;
   gridToggle.checked = settings.showGrid;
   remainingToggle.checked = settings.showRemaining;
+  if (codeInput) {
+    codeInput.value = game.puzzle?.code || '';
+  }
   updateThemeMenuLabel();
   settingsModal.classList.remove('hidden');
   settingsToggle.setAttribute('aria-expanded', 'true');
@@ -915,10 +960,6 @@ function loadPuzzle(puzzle, resume) {
   game.elapsedMs = 0;
   game.startedAt = null;
   stopTimer();
-  if (seedInput) {
-    seedInput.value = puzzle.seed || '';
-    seedInput.title = puzzle.seed ? 'Generated seed' : '';
-  }
 
   const saved = resume ? loadSave(puzzle.id) : null;
   if (saved && saved.edgeCounts && saved.edgeCounts.length === game.topo.edges.length) {
@@ -1242,10 +1283,11 @@ function attachEvents() {
   });
   settingsClose.addEventListener('click', closeSettings);
   settingsCancel.addEventListener('click', closeSettings);
-  settingsApply.addEventListener('click', () => {
-    applySettingsFromUI();
+settingsApply.addEventListener('click', () => {
+  if (applySettingsFromUI()) {
     closeSettings();
-  });
+  }
+});
   if (settingsThemeBtn) {
     settingsThemeBtn.addEventListener('click', () => {
       const next = document.body.dataset.theme === 'light' ? 'dark' : 'light';
@@ -1266,9 +1308,6 @@ function attachEvents() {
 
 function init() {
   initTheme();
-  if (seedInput) {
-    seedInput.readOnly = true;
-  }
   populateDiffs();
   const savedDiff = localStorage.getItem(STORAGE.diff);
   if (savedDiff && DIFFS.includes(savedDiff)) {
