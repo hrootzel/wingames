@@ -139,8 +139,10 @@ const satisfiedCountEl = document.getElementById('satisfied-count');
 const bridgeCountEl = document.getElementById('bridge-count');
 const diffSelect = document.getElementById('diff-select');
 const puzzleSelect = document.getElementById('puzzle-select');
+const appEl = document.getElementById('app');
 const surfaceWrap = document.querySelector('.hashi-surface-wrap');
 const surfaceEl = document.getElementById('hashi-surface');
+const tipsEl = document.querySelector('.tips');
 
 const undoBtn = document.getElementById('btn-undo');
 const redoBtn = document.getElementById('btn-redo');
@@ -641,11 +643,21 @@ function layoutBoard() {
   const wrapStyles = window.getComputedStyle(surfaceWrap);
   const padX = parseFloat(wrapStyles.paddingLeft) + parseFloat(wrapStyles.paddingRight);
   const padY = parseFloat(wrapStyles.paddingTop) + parseFloat(wrapStyles.paddingBottom);
+  const wrapRect = surfaceWrap.getBoundingClientRect();
   const availableW = surfaceWrap.clientWidth - padX;
-  const availableH = Math.min(window.innerHeight * 0.55, 760) - padY;
+  const appStyles = appEl ? window.getComputedStyle(appEl) : null;
+  const appPadBottom = appStyles ? parseFloat(appStyles.paddingBottom) : 0;
+  const footerSpace = 16 + appPadBottom;
+  let availableH = window.innerHeight - wrapRect.top - footerSpace - padY;
+  if (!Number.isFinite(availableH)) {
+    availableH = Math.min(window.innerHeight * 0.55, 760) - padY;
+  }
+  availableH = Math.max(180, availableH);
+
+  surfaceWrap.style.height = `${availableH + padY}px`;
   const sizeByW = Math.floor(availableW / game.topo.w);
   const sizeByH = Math.floor(availableH / game.topo.h);
-  const cell = clamp(Math.min(sizeByW, sizeByH, 64), 30, 72);
+  const cell = clamp(Math.min(sizeByW, sizeByH, 64), 28, 72);
   const islandSize = Math.round(cell * 0.66);
   const bridgeStroke = Math.max(3, Math.round(cell * 0.12));
   const bridgeBand = Math.max(bridgeStroke * 3, Math.round(cell * 0.28));
@@ -701,6 +713,18 @@ function positionPieces() {
     el.style.left = `${left}px`;
     el.style.top = `${top}px`;
   }
+}
+
+let layoutRaf = null;
+let resizeObserver = null;
+
+function scheduleLayout() {
+  if (layoutRaf) return;
+  layoutRaf = window.requestAnimationFrame(() => {
+    layoutRaf = null;
+    layoutBoard();
+    positionPieces();
+  });
 }
 
 function selectIsland(id) {
@@ -1237,10 +1261,12 @@ function attachEvents() {
     if (ev.target === settingsModal) closeSettings();
   });
 
-  window.addEventListener('resize', () => {
-    layoutBoard();
-    positionPieces();
-  });
+  window.addEventListener('resize', scheduleLayout);
+  if ('ResizeObserver' in window) {
+    resizeObserver = new ResizeObserver(scheduleLayout);
+    if (appEl) resizeObserver.observe(appEl);
+    resizeObserver.observe(surfaceWrap);
+  }
 }
 
 function init() {

@@ -31,10 +31,13 @@
 body.hashi {
   background: radial-gradient(circle at top, var(--hb-bg-top), var(--hb-bg-bottom));
   color: var(--hb-page-text);
+  overflow: hidden;
 }
 
 body.hashi #app {
   max-width: 980px;
+  max-height: calc(100vh - 16px);
+  overflow: hidden;
 }
 
 body.hashi .subtitle,
@@ -89,20 +92,34 @@ body.hashi[data-theme="light"] {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
+  gap: 10px;
+  padding: 6px 8px;
   border: 2px solid var(--hb-panel-dark);
   background: var(--hb-panel-light);
   box-shadow: inset 1px 1px 0 #ffffff,
     inset -1px -1px 0 var(--hb-panel-dark);
 }
 
-.hashi-stats {
+.hashi-top-left {
   display: grid;
   gap: 4px;
+}
+
+.hashi-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
   color: var(--hb-text);
   font-weight: 700;
   font-size: 13px;
+}
+
+.hashi-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 12px;
+  color: var(--hb-status);
 }
 
 .hashi-stats span {
@@ -114,8 +131,8 @@ body.hashi[data-theme="light"] {
 }
 
 .hashi-options {
-  margin-top: 10px;
-  padding: 8px 10px;
+  margin-top: 8px;
+  padding: 6px 8px;
   border: 2px solid var(--hb-panel-dark);
   background: rgba(15, 23, 42, 0.35);
   border-radius: 10px;
@@ -139,7 +156,7 @@ body.hashi[data-theme="light"] {
   background: rgba(15, 23, 42, 0.5);
   box-shadow: inset 1px 1px 0 #ffffff,
     inset -1px -1px 0 var(--hb-panel-dark);
-  overflow: auto;
+  overflow: hidden;
   display: flex;
   justify-content: center;
 }
