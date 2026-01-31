@@ -405,7 +405,7 @@ body.sudoku[data-theme="light"] {
   100% { transform: translateX(0); }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   body.sudoku {
     --sudoku-board-size: min(92vmin, 540px);
   }
@@ -426,5 +426,51 @@ body.sudoku[data-theme="light"] {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     max-width: var(--sudoku-board-size);
     margin: 0 auto;
+  }
+}
+
+@media (max-width: 720px) {
+  #screen-title {
+    padding: 20px 16px 18px;
+  }
+
+  #screen-title h1 {
+    font-size: 36px;
+    letter-spacing: 0.4px;
+  }
+
+  #screen-title .subtitle {
+    font-size: 16px;
+  }
+
+  #screen-title .menu {
+    gap: 14px;
+    max-width: 90vw;
+  }
+
+  #screen-title .menu button {
+    width: min(320px, 100%);
+    font-size: 18px;
+    padding: 14px 16px;
+  }
+
+  #screen-title .title-actions button {
+    width: min(260px, 100%);
+    font-size: 16px;
+    padding: 12px 16px;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  #screen-title h1 {
+    font-size: 32px;
+  }
+
+  #screen-title .subtitle {
+    font-size: 15px;
   }
 }
