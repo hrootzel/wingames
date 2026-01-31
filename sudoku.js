@@ -36,6 +36,13 @@ const instructionsBtn = document.getElementById('btn-instructions');
 const settingsToggle = document.getElementById('settings-toggle');
 const settingsMenu = document.getElementById('settings-menu');
 const settingsThemeBtn = document.getElementById('settings-theme');
+const winModal = document.getElementById('win-modal');
+const winClose = document.getElementById('win-close');
+const winNew = document.getElementById('win-new');
+const winReplay = document.getElementById('win-replay');
+const winMessage = document.getElementById('win-message');
+const winTime = document.getElementById('win-time');
+const winDiff = document.getElementById('win-diff');
 const instructionsModal = document.getElementById('instructions-modal');
 const instructionsCloseBtn = document.getElementById('instructions-close');
 
@@ -560,6 +567,40 @@ function setStatus(text) {
   statusEl.textContent = text;
 }
 
+function formatTime(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const s = total % 60;
+  const m = Math.floor(total / 60) % 60;
+  const h = Math.floor(total / 3600);
+  const pad = (v) => String(v).padStart(2, '0');
+  if (h > 0) return `${h}:${pad(m)}:${pad(s)}`;
+  return `${pad(m)}:${pad(s)}`;
+}
+
+function getElapsedMs() {
+  if (!gameState || !gameState.startedAt) return 0;
+  return Date.now() - gameState.startedAt;
+}
+
+function showWinModal() {
+  if (!winModal || !gameState) return;
+  if (winMessage) {
+    winMessage.textContent = `You solved a ${DIFF_LABELS[gameState.diff] || gameState.diff} puzzle!`;
+  }
+  if (winTime) {
+    winTime.textContent = formatTime(getElapsedMs());
+  }
+  if (winDiff) {
+    winDiff.textContent = DIFF_LABELS[gameState.diff] || gameState.diff || '-';
+  }
+  winModal.classList.remove('hidden');
+}
+
+function closeWinModal() {
+  if (!winModal) return;
+  winModal.classList.add('hidden');
+}
+
 function updateThemeMenuLabel() {
   if (!settingsThemeBtn) return;
   const current = document.body.dataset.theme === 'light' ? 'light' : 'dark';
@@ -829,9 +870,11 @@ function afterMove() {
 }
 
 function onWin() {
+  if (gameState.completed) return;
   gameState.completed = true;
   setStatus('Puzzle solved!');
   saveGame(gameState.diff);
+  showWinModal();
 }
 
 function isSolved() {
@@ -966,6 +1009,7 @@ function undoLastMove() {
 
 function resetBoard() {
   if (!gameState) return;
+  closeWinModal();
   gameState.board = gameState.puzzle.slice();
   gameState.notes = Array(81).fill(0);
   gameState.revealed = Array(81).fill(false);
@@ -984,6 +1028,7 @@ function resetBoard() {
 
 function solvePuzzle() {
   if (!gameState) return;
+  closeWinModal();
   gameState.board = gameState.solution.slice();
   gameState.notes = Array(81).fill(0);
   gameState.revealed = gameState.fixed.map((v) => !v);
@@ -1181,6 +1226,7 @@ function loadGame(diff) {
 }
 
 function resumeGame(saved) {
+  closeWinModal();
   const revealed = Array.isArray(saved.revealed) && saved.revealed.length === 81
     ? saved.revealed.map((v) => Boolean(v))
     : Array(81).fill(false);
@@ -1211,6 +1257,7 @@ function resumeGame(saved) {
 }
 
 function startNewGame(diff) {
+  closeWinModal();
   const result = generatePuzzle(diff);
   gameState = {
     diff,
@@ -1240,6 +1287,7 @@ function backToTitle() {
   if (gameState) {
     saveGame(gameState.diff);
   }
+  closeWinModal();
   showScreen('title');
 }
 
@@ -1419,9 +1467,36 @@ function attachEvents() {
       if (ev.target === instructionsModal) closeInstructionsModal();
     });
   }
+  if (winClose) {
+    winClose.addEventListener('click', () => {
+      closeWinModal();
+    });
+  }
+  if (winNew) {
+    winNew.addEventListener('click', () => {
+      if (gameState && gameState.diff) {
+        closeWinModal();
+        startNewGame(gameState.diff);
+      }
+    });
+  }
+  if (winReplay) {
+    winReplay.addEventListener('click', () => {
+      closeWinModal();
+      resetBoard();
+    });
+  }
+  if (winModal) {
+    winModal.addEventListener('click', (ev) => {
+      if (ev.target === winModal) closeWinModal();
+    });
+  }
   document.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape' && instructionsModal && !instructionsModal.classList.contains('hidden')) {
       closeInstructionsModal();
+    }
+    if (ev.key === 'Escape' && winModal && !winModal.classList.contains('hidden')) {
+      closeWinModal();
     }
   });
   if (settingsToggle) {
@@ -1436,6 +1511,12 @@ function attachEvents() {
       if (!btn) return;
       const action = btn.dataset.action;
       setSettingsOpen(false);
+      if (action === 'new') {
+        if (gameState && gameState.diff) {
+          startNewGame(gameState.diff);
+        }
+        return;
+      }
       if (action === 'reset') {
         resetBoard();
         return;

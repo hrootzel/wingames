@@ -354,6 +354,38 @@ body.sudoku[data-theme="light"] {
   box-shadow: none;
 }
 
+.sudoku-win-card {
+  border: 2px solid var(--sudoku-border);
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.45);
+}
+
+.sudoku-win-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sudoku-win-message {
+  margin: 12px 0 6px;
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  font-size: 18px;
+}
+
+.sudoku-win-stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--sudoku-border);
+  background: var(--sudoku-soft);
+  font-weight: 700;
+  font-size: 12px;
+}
+
 .instructions-body {
   display: grid;
   gap: 10px;
