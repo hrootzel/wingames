@@ -767,10 +767,6 @@ function scoreSweepPass() {
     game.status = count >= 4
       ? `Sweep +${points} (${count} squares, x4 bonus)`
       : `Sweep +${points} (${count} squares)`;
-    playSfx('sweepClear', { squares: count });
-    if (count >= 4) {
-      playSfx('megaSweep', { squares: count });
-    }
     const colorMask = boardColorMask();
     if (isBoardEmpty()) {
       game.score += 10000;
