@@ -669,7 +669,9 @@ function findCrashTriggers() {
       for (const n of neighbors) {
         if (!inBounds(n.row, n.col)) continue;
         const other = game.board.cells[n.row][n.col];
-        if (other.kind !== Kind.EMPTY && other.color === cell.color) {
+        // Counter/garbage gems are not direct crash targets; they pop only when adjacent
+        // to another clear event or when converted to normal gems.
+        if (other.kind !== Kind.EMPTY && other.kind !== Kind.GARBAGE && other.color === cell.color) {
           const key = `${r},${c}`;
           if (!seen.has(key)) {
             triggers.push({ row: r, col: c, color: cell.color });
