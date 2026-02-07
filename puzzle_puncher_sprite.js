@@ -141,6 +141,21 @@ export function drawGarbageOverlay(ctx, x, y, s) {
   ctx.restore();
 }
 
+export function drawCounterNumber(ctx, x, y, s, value) {
+  if (!Number.isFinite(value) || value <= 0) return;
+  ctx.save();
+  ctx.fillStyle = '#fef3c7';
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
+  ctx.lineWidth = 3;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `900 ${Math.floor(s * 0.42)}px Trebuchet MS, Segoe UI, sans-serif`;
+  const txt = String(Math.floor(value));
+  ctx.strokeText(txt, x + s * 0.5, y + s * 0.54);
+  ctx.fillText(txt, x + s * 0.5, y + s * 0.54);
+  ctx.restore();
+}
+
 export function drawDiamond(ctx, x, y, s) {
   const size = s * 0.6;
   ctx.save();

@@ -8,6 +8,7 @@ import {
   drawCrashOverlay,
   drawDiamond,
   drawGarbageOverlay,
+  drawCounterNumber,
 } from './puzzle_puncher_sprite.js';
 
 const W = 6;
@@ -113,7 +114,7 @@ function makeRng(seed) {
 }
 
 function makeEmptyCell() {
-  return { kind: Kind.EMPTY, color: null, powerRectId: 0, bounce: 0, face: 0, shine: 0 };
+  return { kind: Kind.EMPTY, color: null, powerRectId: 0, bounce: 0, face: 0, shine: 0, counter: 0 };
 }
 
 function makeBoard() {
@@ -185,6 +186,7 @@ function cloneCell(cell) {
     bounce: cell.bounce,
     face: cell.face,
     shine: cell.shine,
+    counter: cell.counter ?? 0,
   };
 }
 
@@ -423,6 +425,8 @@ function lockPiece() {
       game.board.cells[cell.row][cell.col] = makeGemCell(cell.gem);
     }
   }
+
+  tickGarbageCounters();
 
   game.pendingDiamond = null;
   if (diamondCell) {
@@ -886,6 +890,28 @@ function schedulePressure(dt) {
   p.meter = Math.max(0, p.meter - dt * 0.00003);
 }
 
+function tickGarbageCounters() {
+  let converted = 0;
+  for (let r = 0; r < H; r++) {
+    for (let c = 0; c < W; c++) {
+      const cell = game.board.cells[r][c];
+      if (cell.kind !== Kind.GARBAGE) continue;
+      const nextCounter = (cell.counter ?? 0) - 1;
+      cell.counter = nextCounter;
+      if (nextCounter <= 0) {
+        cell.kind = Kind.NORMAL;
+        cell.counter = 0;
+        cell.bounce = Math.max(cell.bounce, 1);
+        converted += 1;
+      }
+    }
+  }
+  if (converted > 0) {
+    game.status = `Counter gems converted: ${converted}`;
+    addBanner('COUNTER BREAK', 560);
+  }
+}
+
 function setGameOver(msg) {
   game.state = GameState.GAME_OVER;
   game.status = msg || 'Game over. Press R to restart.';
@@ -894,49 +920,43 @@ function setGameOver(msg) {
 
 function applyGarbageRows(rows) {
   if (rows <= 0 || game.state === GameState.GAME_OVER) return;
-  for (let i = 0; i < rows; i++) {
+  const gemsToDrop = rows * Math.max(2, W - 1);
+  for (let i = 0; i < gemsToDrop; i++) {
+    const spawnableCols = [];
     for (let c = 0; c < W; c++) {
-      if (game.board.cells[H - 1][c].kind !== Kind.EMPTY) {
-        setGameOver('Crushed by pressure. Press R to restart.');
-        return;
+      if (game.board.cells[H - 1][c].kind === Kind.EMPTY) {
+        spawnableCols.push(c);
       }
     }
-    for (let r = H - 1; r >= 1; r--) {
-      for (let c = 0; c < W; c++) {
-        game.board.cells[r][c] = cloneCell(game.board.cells[r - 1][c]);
-      }
+    if (spawnableCols.length === 0) {
+      setGameOver('Crushed by pressure. Press R to restart.');
+      return;
     }
-    const desiredHoles = game.level >= 7 ? 1 : 2;
-    const eligibleHoleCols = [];
-    for (let c = 0; c < W; c++) {
-      // Only place a hole where nothing would be immediately unsupported above it.
-      if (game.board.cells[1][c].kind === Kind.EMPTY) {
-        eligibleHoleCols.push(c);
-      }
+
+    const col = spawnableCols[game.rng.int(spawnableCols.length)];
+    let row = H - 1;
+    while (row > 0 && game.board.cells[row][col].kind !== Kind.EMPTY) {
+      row -= 1;
     }
-    const holes = Math.min(desiredHoles, eligibleHoleCols.length);
-    const holeSet = new Set();
-    while (holeSet.size < holes) {
-      holeSet.add(eligibleHoleCols[game.rng.int(eligibleHoleCols.length)]);
+    if (game.board.cells[row][col].kind !== Kind.EMPTY) {
+      setGameOver('Crushed by pressure. Press R to restart.');
+      return;
     }
-    for (let c = 0; c < W; c++) {
-      if (holeSet.has(c)) {
-        game.board.cells[0][c] = makeEmptyCell();
-      } else {
-        const g = makeEmptyCell();
-        g.kind = Kind.GARBAGE;
-        g.color = COLORS[game.rng.int(COLORS.length)];
-        g.face = game.rng.int(4);
-        g.shine = game.rng.next();
-        g.bounce = 1;
-        game.board.cells[0][c] = g;
-      }
-    }
+
+    const g = makeEmptyCell();
+    g.kind = Kind.GARBAGE;
+    g.color = COLORS[game.rng.int(COLORS.length)];
+    g.counter = 3 + game.rng.int(2);
+    g.face = game.rng.int(4);
+    g.shine = game.rng.next();
+    g.bounce = 1;
+    game.board.cells[row][col] = g;
   }
+
   clearPowerRects();
-  game.fx.shake = Math.min(16, game.fx.shake + 4 + rows * 1.6);
-  addBanner(`+${rows} GARBAGE`, 520);
-  game.status = `Pressure wave: +${rows} garbage row${rows > 1 ? 's' : ''}`;
+  game.fx.shake = Math.min(16, game.fx.shake + 3 + rows * 1.2);
+  addBanner(`+${gemsToDrop} COUNTER`, 560);
+  game.status = `Pressure drop: ${gemsToDrop} counter gems`;
   sfx.play(BANK_PUZZLEPUNCHER, 'garbageRise');
 }
 
@@ -1065,9 +1085,11 @@ function resolveBoard(dt) {
     game.pressure.pendingRows -= amount;
     applyGarbageRows(amount);
     if (game.state === GameState.GAME_OVER) return;
-    // Garbage injection can create new 2x2+ rectangles immediately.
-    // Recompute now so rendering/scoring state is correct on the same turn.
-    markPowerRects();
+    // Let newly dropped counter gems physically settle before the next spawn.
+    resolve.settling = true;
+    resolve.settleTimer = 0;
+    game.resolve = resolve;
+    return;
   }
 
   game.state = GameState.SPAWN;
@@ -1201,6 +1223,7 @@ function drawCell(ctxRef, cell, col, row) {
     });
     drawGemBorder(ctxRef, x, y, s, PALETTE.X.stroke);
     drawGarbageOverlay(ctxRef, x, y, s);
+    drawCounterNumber(ctxRef, x, y, s, cell.counter ?? 0);
     return;
   }
   if (!cell.color) return;
