@@ -80,6 +80,8 @@ function makeGameState() {
     grid: makeGrid(),
     active: null,
     queue: [],
+    nextPieceId: 1,
+    activePieceId: null,
     input: makeInput(),
     score: 0,
     highScore: 0,
@@ -221,7 +223,7 @@ function closeSettings() {
 function buildQueuePreview() {
   queuePreviewEl.textContent = '';
   for (let i = 0; i < 3; i++) {
-    const mask = game.queue[i] ?? 0;
+    const mask = game.queue[i]?.mask ?? 0;
     const matrix = previewMatrixFromMask(mask);
     const pieceEl = document.createElement('div');
     pieceEl.className = 'preview-piece';
@@ -266,9 +268,16 @@ function generateMask() {
   return mask;
 }
 
+function makePieceSpec() {
+  return {
+    id: game.nextPieceId++,
+    mask: generateMask(),
+  };
+}
+
 function queuePop() {
   const next = game.queue.shift();
-  game.queue.push(generateMask());
+  game.queue.push(makePieceSpec());
   buildQueuePreview();
   return next;
 }
@@ -286,8 +295,9 @@ function maskToCells(mask, originX, originY) {
 }
 
 function spawnPiece() {
-  const mask = queuePop();
-  const cells = maskToCells(mask, SPAWN_X, SPAWN_Y);
+  const piece = queuePop();
+  if (!piece) return;
+  const cells = maskToCells(piece.mask, SPAWN_X, SPAWN_Y);
   for (const cell of cells) {
     if (cell.y < ROWS && game.grid[cell.y][cell.x]) {
       endGame('Top-out! Press R to restart.');
@@ -296,9 +306,11 @@ function spawnPiece() {
   }
   game.active = {
     cells,
+    pieceId: piece.id,
     spawnDelayMs: SPAWN_DELAY_MS,
     fallMs: 0,
   };
+  game.activePieceId = piece.id;
 }
 
 function isInside(x, y) {
@@ -368,6 +380,40 @@ function stepActiveFall() {
     storeHighScoreIfNeeded();
   }
 
+  const stillFalling = [];
+  let settledAny = false;
+  let toppedOut = false;
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    if (canMove.get(i)) {
+      stillFalling.push(block);
+      continue;
+    }
+    settledAny = true;
+    if (block.y >= ROWS) {
+      toppedOut = true;
+      continue;
+    }
+    if (block.y < 0 || block.x < 0 || block.x >= COLS) continue;
+    game.grid[block.y][block.x] = { color: block.color, pending: false, special: false, groupId: null };
+  }
+
+  if (settledAny) {
+    playSfx('lock');
+    if (stillFalling.length === 0) {
+      game.active = null;
+      game.activePieceId = null;
+    } else {
+      game.active.cells = stillFalling;
+    }
+    detectPendingSquares();
+    if (toppedOut) {
+      endGame('Top-out! Press R to restart.');
+      return false;
+    }
+    return true;
+  }
+
   game.active.cells = blocks;
   return true;
 }
@@ -425,9 +471,10 @@ function lockActive() {
       continue;
     }
     if (block.y < 0 || block.x < 0 || block.x >= COLS) continue;
-    game.grid[block.y][block.x] = { color: block.color, pending: false, special: false };
+    game.grid[block.y][block.x] = { color: block.color, pending: false, special: false, groupId: null };
   }
   game.active = null;
+  game.activePieceId = null;
   playSfx('lock');
   detectPendingSquares();
   if (toppedOut) {
@@ -947,7 +994,9 @@ function togglePause() {
 function restartRun() {
   game.grid = makeGrid();
   game.active = null;
-  game.queue = [generateMask(), generateMask(), generateMask()];
+  game.nextPieceId = 1;
+  game.activePieceId = null;
+  game.queue = [makePieceSpec(), makePieceSpec(), makePieceSpec()];
   game.score = 0;
   game.level = 1;
   game.squaresClearedTotal = 0;
