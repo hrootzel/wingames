@@ -1,0 +1,316 @@
+.prismpulse {
+  --pulse-panel: rgba(0, 0, 0, 0.2);
+  --pulse-border: rgba(255, 255, 255, 0.14);
+  --pulse-glow: rgba(56, 189, 248, 0.35);
+  --pp-light: #a7f3d0;
+  --pp-dark: #0f766e;
+  --pp-bg-top: #0b1528;
+  --pp-bg-bottom: #060d1b;
+  --pp-line: #5eead4;
+}
+
+.prismpulse .pulse-board {
+  padding: 16px;
+}
+
+.prismpulse .pulse-wrap {
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+
+.prismpulse.layout-horizontal .pulse-wrap {
+  grid-template-columns: minmax(260px, 1fr) minmax(220px, 260px);
+}
+
+.prismpulse.layout-vertical .pulse-wrap {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "preview"
+    "stage"
+    "score"
+    "controls";
+}
+
+.prismpulse.layout-vertical .pulse-stage {
+  grid-area: stage;
+}
+
+.prismpulse.layout-vertical .pulse-side {
+  display: contents;
+}
+
+.prismpulse.layout-vertical .preview-panel {
+  grid-area: preview;
+}
+
+.prismpulse.layout-vertical .score-panel {
+  grid-area: score;
+}
+
+.prismpulse.layout-vertical .controls-panel {
+  grid-area: controls;
+}
+
+.prismpulse.layout-vertical .queue-preview {
+  grid-template-columns: repeat(3, minmax(48px, 56px));
+  justify-content: center;
+  gap: 6px;
+}
+
+.prismpulse.layout-vertical .preview-piece {
+  padding: 4px;
+  gap: 2px;
+}
+
+.prismpulse.layout-vertical .score-panel .quick-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px 10px;
+  font-size: 13px;
+}
+
+.prismpulse.layout-vertical .controls-panel .key-hints {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+ }
+
+.prismpulse.layout-vertical .controls-panel .pulse-controls {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.prismpulse.layout-vertical .controls-panel .pulse-controls button {
+  width: 100%;
+}
+
+.prismpulse .pulse-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  background: var(--pulse-panel);
+  border-radius: 12px;
+  border: 1px solid var(--pulse-border);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.prismpulse #pulse-canvas {
+  width: 100%;
+  max-width: 760px;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 24px var(--pulse-glow);
+  background: #060b1a;
+}
+
+.prismpulse .pulse-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.prismpulse .panel-box {
+  background: var(--pulse-panel);
+  border-radius: 12px;
+  border: 1px solid var(--pulse-border);
+  padding: 12px;
+}
+
+.prismpulse .panel-box h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.prismpulse .queue-preview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.prismpulse .preview-piece {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px;
+  padding: 6px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.prismpulse .preview-cell {
+  aspect-ratio: 1 / 1;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+.prismpulse .preview-cell.light {
+  background: linear-gradient(160deg, #ffffffbb, var(--pp-light));
+}
+
+.prismpulse .preview-cell.dark {
+  background: linear-gradient(160deg, #ffffff66, var(--pp-dark));
+}
+
+.prismpulse .pulse-controls {
+  margin-top: 12px;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.prismpulse .pulse-controls button {
+  width: 100%;
+}
+
+.prismpulse .key-hints {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.prismpulse .key-hints .key {
+  display: inline-block;
+  min-width: 88px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-weight: 700;
+  color: #facc15;
+  text-align: center;
+  margin-right: 6px;
+}
+
+.prismpulse .settings {
+  margin-left: auto;
+}
+
+.prismpulse .icon-button {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--pulse-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+
+.prismpulse .icon-button:hover {
+  transform: translateY(-1px);
+}
+
+.prismpulse .hidden {
+  display: none !important;
+}
+
+.prismpulse .settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.prismpulse .settings-grid .ms-field:last-child {
+  grid-column: 1 / -1;
+}
+
+.prismpulse .ms-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 24, 0.65);
+  display: grid;
+  place-items: center;
+  z-index: 3000;
+}
+
+.prismpulse .ms-modal-card {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  width: min(92vw, 420px);
+  padding: 16px;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.45);
+}
+
+.prismpulse .ms-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.prismpulse .ms-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.prismpulse .ms-form {
+  margin-top: 12px;
+}
+
+.prismpulse .ms-field {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.prismpulse .ms-field input,
+.prismpulse .ms-field select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.7);
+  color: inherit;
+}
+
+.prismpulse .ms-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.prismpulse button.secondary {
+  background: transparent;
+  color: inherit;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  box-shadow: none;
+}
+
+.prismpulse .pulse-footer {
+  margin-top: 12px;
+}
+
+@media (max-width: 950px) {
+  .prismpulse .pulse-wrap {
+    grid-template-columns: 1fr;
+  }
+
+  .prismpulse .pulse-side {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    align-items: start;
+  }
+
+  .prismpulse.layout-vertical .pulse-side {
+    display: contents;
+  }
+
+  .prismpulse.layout-vertical .score-panel .quick-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .prismpulse.layout-vertical .controls-panel .pulse-controls {
+    grid-template-columns: 1fr;
+  }
+}

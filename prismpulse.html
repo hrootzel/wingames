@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Prism Pulse</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="prismpulse.css">
+</head>
+<body class="prismpulse layout-horizontal">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>Prism Pulse</h1>
+        <p class="subtitle">Build 2x2 squares and chase the sweep.</p>
+      </div>
+      <div class="settings">
+        <button id="settings-toggle" class="icon-button" aria-expanded="false" aria-controls="settings-modal" aria-label="Settings" title="Settings">Settings</button>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Ready.</span>
+      </div>
+    </div>
+
+    <div class="board pulse-board">
+      <div class="pulse-wrap">
+        <div class="pulse-stage">
+          <canvas id="pulse-canvas" width="720" height="520" aria-label="Prism Pulse playfield"></canvas>
+        </div>
+
+        <div class="pulse-side">
+          <div class="panel-box preview-panel">
+            <h3>Next</h3>
+            <div id="queue-preview" class="queue-preview" aria-label="Next 3 pieces"></div>
+          </div>
+
+          <div class="panel-box score-panel">
+            <h3>Scoreboard</h3>
+            <div class="quick-stats pulse-stats">
+              <div>Score: <span id="score">0</span></div>
+              <div>High: <span id="high-score">0</span></div>
+              <div>Level: <span id="level">1</span></div>
+              <div>Skin: <span id="skin">Pulse</span></div>
+              <div>Mode: <span id="mode-label">Endless</span></div>
+              <div>Time: <span id="time-label">--:--</span></div>
+            </div>
+          </div>
+
+          <div class="panel-box controls-panel">
+            <h3>Controls</h3>
+            <div class="key-hints">
+              <div><span class="key">Left/Right</span> Move</div>
+              <div><span class="key">Z / X</span> Rotate</div>
+              <div><span class="key">Down</span> Cancel delay / soft drop</div>
+              <div><span class="key">P / Esc</span> Pause</div>
+              <div><span class="key">R</span> Restart</div>
+            </div>
+            <div class="control-group pulse-controls">
+              <button id="new-game">New Game</button>
+              <button id="pause">Pause</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="pulse-footer">
+      <p class="tips">
+        Form matching 2x2 squares (or larger rectangles), then let the timeline sweep clear pending tiles.
+        Clears score at the end of each pass: 40 per square, and 4x pass bonus when 4+ squares clear in one sweep.
+      </p>
+    </footer>
+  </div>
+
+  <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="settings-title">Settings</h2>
+        <button id="settings-close" class="icon-button" aria-label="Close settings">X</button>
+      </header>
+      <div class="ms-form">
+        <div class="settings-grid">
+          <label class="ms-field">
+            <span>Mode</span>
+            <select id="mode-select">
+              <option value="endless">Endless</option>
+              <option value="single_skin">Single Skin</option>
+              <option value="time">Time Attack</option>
+            </select>
+          </label>
+          <label class="ms-field">
+            <span>Time Limit</span>
+            <select id="time-limit-select">
+              <option value="60">60s</option>
+              <option value="180">180s</option>
+              <option value="300">300s</option>
+              <option value="600">600s</option>
+            </select>
+          </label>
+          <label class="ms-field">
+            <span>Layout</span>
+            <select id="layout-select">
+              <option value="horizontal">Horizontal</option>
+              <option value="vertical">Vertical</option>
+            </select>
+          </label>
+          <label class="ms-field">
+            <span>Skin</span>
+            <select id="skin-select"></select>
+          </label>
+        </div>
+      </div>
+      <div class="ms-actions">
+        <button id="settings-apply">Apply / Restart</button>
+        <button id="settings-cancel" class="secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="prismpulse.js"></script>
+</body>
+</html>
