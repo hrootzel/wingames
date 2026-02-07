@@ -688,7 +688,7 @@ function collectCrashClear(triggers) {
       const key = `${current.row},${current.col}`;
       if (toClear.has(key)) continue;
       const cell = game.board.cells[current.row][current.col];
-      if (cell.kind === Kind.EMPTY || cell.color !== trigger.color) continue;
+      if (cell.kind === Kind.EMPTY || cell.color !== trigger.color || cell.kind === Kind.GARBAGE) continue;
       toClear.add(key);
       const neighbors = [
         { row: current.row + 1, col: current.col },
@@ -720,7 +720,6 @@ function collectColorClear(color, diamondCell) {
   if (diamondCell) {
     toClear.add(`${diamondCell.row},${diamondCell.col}`);
   }
-  addAdjacentGarbage(toClear);
   return toClear;
 }
 
@@ -907,15 +906,26 @@ function applyGarbageRows(rows) {
         game.board.cells[r][c] = cloneCell(game.board.cells[r - 1][c]);
       }
     }
-    const holes = game.level >= 7 ? 1 : 2;
+    const desiredHoles = game.level >= 7 ? 1 : 2;
+    const eligibleHoleCols = [];
+    for (let c = 0; c < W; c++) {
+      // Only place a hole where nothing would be immediately unsupported above it.
+      if (game.board.cells[1][c].kind === Kind.EMPTY) {
+        eligibleHoleCols.push(c);
+      }
+    }
+    const holes = Math.min(desiredHoles, eligibleHoleCols.length);
     const holeSet = new Set();
-    while (holeSet.size < holes) holeSet.add(game.rng.int(W));
+    while (holeSet.size < holes) {
+      holeSet.add(eligibleHoleCols[game.rng.int(eligibleHoleCols.length)]);
+    }
     for (let c = 0; c < W; c++) {
       if (holeSet.has(c)) {
         game.board.cells[0][c] = makeEmptyCell();
       } else {
         const g = makeEmptyCell();
         g.kind = Kind.GARBAGE;
+        g.color = COLORS[game.rng.int(COLORS.length)];
         g.face = game.rng.int(4);
         g.shine = game.rng.next();
         g.bounce = 1;
