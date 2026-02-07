@@ -571,7 +571,9 @@ function settleOnce() {
     }
   }
   if (moved) {
-    clearPowerRects();
+    // Keep power-gem identity stable while the board is settling.
+    // This avoids brief visual reversion to individual blocks.
+    markPowerRects();
   }
   return moved;
 }
@@ -956,7 +958,9 @@ function applyGarbageRows(rows) {
     game.board.cells[row][col] = g;
   }
 
-  clearPowerRects();
+  // Recompute immediately so existing power-gems remain merged visually unless
+  // their shape was actually broken by movement.
+  markPowerRects();
   game.fx.shake = Math.min(16, game.fx.shake + 3 + rows * 1.2);
   addBanner(`+${gemsToDrop} COUNTER`, 560);
   game.status = `Pressure drop: ${gemsToDrop} counter gems`;
