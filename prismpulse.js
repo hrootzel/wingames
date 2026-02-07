@@ -1,3 +1,6 @@
+import { SfxEngine } from './sfx_engine.js';
+import { BANK_PRISMPULSE } from './sfx_bank_prismpulse.js';
+
 const COLS = 16;
 const ROWS = 10;
 const PIECE_SIZE = 2;
@@ -63,6 +66,13 @@ const view = {
 };
 
 const game = makeGameState();
+const sfx = new SfxEngine({ master: 0.72 });
+let audioUnlocked = false;
+
+function playSfx(name, payload) {
+  if (!audioUnlocked) return;
+  sfx.play(BANK_PRISMPULSE, name, payload);
+}
 
 function makeGameState() {
   return {
@@ -82,7 +92,11 @@ function makeGameState() {
     squaresClearedTotal: 0,
     squaresTowardNextLevel: 0,
     timelineX: -1,
-    passAnchors: new Set(),
+    passIndex: 0,
+    sweepCursorCol: -1,
+    pendingGroups: [],
+    passSquaresCleared: 0,
+    passClearEvents: 0,
     skinIndex: 0,
     sweepPeriodMs: SKINS[0].sweep,
     skinFlashMs: 0,
@@ -208,16 +222,38 @@ function buildQueuePreview() {
   queuePreviewEl.textContent = '';
   for (let i = 0; i < 3; i++) {
     const mask = game.queue[i] ?? 0;
+    const matrix = previewMatrixFromMask(mask);
     const pieceEl = document.createElement('div');
     pieceEl.className = 'preview-piece';
-    for (let bit = 0; bit < 4; bit++) {
-      const cell = document.createElement('div');
-      const dark = ((mask >> bit) & 1) === 1;
-      cell.className = `preview-cell ${dark ? 'dark' : 'light'}`;
-      pieceEl.appendChild(cell);
+    for (let sy = 0; sy < PIECE_SIZE; sy++) {
+      for (let sx = 0; sx < PIECE_SIZE; sx++) {
+        const cell = document.createElement('div');
+        const dark = matrix[sy][sx] === DARK;
+        cell.className = `preview-cell ${dark ? 'dark' : 'light'}`;
+        pieceEl.appendChild(cell);
+      }
     }
     queuePreviewEl.appendChild(pieceEl);
   }
+}
+
+function previewMatrixFromMask(mask) {
+  // Use spawn mapping so preview always matches actual drop orientation.
+  const cells = maskToCells(mask, 0, 0);
+  const matrix = Array.from({ length: PIECE_SIZE }, () => Array(PIECE_SIZE).fill(LIGHT));
+  let minX = Infinity;
+  let minY = Infinity;
+  for (const cell of cells) {
+    if (cell.x < minX) minX = cell.x;
+    if (cell.y < minY) minY = cell.y;
+  }
+  for (const cell of cells) {
+    const localX = cell.x - minX;
+    const localY = cell.y - minY;
+    const screenY = PIECE_SIZE - 1 - localY;
+    matrix[screenY][localX] = cell.color;
+  }
+  return matrix;
 }
 
 function generateMask() {
@@ -284,6 +320,7 @@ function moveActive(dx) {
   for (const block of game.active.cells) {
     block.x += dx;
   }
+  playSfx('move');
   return true;
 }
 
@@ -375,6 +412,7 @@ function rotateActive(dir) {
   for (const cell of game.active.cells) {
     cell.color = next[cell.y - minY][cell.x - minX];
   }
+  playSfx('rotate');
   return true;
 }
 
@@ -390,6 +428,7 @@ function lockActive() {
     game.grid[block.y][block.x] = { color: block.color, pending: false, special: false };
   }
   game.active = null;
+  playSfx('lock');
   detectPendingSquares();
   if (toppedOut) {
     endGame('Top-out! Press R to restart.');
@@ -400,13 +439,32 @@ function clearPendingFlags() {
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
       const cell = game.grid[y][x];
-      if (cell) cell.pending = false;
+      if (cell) {
+        cell.pending = false;
+        cell.groupId = null;
+      }
     }
   }
 }
 
+function currentSweepColumn() {
+  if (game.sweepCursorCol >= 0) return game.sweepCursorCol;
+  return Math.floor(game.timelineX);
+}
+
 function detectPendingSquares() {
   clearPendingFlags();
+  const anchorMap = new Map();
+  const markCell = (x, y, anchorKey, color) => {
+    const key = `${x},${y}`;
+    let entry = anchorMap.get(key);
+    if (!entry) {
+      entry = { x, y, color, anchors: new Set() };
+      anchorMap.set(key, entry);
+    }
+    entry.anchors.add(anchorKey);
+  };
+
   for (let y = 0; y < ROWS - 1; y++) {
     for (let x = 0; x < COLS - 1; x++) {
       const a = game.grid[y][x];
@@ -415,12 +473,58 @@ function detectPendingSquares() {
       const d = game.grid[y + 1][x + 1];
       if (!a || !b || !c || !d) continue;
       if (a.color !== b.color || a.color !== c.color || a.color !== d.color) continue;
-      a.pending = true;
-      b.pending = true;
-      c.pending = true;
-      d.pending = true;
+      const anchorKey = `${x},${y}`;
+      markCell(x, y, anchorKey, a.color);
+      markCell(x + 1, y, anchorKey, a.color);
+      markCell(x, y + 1, anchorKey, a.color);
+      markCell(x + 1, y + 1, anchorKey, a.color);
     }
   }
+
+  const visited = new Set();
+  const groups = [];
+  for (const [key, entry] of anchorMap) {
+    if (visited.has(key)) continue;
+    visited.add(key);
+    const queue = [entry];
+    const cells = [];
+    const anchors = new Set();
+    let maxX = entry.x;
+    const color = entry.color;
+
+    while (queue.length > 0) {
+      const cur = queue.pop();
+      cells.push({ x: cur.x, y: cur.y });
+      if (cur.x > maxX) maxX = cur.x;
+      for (const aKey of cur.anchors) anchors.add(aKey);
+
+      const neighbors = [
+        `${cur.x - 1},${cur.y}`,
+        `${cur.x + 1},${cur.y}`,
+        `${cur.x},${cur.y - 1}`,
+        `${cur.x},${cur.y + 1}`,
+      ];
+      for (const nKey of neighbors) {
+        if (visited.has(nKey)) continue;
+        const next = anchorMap.get(nKey);
+        if (!next || next.color !== color) continue;
+        visited.add(nKey);
+        queue.push(next);
+      }
+    }
+
+    const crossedCol = currentSweepColumn();
+    const armPass = maxX <= crossedCol ? game.passIndex + 1 : game.passIndex;
+    const groupId = `${armPass}:${maxX}:${groups.length}`;
+    for (const cellPos of cells) {
+      const cell = game.grid[cellPos.y][cellPos.x];
+      if (!cell) continue;
+      cell.pending = true;
+      cell.groupId = groupId;
+    }
+    groups.push({ id: groupId, armPass, maxX, cells, squares: anchors.size });
+  }
+  game.pendingGroups = groups;
 }
 
 function gravityCompact() {
@@ -436,41 +540,41 @@ function gravityCompact() {
   }
 }
 
-function maybeCountAnchorForColumn(anchorX, y, col) {
-  if (anchorX !== col && anchorX + 1 !== col) return;
-  const a = game.grid[y][anchorX];
-  const b = game.grid[y][anchorX + 1];
-  const c = game.grid[y + 1][anchorX];
-  const d = game.grid[y + 1][anchorX + 1];
-  if (!a || !b || !c || !d) return;
-  if (!a.pending || !b.pending || !c.pending || !d.pending) return;
-  if (a.color !== b.color || a.color !== c.color || a.color !== d.color) return;
-  game.passAnchors.add(`${anchorX},${y}`);
-}
-
 function clearPendingInColumn(col) {
   if (col < 0 || col >= COLS) return;
-  for (let y = 0; y < ROWS - 1; y++) {
-    for (let x = Math.max(0, col - 1); x <= Math.min(COLS - 2, col); x++) {
-      maybeCountAnchorForColumn(x, y, col);
-    }
-  }
+  let loopGuard = 0;
+  while (loopGuard++ < 8) {
+    const targets = game.pendingGroups.filter((group) => group.armPass === game.passIndex && group.maxX === col);
+    if (targets.length === 0) return;
 
-  let any = false;
-  for (let y = 0; y < ROWS; y++) {
-    const cell = game.grid[y][col];
-    if (!cell || !cell.pending) continue;
-    game.grid[y][col] = null;
-    any = true;
-  }
-  if (any) {
+    const cellsToClear = new Set();
+    let clearedSquares = 0;
+    for (const group of targets) {
+      clearedSquares += group.squares;
+      for (const pos of group.cells) {
+        cellsToClear.add(`${pos.x},${pos.y}`);
+      }
+    }
+
+    for (const key of cellsToClear) {
+      const [x, y] = key.split(',').map(Number);
+      game.grid[y][x] = null;
+    }
+
+    game.passSquaresCleared += clearedSquares;
+    game.passClearEvents += 1;
+    playSfx('clearTick', { squares: clearedSquares, combo: game.passClearEvents });
+    if (game.passClearEvents >= 2) {
+      playSfx('combo', { combo: game.passClearEvents });
+    }
+
     gravityCompact();
     detectPendingSquares();
   }
 }
 
 function scoreSweepPass() {
-  const count = game.passAnchors.size;
+  const count = game.passSquaresCleared;
   if (count > 0) {
     const mult = count >= 4 ? 4 : 1;
     const points = 40 * count * mult;
@@ -480,10 +584,15 @@ function scoreSweepPass() {
     game.status = count >= 4
       ? `Sweep +${points} (${count} squares, x4 bonus)`
       : `Sweep +${points} (${count} squares)`;
+    playSfx('sweepClear', { squares: count });
+    if (count >= 4) {
+      playSfx('megaSweep', { squares: count });
+    }
     handleLevelUps();
     storeHighScoreIfNeeded();
   }
-  game.passAnchors.clear();
+  game.passSquaresCleared = 0;
+  game.passClearEvents = 0;
 }
 
 function jitteredSweep(base) {
@@ -505,14 +614,17 @@ function handleLevelUps() {
   }
   if (leveled) {
     game.status = `Level ${game.level} - ${SKINS[game.skinIndex].name} skin`;
+    playSfx('levelUp', { level: game.level });
     updateThemeVars();
   }
 }
 
 function endGame(status) {
+  if (game.gameOver) return;
   game.gameOver = true;
   game.active = null;
   game.status = status;
+  playSfx('gameOver');
   storeHighScoreIfNeeded();
 }
 
@@ -525,17 +637,20 @@ function runTimeline(dt) {
   while (next >= COLS) {
     processTimelineColumns(prev, COLS - 1e-6);
     scoreSweepPass();
+    game.passIndex += 1;
     next -= COLS;
     prev = -1;
   }
   processTimelineColumns(prev, next);
   game.timelineX = next;
+  game.sweepCursorCol = -1;
 }
 
 function processTimelineColumns(startX, endX) {
   const startCol = Math.floor(startX);
   const endCol = Math.floor(endX);
   for (let col = startCol + 1; col <= endCol; col++) {
+    game.sweepCursorCol = col;
     clearPendingInColumn(col);
   }
 }
@@ -822,8 +937,10 @@ function togglePause() {
   if (game.paused) {
     game.statusBeforePause = game.status;
     game.status = 'Paused';
+    playSfx('pause');
   } else {
     game.status = game.statusBeforePause || game.status;
+    playSfx('resume');
   }
 }
 
@@ -836,7 +953,11 @@ function restartRun() {
   game.squaresClearedTotal = 0;
   game.squaresTowardNextLevel = 0;
   game.timelineX = -1;
-  game.passAnchors.clear();
+  game.passIndex = 0;
+  game.sweepCursorCol = -1;
+  game.pendingGroups = [];
+  game.passSquaresCleared = 0;
+  game.passClearEvents = 0;
   game.skinIndex = 0;
   game.sweepPeriodMs = jitteredSweep(SKINS[0].sweep);
   game.skinFlashMs = 0;
@@ -853,6 +974,7 @@ function restartRun() {
   loadHighScore();
   updateThemeVars();
   buildQueuePreview();
+  playSfx('start');
 }
 
 function applySettingsFromUI() {
@@ -894,6 +1016,7 @@ function handleKeyDown(ev) {
   const key = ev.key.toLowerCase();
 
   if (ev.repeat && key !== 'arrowdown') return;
+  unlockAudio();
 
   if (key === 'arrowleft' || key === 'a') {
     if (!game.input.held.left) {
@@ -977,6 +1100,12 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  sfx.unlock();
+}
+
 function init() {
   loadSettings();
   applyLayoutClass();
@@ -987,12 +1116,21 @@ function init() {
   document.addEventListener('keydown', preventArrowScroll, { passive: false });
   document.addEventListener('keydown', handleKeyDown);
   document.addEventListener('keyup', handleKeyUp);
+  document.addEventListener('keydown', unlockAudio, { once: true });
+  document.addEventListener('pointerdown', unlockAudio, { once: true });
+  document.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
   window.addEventListener('resize', () => {
     setCanvasSize();
   });
 
-  newBtn.addEventListener('click', () => restartRun());
-  pauseBtn.addEventListener('click', () => togglePause());
+  newBtn.addEventListener('click', () => {
+    unlockAudio();
+    restartRun();
+  });
+  pauseBtn.addEventListener('click', () => {
+    unlockAudio();
+    togglePause();
+  });
   settingsToggle.addEventListener('click', () => openSettings());
   settingsClose.addEventListener('click', () => closeSettings());
   settingsCancel.addEventListener('click', () => closeSettings());
