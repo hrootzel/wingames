@@ -28,12 +28,40 @@ const MODES = {
 };
 
 const TIME_LIMITS = [60, 180, 300, 600];
+const SCORE_CAP_CLASSIC = 999999;
 
 const SKINS = [
   { name: 'Pulse', sweep: 6500, bgTop: '#11203a', bgBottom: '#060c19', line: '#60a5fa', light: '#bae6fd', dark: '#1d4ed8' },
   { name: 'Volt', sweep: 4500, bgTop: '#1a1f3f', bgBottom: '#0a0f24', line: '#a78bfa', light: '#ddd6fe', dark: '#6d28d9' },
   { name: 'Solar', sweep: 3000, bgTop: '#2d1d10', bgBottom: '#150d05', line: '#f59e0b', light: '#fde68a', dark: '#b45309' },
   { name: 'Neon', sweep: 1800, bgTop: '#0d2b2c', bgBottom: '#041516', line: '#5eead4', light: '#99f6e4', dark: '#0f766e' },
+];
+
+const ORIGINAL_CHALLENGE_SKINS = [
+  { name: "SHININ'", holdMs: 2000, fallMs: 500, blocksToLevel: 22, levelsInSkin: 4 },
+  { name: 'URBANIZATION', holdMs: 2000, fallMs: 470, blocksToLevel: 16, levelsInSkin: 4 },
+  { name: 'ROUND ABOUT', holdMs: 2000, fallMs: 500, blocksToLevel: 16, levelsInSkin: 4 },
+  { name: 'SLIPPING', holdMs: 2000, fallMs: 470, blocksToLevel: 16, levelsInSkin: 4 },
+  { name: 'SHAKE YA BODY', holdMs: 2000, fallMs: 400, blocksToLevel: 16, levelsInSkin: 4 },
+  { name: 'SQUARE DANCE', holdMs: 1330, fallMs: 370, blocksToLevel: 16, levelsInSkin: 4 },
+  { name: 'TALK 2 YOU', holdMs: 1000, fallMs: 330, blocksToLevel: 16, levelsInSkin: 4 },
+  { name: 'JUST...', holdMs: 1000, fallMs: 230, blocksToLevel: 14, levelsInSkin: 4 },
+  { name: 'I hear the music in my Soul', holdMs: 1000, fallMs: 300, blocksToLevel: 26, levelsInSkin: 4 },
+  { name: 'Dark side beside the river', holdMs: 830, fallMs: 230, blocksToLevel: 18, levelsInSkin: 4 },
+  { name: 'ABACK', holdMs: 800, fallMs: 200, blocksToLevel: 18, levelsInSkin: 4 },
+  { name: 'WORKING IN THE HOLE', holdMs: 770, fallMs: 200, blocksToLevel: 18, levelsInSkin: 4 },
+  { name: 'SISTER WALK', holdMs: 730, fallMs: 200, blocksToLevel: 18, levelsInSkin: 4 },
+  { name: 'Da-Di-Do', holdMs: 830, fallMs: 170, blocksToLevel: 24, levelsInSkin: 4 },
+  { name: 'STRANGERS', holdMs: 830, fallMs: 170, blocksToLevel: 26, levelsInSkin: 4 },
+  { name: 'HOLIDAY IN SUMMER', holdMs: 1000, fallMs: 430, blocksToLevel: 28, levelsInSkin: 5 },
+  { name: 'TAKE A DOG OUT A WALK', holdMs: 1000, fallMs: 400, blocksToLevel: 28, levelsInSkin: 5 },
+  { name: 'Big Elpaso', holdMs: 1000, fallMs: 330, blocksToLevel: 30, levelsInSkin: 5 },
+  { name: 'My Generation', holdMs: 830, fallMs: 270, blocksToLevel: 32, levelsInSkin: 5 },
+  { name: 'MEGURO', holdMs: 830, fallMs: 200, blocksToLevel: 32, levelsInSkin: 5 },
+  { name: 'SPIRITS', holdMs: 670, fallMs: 170, blocksToLevel: 32, levelsInSkin: 5 },
+  { name: 'Get up and Go', holdMs: 670, fallMs: 130, blocksToLevel: 32, levelsInSkin: 5 },
+  { name: 'FLY INTO THE SKY', holdMs: 670, fallMs: 130, blocksToLevel: 32, levelsInSkin: 5 },
+  { name: 'Lights', holdMs: 1000, fallMs: 130, blocksToLevel: 32, levelsInSkin: 5 },
 ];
 
 const canvas = document.getElementById('pulse-canvas');
@@ -177,11 +205,32 @@ function storeHighScoreIfNeeded() {
 }
 
 function levelThreshold(level) {
-  return 24 + level * 6;
+  return challengeProfileForLevel(level).blocksToLevel;
 }
 
 function baseFallIntervalMs() {
-  return clamp(650 - game.level * 12, 120, 650);
+  return challengeProfileForLevel(game.level).fallMs;
+}
+
+function challengeProfileForLevel(level) {
+  let remaining = Math.max(1, Math.floor(level));
+  let idx = 0;
+  while (idx < ORIGINAL_CHALLENGE_SKINS.length) {
+    const skin = ORIGINAL_CHALLENGE_SKINS[idx];
+    if (remaining <= skin.levelsInSkin) {
+      return { ...skin, skinIndex: idx };
+    }
+    remaining -= skin.levelsInSkin;
+    idx += 1;
+  }
+
+  // Loop 2 simplification per community-documented table.
+  const loop2Levels = remaining;
+  const last = ORIGINAL_CHALLENGE_SKINS.length - 1;
+  if (loop2Levels >= 106) {
+    return { name: 'SQUARE DANCE', holdMs: 500, fallMs: 100, blocksToLevel: 30, levelsInSkin: 9999, skinIndex: last };
+  }
+  return { ...ORIGINAL_CHALLENGE_SKINS[Math.min(last, Math.floor((loop2Levels - 1) / 4) % ORIGINAL_CHALLENGE_SKINS.length)], holdMs: 670, fallMs: 130, blocksToLevel: 28 };
 }
 
 function updateThemeVars() {
@@ -307,7 +356,7 @@ function spawnPiece() {
   game.active = {
     cells,
     pieceId: piece.id,
-    spawnDelayMs: SPAWN_DELAY_MS,
+    spawnDelayMs: challengeProfileForLevel(game.level).holdMs ?? SPAWN_DELAY_MS,
     fallMs: 0,
   };
   game.activePieceId = piece.id;
@@ -376,7 +425,10 @@ function stepActiveFall() {
   }
 
   if (game.input.held.down && game.active.spawnDelayMs <= 0) {
-    game.score += rowsMoved;
+    if (rowsMoved > 0) {
+      game.score += 1;
+    }
+    game.score = Math.min(SCORE_CAP_CLASSIC, game.score);
     storeHighScoreIfNeeded();
   }
 
@@ -635,11 +687,42 @@ function scoreSweepPass() {
     if (count >= 4) {
       playSfx('megaSweep', { squares: count });
     }
+    const colorMask = boardColorMask();
+    if (isBoardEmpty()) {
+      game.score += 10000;
+      game.status += ' + All Deleted 10000';
+    } else if ((colorMask & (colorMask - 1)) === 0 && colorMask !== 0) {
+      game.score += 1000;
+      game.status += ' + Single Color 1000';
+    }
+    game.score = Math.min(SCORE_CAP_CLASSIC, game.score);
     handleLevelUps();
     storeHighScoreIfNeeded();
   }
   game.passSquaresCleared = 0;
   game.passClearEvents = 0;
+}
+
+function boardColorMask() {
+  let mask = 0;
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const cell = game.grid[y][x];
+      if (!cell) continue;
+      if (cell.color === LIGHT) mask |= 1;
+      if (cell.color === DARK) mask |= 2;
+    }
+  }
+  return mask;
+}
+
+function isBoardEmpty() {
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      if (game.grid[y][x]) return false;
+    }
+  }
+  return true;
 }
 
 function jitteredSweep(base) {
@@ -653,14 +736,15 @@ function handleLevelUps() {
   while (game.squaresTowardNextLevel >= req) {
     game.squaresTowardNextLevel -= req;
     game.level += 1;
-    game.skinIndex = (game.skinIndex + 1) % SKINS.length;
-    game.sweepPeriodMs = jitteredSweep(SKINS[game.skinIndex].sweep);
+    const profile = challengeProfileForLevel(game.level);
+    game.skinIndex = profile.skinIndex % SKINS.length;
+    game.sweepPeriodMs = SKINS[game.skinIndex].sweep;
     game.skinFlashMs = 420;
     leveled = true;
     req = levelThreshold(game.level);
   }
   if (leveled) {
-    game.status = `Level ${game.level} - ${SKINS[game.skinIndex].name} skin`;
+    game.status = `Level ${game.level} - ${challengeProfileForLevel(game.level).name}`;
     playSfx('levelUp', { level: game.level });
     updateThemeVars();
   }
@@ -777,7 +861,7 @@ function renderHud() {
   scoreEl.textContent = String(game.score);
   highScoreEl.textContent = String(game.highScore);
   levelEl.textContent = String(game.level);
-  skinEl.textContent = SKINS[game.skinIndex].name;
+  skinEl.textContent = challengeProfileForLevel(game.level).name;
   modeLabelEl.textContent = game.mode === MODES.ENDLESS ? 'Endless' : `Time ${game.timeLimitSec}s`;
   timeLabelEl.textContent = game.mode === MODES.TIME ? formatMs(game.timeRemainingMs) : '--:--';
   statusEl.textContent = game.paused ? 'Paused' : game.status;
@@ -1007,8 +1091,8 @@ function restartRun() {
   game.pendingGroups = [];
   game.passSquaresCleared = 0;
   game.passClearEvents = 0;
-  game.skinIndex = 0;
-  game.sweepPeriodMs = jitteredSweep(SKINS[0].sweep);
+  game.skinIndex = challengeProfileForLevel(1).skinIndex % SKINS.length;
+  game.sweepPeriodMs = SKINS[game.skinIndex].sweep;
   game.skinFlashMs = 0;
   game.paused = false;
   game.gameOver = false;
