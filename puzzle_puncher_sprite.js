@@ -10,23 +10,25 @@ export function drawGemFill(ctx, x, y, s, palette, opts = {}) {
   roundRect(ctx, x + 1, y + 1, s - 2, s - 2, r);
   ctx.fill();
 
-  ctx.save();
-  const phase = opts.shinePhase ?? 0;
-  const shimmer = 0.22 + 0.22 * (0.5 + 0.5 * Math.sin(phase * 6.283));
-  ctx.globalAlpha = shimmer;
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.ellipse(
-    x + s * (0.31 + 0.05 * Math.sin(phase * 12.566)),
-    y + s * 0.27,
-    s * 0.25,
-    s * 0.18,
-    -0.4,
-    0,
-    Math.PI * 2
-  );
-  ctx.fill();
-  ctx.restore();
+  if (opts.highlight !== false) {
+    ctx.save();
+    const phase = opts.shinePhase ?? 0;
+    const shimmer = 0.22 + 0.22 * (0.5 + 0.5 * Math.sin(phase * 6.283));
+    ctx.globalAlpha = shimmer;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(
+      x + s * (0.31 + 0.05 * Math.sin(phase * 12.566)),
+      y + s * 0.27,
+      s * 0.25,
+      s * 0.18,
+      -0.4,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+    ctx.restore();
+  }
 
   if (opts.face) {
     drawGemFace(ctx, x, y, s, opts.faceVariant ?? 0);
@@ -153,6 +155,49 @@ export function drawCounterNumber(ctx, x, y, s, value) {
   const txt = String(Math.floor(value));
   ctx.strokeText(txt, x + s * 0.5, y + s * 0.54);
   ctx.fillText(txt, x + s * 0.5, y + s * 0.54);
+  ctx.restore();
+}
+
+export function drawPowerRectGloss(ctx, x, y, w, h, palette, phase = 0) {
+  const r = Math.min(w, h) * 0.18;
+  ctx.save();
+
+  const body = ctx.createLinearGradient(x, y, x + w, y + h);
+  body.addColorStop(0, palette.light);
+  body.addColorStop(0.55, palette.base);
+  body.addColorStop(1, palette.dark);
+  ctx.globalAlpha = 0.34;
+  ctx.fillStyle = body;
+  roundRect(ctx, x + 1, y + 1, w - 2, h - 2, r);
+  ctx.fill();
+
+  const gleam = ctx.createLinearGradient(x, y, x, y + h * 0.6);
+  gleam.addColorStop(0, 'rgba(255,255,255,0.55)');
+  gleam.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.globalAlpha = 0.7;
+  ctx.fillStyle = gleam;
+  roundRect(ctx, x + 2, y + 2, w - 4, Math.max(8, h * 0.42), r * 0.8);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.28 + 0.2 * (0.5 + 0.5 * Math.sin(phase * 6.283));
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.ellipse(
+    x + w * 0.26 + Math.sin(phase * 12.566) * Math.min(6, w * 0.05),
+    y + h * 0.22,
+    Math.max(8, w * 0.2),
+    Math.max(6, h * 0.14),
+    -0.35,
+    0,
+    Math.PI * 2
+  );
+  ctx.fill();
+
+  ctx.globalAlpha = 0.6;
+  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = palette.stroke;
+  roundRect(ctx, x + 1, y + 1, w - 2, h - 2, r);
+  ctx.stroke();
   ctx.restore();
 }
 

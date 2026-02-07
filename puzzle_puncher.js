@@ -9,6 +9,7 @@ import {
   drawDiamond,
   drawGarbageOverlay,
   drawCounterNumber,
+  drawPowerRectGloss,
 } from './puzzle_puncher_sprite.js';
 
 const W = 6;
@@ -1246,9 +1247,7 @@ function drawCell(ctxRef, cell, col, row) {
       stroke: palette.stroke,
     };
     drawGemFill(ctxRef, x, y, s, powerPalette, {
-      face: true,
-      faceVariant: cell.face,
-      shinePhase: cell.shine + game.fx.phase,
+      highlight: false,
     });
     const edges = {
       top: !(row < H - 1 && game.board.cells[row + 1][col].powerRectId === cell.powerRectId),
@@ -1267,6 +1266,20 @@ function drawCell(ctxRef, cell, col, row) {
   }
   if (cell.kind === Kind.CRASH) {
     drawCrashOverlay(ctxRef, x, y, s);
+  }
+}
+
+function drawPowerRectsComposite() {
+  if (!game.powerRects || game.powerRects.size === 0) return;
+  const s = view.cellSize;
+  for (const rect of game.powerRects.values()) {
+    const palette = PALETTE[rect.color];
+    if (!palette) continue;
+    const x = cellToX(rect.c0);
+    const y = cellToY(rect.r1);
+    const w = (rect.c1 - rect.c0 + 1) * s;
+    const h = (rect.r1 - rect.r0 + 1) * s;
+    drawPowerRectGloss(ctx, x, y, w, h, palette, game.fx.phase);
   }
 }
 
@@ -1382,6 +1395,7 @@ function drawBoard(alpha) {
       if (overflow) ctx.globalAlpha = 1;
     }
   }
+  drawPowerRectsComposite();
 
   if (game.active) {
     const fallAlpha = getFallAlpha(alpha);
