@@ -1055,6 +1055,9 @@ function resolveBoard(dt) {
     game.pressure.pendingRows -= amount;
     applyGarbageRows(amount);
     if (game.state === GameState.GAME_OVER) return;
+    // Garbage injection can create new 2x2+ rectangles immediately.
+    // Recompute now so rendering/scoring state is correct on the same turn.
+    markPowerRects();
   }
 
   game.state = GameState.SPAWN;
