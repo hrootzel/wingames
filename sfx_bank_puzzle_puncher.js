@@ -54,4 +54,12 @@ export const BANK_PUZZLEPUNCHER = {
     sfx.tone({ freq: 165, type: 'triangle', duration: 0.28, volume: 0.08, delay: 0.06, slideTo: 82, slideMs: 0.28 });
     sfx.noise({ duration: 0.22, volume: 0.06, tint: 0.0, delay: 0.1 });
   },
+  warning: (sfx) => {
+    sfx.tone({ freq: 820, type: 'square', duty: 0.25, duration: 0.045, volume: 0.08 });
+    sfx.tone({ freq: 610, type: 'square', duty: 0.25, duration: 0.055, volume: 0.09, delay: 0.06 });
+  },
+  garbageRise: (sfx) => {
+    sfx.noise({ duration: 0.09, volume: 0.06, tint: 0.25 });
+    sfx.tone({ freq: 140, type: 'triangle', duration: 0.08, volume: 0.1, slideTo: 170, slideMs: 0.07 });
+  },
 };

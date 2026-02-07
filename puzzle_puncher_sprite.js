@@ -1,6 +1,6 @@
 import { roundRect } from './rendering_engine.js';
 
-export function drawGemFill(ctx, x, y, s, palette) {
+export function drawGemFill(ctx, x, y, s, palette, opts = {}) {
   const r = s * 0.2;
   const grad = ctx.createLinearGradient(x, y, x + s, y + s);
   grad.addColorStop(0, palette.light);
@@ -11,12 +11,26 @@ export function drawGemFill(ctx, x, y, s, palette) {
   ctx.fill();
 
   ctx.save();
-  ctx.globalAlpha = 0.35;
+  const phase = opts.shinePhase ?? 0;
+  const shimmer = 0.22 + 0.22 * (0.5 + 0.5 * Math.sin(phase * 6.283));
+  ctx.globalAlpha = shimmer;
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
-  ctx.ellipse(x + s * 0.34, y + s * 0.28, s * 0.25, s * 0.18, -0.4, 0, Math.PI * 2);
+  ctx.ellipse(
+    x + s * (0.31 + 0.05 * Math.sin(phase * 12.566)),
+    y + s * 0.27,
+    s * 0.25,
+    s * 0.18,
+    -0.4,
+    0,
+    Math.PI * 2
+  );
   ctx.fill();
   ctx.restore();
+
+  if (opts.face) {
+    drawGemFace(ctx, x, y, s, opts.faceVariant ?? 0);
+  }
 }
 
 export function drawGemBorder(ctx, x, y, s, stroke) {
@@ -72,6 +86,57 @@ export function drawCrashOverlay(ctx, x, y, s) {
   ctx.globalAlpha = 0.8;
   ctx.beginPath();
   ctx.arc(x + s * 0.5, y + s * 0.5, s * 0.16, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawGemFace(ctx, x, y, s, variant) {
+  const eyeY = y + s * 0.48;
+  const eyeRX = s * 0.045;
+  const eyeRY = s * 0.06;
+  const leftX = x + s * 0.38;
+  const rightX = x + s * 0.62;
+  ctx.save();
+  ctx.fillStyle = 'rgba(13, 18, 26, 0.72)';
+  ctx.beginPath();
+  ctx.ellipse(leftX, eyeY, eyeRX, eyeRY, 0, 0, Math.PI * 2);
+  ctx.ellipse(rightX, eyeY, eyeRX, eyeRY, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(13, 18, 26, 0.72)';
+  ctx.lineWidth = Math.max(1, s * 0.06);
+  ctx.lineCap = 'round';
+  const mouthY = y + s * 0.67;
+  if (variant % 4 === 0) {
+    ctx.beginPath();
+    ctx.arc(x + s * 0.5, mouthY, s * 0.1, 0, Math.PI);
+    ctx.stroke();
+  } else if (variant % 4 === 1) {
+    ctx.beginPath();
+    ctx.arc(x + s * 0.5, mouthY + s * 0.03, s * 0.08, Math.PI, 0);
+    ctx.stroke();
+  } else if (variant % 4 === 2) {
+    ctx.beginPath();
+    ctx.moveTo(x + s * 0.42, mouthY);
+    ctx.lineTo(x + s * 0.58, mouthY);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.arc(x + s * 0.5, mouthY, s * 0.06, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+export function drawGarbageOverlay(ctx, x, y, s) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = Math.max(1.2, s * 0.045);
+  ctx.beginPath();
+  ctx.moveTo(x + s * 0.2, y + s * 0.2);
+  ctx.lineTo(x + s * 0.8, y + s * 0.8);
+  ctx.moveTo(x + s * 0.8, y + s * 0.2);
+  ctx.lineTo(x + s * 0.2, y + s * 0.8);
   ctx.stroke();
   ctx.restore();
 }

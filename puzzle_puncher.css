@@ -2,6 +2,7 @@
   --puncher-panel: rgba(0, 0, 0, 0.2);
   --puncher-border: rgba(255, 255, 255, 0.12);
   --puncher-glow: rgba(16, 185, 129, 0.35);
+  --puncher-hot: rgba(239, 68, 68, 0.5);
 }
 
 .puzzle-board {
@@ -34,6 +35,7 @@
   border: 1px solid rgba(0, 0, 0, 0.6);
   box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 24px var(--puncher-glow);
   background: #061a12;
+  animation: boardGlow 3.8s ease-in-out infinite;
 }
 
 .puzzle-panel {
@@ -64,6 +66,29 @@
 .preview-canvas {
   display: block;
   margin: 0 auto;
+  border-radius: 8px;
+  background: rgba(3, 9, 12, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.preview-stack {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.preview-row {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-label {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
 .key-hints {
@@ -90,6 +115,15 @@
 .puzzle-controls {
   margin-top: 12px;
   justify-content: space-between;
+}
+
+@keyframes boardGlow {
+  0%, 100% {
+    box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 20px var(--puncher-glow);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.45), 0 0 30px var(--puncher-glow), 0 0 18px var(--puncher-hot);
+  }
 }
 
 @media (max-width: 900px) {

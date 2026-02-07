@@ -1,7 +1,14 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_PUZZLEPUNCHER } from './sfx_bank_puzzle_puncher.js';
 import { roundRect } from './rendering_engine.js';
-import { drawGemFill, drawGemBorder, drawPowerEdges, drawCrashOverlay, drawDiamond } from './puzzle_puncher_sprite.js';
+import {
+  drawGemFill,
+  drawGemBorder,
+  drawPowerEdges,
+  drawCrashOverlay,
+  drawDiamond,
+  drawGarbageOverlay,
+} from './puzzle_puncher_sprite.js';
 
 const W = 6;
 const H = 13;
@@ -13,6 +20,7 @@ const Kind = {
   NORMAL: 'NORMAL',
   CRASH: 'CRASH',
   DIAMOND: 'DIAMOND',
+  GARBAGE: 'GARBAGE',
 };
 
 const GameState = {
@@ -29,29 +37,38 @@ const PALETTE = {
   G: { base: '#22c55e', light: '#86efac', dark: '#15803d', stroke: '#14532d' },
   B: { base: '#3b82f6', light: '#93c5fd', dark: '#1d4ed8', stroke: '#1e3a8a' },
   Y: { base: '#facc15', light: '#fde68a', dark: '#d97706', stroke: '#a16207' },
+  X: { base: '#6b7280', light: '#d1d5db', dark: '#374151', stroke: '#111827' },
 };
 
 const SCORE = {
   NORMAL: 10,
   POWER: 25,
+  GARBAGE: 6,
   TECH: 10000,
   ALL_CLEAR: 5000,
 };
 
 const DAS = 160;
 const ARR = 60;
+const LOCK_DELAY = 230;
 const FIXED_DT = 1000 / 60;
 const RESOLVE_DROP_INTERVAL = 60;
+const PRESSURE_INTERVAL_BASE = 9000;
+const PRESSURE_PER_LOCK = 0.28;
+const PRESSURE_WAVE_STRENGTH = 0.9;
 
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 const nextCanvas = document.getElementById('next-canvas');
 const nextCtx = nextCanvas.getContext('2d');
+const next2Canvas = document.getElementById('next2-canvas');
+const next2Ctx = next2Canvas.getContext('2d');
 
 const scoreEl = document.getElementById('score');
 const chainEl = document.getElementById('chain');
 const levelEl = document.getElementById('level');
 const piecesEl = document.getElementById('pieces');
+const pressureEl = document.getElementById('pressure');
 const statusEl = document.getElementById('status');
 const newBtn = document.getElementById('new-game');
 const pauseBtn = document.getElementById('pause');
@@ -86,7 +103,7 @@ function makeRng(seed) {
 }
 
 function makeEmptyCell() {
-  return { kind: Kind.EMPTY, color: null, powerGroupId: 0 };
+  return { kind: Kind.EMPTY, color: null, powerRectId: 0, bounce: 0, face: 0, shine: 0 };
 }
 
 function makeBoard() {
@@ -118,17 +135,57 @@ function makeGame() {
     state: GameState.SPAWN,
     paused: false,
     active: null,
-    nextSpec: null,
+    queue: [],
     pendingDiamond: null,
     resolve: null,
+    powerRects: new Map(),
     pieceIndex: 0,
     level: 1,
     score: 0,
     lastChain: 0,
     status: 'Ready.',
     statusBeforePause: 'Ready.',
+    pressure: {
+      meter: 0,
+      waveTimer: 0,
+      pendingRows: 0,
+    },
+    rngState: {
+      crashDrought: 0,
+      diamondDrought: 0,
+    },
+    fx: {
+      phase: 0,
+      hitstop: 0,
+      shake: 0,
+      particles: [],
+      waves: [],
+      banners: [],
+      warningTimer: 0,
+    },
     timers: { gravityElapsed: 0 },
   };
+}
+
+function cloneCell(cell) {
+  return {
+    kind: cell.kind,
+    color: cell.color,
+    powerRectId: 0,
+    bounce: cell.bounce,
+    face: cell.face,
+    shine: cell.shine,
+  };
+}
+
+function makeGemCell(gem) {
+  const cell = makeEmptyCell();
+  cell.kind = gem.kind;
+  cell.color = gem.color;
+  cell.face = game.rng.int(4);
+  cell.shine = game.rng.next();
+  cell.bounce = 1;
+  return cell;
 }
 
 function resetBoard() {
@@ -136,6 +193,13 @@ function resetBoard() {
     for (let c = 0; c < W; c++) {
       game.board.cells[r][c] = makeEmptyCell();
     }
+  }
+  game.powerRects.clear();
+}
+
+function fillQueue() {
+  while (game.queue.length < 3) {
+    game.queue.push(rollPiece(game.rng, game.pieceIndex + game.queue.length + 1));
   }
 }
 
@@ -152,34 +216,59 @@ function newGame() {
   game.state = GameState.SPAWN;
   game.paused = false;
   game.active = null;
+  game.queue = [];
   game.pendingDiamond = null;
   game.resolve = null;
+  game.powerRects.clear();
   game.pieceIndex = 0;
   game.level = 1;
   game.score = 0;
   game.lastChain = 0;
   game.status = 'Ready.';
   game.statusBeforePause = 'Ready.';
+  game.pressure.meter = 0;
+  game.pressure.waveTimer = 0;
+  game.pressure.pendingRows = 0;
+  game.rngState.crashDrought = 0;
+  game.rngState.diamondDrought = 0;
+  game.fx.phase = 0;
+  game.fx.hitstop = 0;
+  game.fx.shake = 0;
+  game.fx.particles.length = 0;
+  game.fx.waves.length = 0;
+  game.fx.banners.length = 0;
+  game.fx.warningTimer = 0;
   game.timers.gravityElapsed = 0;
-  game.nextSpec = rollPiece(game.rng, 1);
+  fillQueue();
   pauseBtn.textContent = 'Pause';
 }
 
 function rollGem(rng) {
   const color = COLORS[rng.int(COLORS.length)];
-  const isCrash = rng.int(6) === 0;
-  return { kind: isCrash ? Kind.CRASH : Kind.NORMAL, color };
+  const chance = Math.min(0.3, 0.1 + game.rngState.crashDrought * 0.02);
+  const isCrash = rng.next() < chance;
+  if (isCrash) {
+    game.rngState.crashDrought = 0;
+    return { kind: Kind.CRASH, color };
+  }
+  game.rngState.crashDrought += 1;
+  return { kind: Kind.NORMAL, color };
 }
 
 function rollPiece(rng, pieceIndex) {
-  const isDiamond = pieceIndex % 25 === 0;
+  const diamondChance = pieceIndex < 8
+    ? 0
+    : Math.min(0.16, 0.015 + game.rngState.diamondDrought * 0.009);
+  const isDiamond = rng.next() < diamondChance;
   if (isDiamond) {
+    game.rngState.diamondDrought = 0;
     const gem = rollGem(rng);
     if (rng.int(2) === 0) {
       return { a: { kind: Kind.DIAMOND, color: null }, b: gem };
     }
     return { a: gem, b: { kind: Kind.DIAMOND, color: null } };
   }
+  game.rngState.diamondDrought += 1;
   return { a: rollGem(rng), b: rollGem(rng) };
 }
 
@@ -205,6 +294,7 @@ function makeActivePiece(spec) {
     orient: 0,
     gemA: { kind: spec.a.kind, color: spec.a.color },
     gemB: { kind: spec.b.kind, color: spec.b.color },
+    lockTimer: 0,
   };
 }
 
@@ -247,19 +337,35 @@ function tryMovePiece(dr, dc) {
   if (!canPlace(cells)) return false;
   game.active.pivotRow += dr;
   game.active.pivotCol += dc;
+  game.active.lockTimer = 0;
   return true;
 }
 
 function tryRotate(dir) {
   if (!game.active) return false;
   const nextOrient = (game.active.orient + dir + 4) & 3;
-  const cells = pieceCells(game.active, nextOrient).map((cell) => ({
-    row: cell.row,
-    col: cell.col,
-  }));
-  if (!canPlace(cells)) return false;
-  game.active.orient = nextOrient;
-  return true;
+  const kicks = [
+    { dr: 0, dc: 0 },
+    { dr: 0, dc: -1 },
+    { dr: 0, dc: 1 },
+    { dr: 1, dc: 0 },
+    { dr: -1, dc: 0 },
+    { dr: 1, dc: -1 },
+    { dr: 1, dc: 1 },
+  ];
+  for (const kick of kicks) {
+    const cells = pieceCells(game.active, nextOrient).map((cell) => ({
+      row: cell.row + kick.dr,
+      col: cell.col + kick.dc,
+    }));
+    if (!canPlace(cells)) continue;
+    game.active.orient = nextOrient;
+    game.active.pivotRow += kick.dr;
+    game.active.pivotCol += kick.dc;
+    game.active.lockTimer = 0;
+    return true;
+  }
+  return false;
 }
 
 function currentGravityInterval() {
@@ -272,10 +378,11 @@ function currentGravityInterval() {
 
 function spawnPiece() {
   game.pieceIndex += 1;
-  game.level = 1 + Math.floor(game.pieceIndex / 25);
-  const spec = game.nextSpec || rollPiece(game.rng, game.pieceIndex);
+  game.level = 1 + Math.floor((game.pieceIndex - 1) / 20);
+  fillQueue();
+  const spec = game.queue.shift();
   game.active = makeActivePiece(spec);
-  game.nextSpec = rollPiece(game.rng, game.pieceIndex + 1);
+  fillQueue();
   const cells = pieceCells(game.active);
   if (!canPlace(cells)) {
     game.state = GameState.GAME_OVER;
@@ -294,16 +401,17 @@ function lockPiece() {
   const cells = pieceCells(game.active);
   let diamondCell = null;
   for (const cell of cells) {
-    const next = makeEmptyCell();
     if (cell.gem.kind === Kind.DIAMOND) {
+      const next = makeEmptyCell();
       next.kind = Kind.DIAMOND;
       next.color = null;
+      next.bounce = 1;
+      next.shine = game.rng.next();
       diamondCell = { row: cell.row, col: cell.col };
+      game.board.cells[cell.row][cell.col] = next;
     } else {
-      next.kind = cell.gem.kind;
-      next.color = cell.gem.color;
+      game.board.cells[cell.row][cell.col] = makeGemCell(cell.gem);
     }
-    game.board.cells[cell.row][cell.col] = next;
   }
 
   game.pendingDiamond = null;
@@ -315,6 +423,8 @@ function lockPiece() {
       game.pendingDiamond = { type: 'TECH', row: diamondCell.row, col: diamondCell.col };
     }
   }
+
+  game.pressure.meter += PRESSURE_PER_LOCK;
 
   game.active = null;
   game.state = GameState.RESOLVE;
@@ -354,6 +464,12 @@ function handleHorizontalRepeat(dt) {
   }
 }
 
+function isGrounded(piece) {
+  if (!piece) return false;
+  const oneDown = pieceCells(piece).map((cell) => ({ row: cell.row - 1, col: cell.col }));
+  return !canPlace(oneDown);
+}
+
 function stepFalling(dt) {
   if (!game.active) {
     game.state = GameState.SPAWN;
@@ -389,10 +505,19 @@ function stepFalling(dt) {
   game.timers.gravityElapsed += dt;
   while (game.timers.gravityElapsed >= interval) {
     if (!tryMovePiece(-1, 0)) {
+      break;
+    }
+    game.timers.gravityElapsed -= interval;
+  }
+
+  if (isGrounded(game.active)) {
+    game.active.lockTimer += dt;
+    if (game.active.lockTimer >= LOCK_DELAY) {
       lockPiece();
       return;
     }
-    game.timers.gravityElapsed -= interval;
+  } else {
+    game.active.lockTimer = 0;
   }
 }
 
@@ -425,27 +550,30 @@ function settleOnce() {
       if (cell.kind === Kind.EMPTY) continue;
       if (game.board.cells[r - 1][c].kind !== Kind.EMPTY) continue;
       game.board.cells[r - 1][c] = cell;
+      game.board.cells[r - 1][c].bounce = Math.max(game.board.cells[r - 1][c].bounce, 0.8);
       game.board.cells[r][c] = makeEmptyCell();
       moved = true;
     }
   }
   if (moved) {
-    clearPowerGroups();
+    clearPowerRects();
   }
   return moved;
 }
 
-function clearPowerGroups() {
+function clearPowerRects() {
+  game.powerRects.clear();
   for (let r = 0; r < H; r++) {
     for (let c = 0; c < W; c++) {
-      game.board.cells[r][c].powerGroupId = 0;
+      game.board.cells[r][c].powerRectId = 0;
     }
   }
 }
 
-function markPowerGroups() {
-  clearPowerGroups();
-  const powerMask = Array.from({ length: H }, () => Array(W).fill(false));
+function markPowerRects() {
+  clearPowerRects();
+  const used = Array.from({ length: H }, () => Array(W).fill(false));
+  const candidates = [];
 
   for (const color of COLORS) {
     for (let r0 = 0; r0 < H - 1; r0++) {
@@ -464,11 +592,14 @@ function markPowerGroups() {
               }
             }
             if (full) {
-              for (let r = r0; r <= r1; r++) {
-                for (let c = c0; c <= c1; c++) {
-                  powerMask[r][c] = true;
-                }
-              }
+              candidates.push({
+                area: (r1 - r0 + 1) * (c1 - c0 + 1),
+                r0,
+                c0,
+                r1,
+                c1,
+                color,
+              });
             }
           }
         }
@@ -476,34 +607,35 @@ function markPowerGroups() {
     }
   }
 
-  let groupId = 1;
-  for (let r = 0; r < H; r++) {
-    for (let c = 0; c < W; c++) {
-      const cell = game.board.cells[r][c];
-      if (!powerMask[r][c] || cell.powerGroupId !== 0 || cell.kind !== Kind.NORMAL) continue;
-      const color = cell.color;
-      const stack = [{ row: r, col: c }];
-      cell.powerGroupId = groupId;
-      while (stack.length) {
-        const current = stack.pop();
-        const neighbors = [
-          { row: current.row + 1, col: current.col },
-          { row: current.row - 1, col: current.col },
-          { row: current.row, col: current.col + 1 },
-          { row: current.row, col: current.col - 1 },
-        ];
-        for (const n of neighbors) {
-          if (!inBounds(n.row, n.col)) continue;
-          const next = game.board.cells[n.row][n.col];
-          if (!powerMask[n.row][n.col]) continue;
-          if (next.kind !== Kind.NORMAL || next.color !== color) continue;
-          if (next.powerGroupId !== 0) continue;
-          next.powerGroupId = groupId;
-          stack.push(n);
+  candidates.sort((a, b) => {
+    if (b.area !== a.area) return b.area - a.area;
+    const ah = a.r1 - a.r0;
+    const bh = b.r1 - b.r0;
+    if (bh !== ah) return bh - ah;
+    return a.c0 - b.c0;
+  });
+
+  let rectId = 1;
+  for (const rect of candidates) {
+    let overlap = false;
+    for (let r = rect.r0; r <= rect.r1 && !overlap; r++) {
+      for (let c = rect.c0; c <= rect.c1; c++) {
+        if (used[r][c]) {
+          overlap = true;
+          break;
         }
       }
-      groupId += 1;
     }
+    if (overlap) continue;
+
+    for (let r = rect.r0; r <= rect.r1; r++) {
+      for (let c = rect.c0; c <= rect.c1; c++) {
+        used[r][c] = true;
+        game.board.cells[r][c].powerRectId = rectId;
+      }
+    }
+    game.powerRects.set(rectId, rect);
+    rectId += 1;
   }
 }
 
@@ -561,6 +693,26 @@ function collectCrashClear(triggers) {
       }
     }
   }
+  const extraGarbage = [];
+  for (const key of toClear) {
+    const [r, c] = key.split(',').map(Number);
+    const neighbors = [
+      { row: r + 1, col: c },
+      { row: r - 1, col: c },
+      { row: r, col: c + 1 },
+      { row: r, col: c - 1 },
+    ];
+    for (const n of neighbors) {
+      if (!inBounds(n.row, n.col)) continue;
+      const near = game.board.cells[n.row][n.col];
+      if (near.kind === Kind.GARBAGE) {
+        extraGarbage.push(`${n.row},${n.col}`);
+      }
+    }
+  }
+  for (const key of extraGarbage) {
+    toClear.add(key);
+  }
   return toClear;
 }
 
@@ -581,7 +733,7 @@ function collectColorClear(color, diamondCell) {
 }
 
 function countClearCells(toClear) {
-  const counts = { normal: 0, crash: 0, power: 0, diamond: 0 };
+  const counts = { normal: 0, crash: 0, power: 0, diamond: 0, garbage: 0 };
   for (const key of toClear) {
     const [r, c] = key.split(',').map(Number);
     const cell = game.board.cells[r][c];
@@ -589,8 +741,10 @@ function countClearCells(toClear) {
       counts.crash += 1;
     } else if (cell.kind === Kind.DIAMOND) {
       counts.diamond += 1;
+    } else if (cell.kind === Kind.GARBAGE) {
+      counts.garbage += 1;
     } else if (cell.kind === Kind.NORMAL) {
-      if (cell.powerGroupId > 0) counts.power += 1;
+      if (cell.powerRectId > 0) counts.power += 1;
       else counts.normal += 1;
     }
   }
@@ -607,7 +761,8 @@ function clearCells(toClear) {
 function scoreEvent(counts, chainIndex, isDiamond) {
   const base =
     SCORE.NORMAL * (counts.normal + counts.crash + counts.diamond) +
-    SCORE.POWER * counts.power;
+    SCORE.POWER * counts.power +
+    SCORE.GARBAGE * counts.garbage;
   let score = Math.round(base * (1 + 0.5 * (chainIndex - 1)));
   if (isDiamond) score = Math.round(score * 0.8);
   game.score += score;
@@ -622,6 +777,114 @@ function isBoardEmpty() {
     }
   }
   return true;
+}
+
+function addBanner(text, life = 700) {
+  game.fx.banners.push({ text, life, ttl: life });
+}
+
+function triggerClearFx(total, chainIndex) {
+  game.fx.hitstop = Math.max(game.fx.hitstop, chainIndex >= 2 ? 75 : 45);
+  game.fx.shake = Math.min(14, game.fx.shake + 2 + chainIndex * 1.4 + total * 0.1);
+  game.fx.waves.push({
+    cx: view.boardLeft + view.boardWidth / 2,
+    cy: view.boardTop + view.boardHeight / 2,
+    life: 420,
+    ttl: 420,
+    maxR: 190,
+  });
+  const particleCount = Math.min(50, 8 + total * 3 + chainIndex * 4);
+  for (let i = 0; i < particleCount; i++) {
+    const ang = game.rng.next() * Math.PI * 2;
+    const speed = 0.03 + game.rng.next() * 0.12;
+    game.fx.particles.push({
+      x: view.boardLeft + view.boardWidth * (0.2 + game.rng.next() * 0.6),
+      y: view.boardTop + view.boardHeight * (0.2 + game.rng.next() * 0.6),
+      vx: Math.cos(ang) * speed,
+      vy: Math.sin(ang) * speed,
+      life: 420 + game.rng.int(240),
+      ttl: 420 + game.rng.int(240),
+      size: 2 + game.rng.next() * 3,
+      color: ['#ffffff', '#facc15', '#93c5fd', '#fecaca'][game.rng.int(4)],
+    });
+  }
+  if (chainIndex >= 2) addBanner(`${chainIndex} CHAIN`);
+}
+
+function stackDangerLevel() {
+  let maxRow = -1;
+  for (let r = 0; r < H; r++) {
+    for (let c = 0; c < W; c++) {
+      if (game.board.cells[r][c].kind !== Kind.EMPTY && r > maxRow) maxRow = r;
+    }
+  }
+  if (maxRow < 8) return 0;
+  return Math.min(1, (maxRow - 8) / 4);
+}
+
+function schedulePressure(dt) {
+  const p = game.pressure;
+  const interval = Math.max(4600, PRESSURE_INTERVAL_BASE - (game.level - 1) * 280);
+  p.waveTimer += dt;
+  while (p.waveTimer >= interval) {
+    p.waveTimer -= interval;
+    p.pendingRows += 1 + Math.floor((game.level - 1) / 6);
+    p.meter += PRESSURE_WAVE_STRENGTH;
+  }
+  p.meter = Math.max(0, p.meter - dt * 0.00003);
+}
+
+function setGameOver(msg) {
+  game.state = GameState.GAME_OVER;
+  game.status = msg || 'Game over. Press R to restart.';
+  sfx.play(BANK_PUZZLEPUNCHER, 'gameOver');
+}
+
+function applyGarbageRows(rows) {
+  if (rows <= 0 || game.state === GameState.GAME_OVER) return;
+  for (let i = 0; i < rows; i++) {
+    for (let c = 0; c < W; c++) {
+      if (game.board.cells[H - 1][c].kind !== Kind.EMPTY) {
+        setGameOver('Crushed by pressure. Press R to restart.');
+        return;
+      }
+    }
+    for (let r = H - 1; r >= 1; r--) {
+      for (let c = 0; c < W; c++) {
+        game.board.cells[r][c] = cloneCell(game.board.cells[r - 1][c]);
+      }
+    }
+    const holes = game.level >= 7 ? 1 : 2;
+    const holeSet = new Set();
+    while (holeSet.size < holes) holeSet.add(game.rng.int(W));
+    for (let c = 0; c < W; c++) {
+      if (holeSet.has(c)) {
+        game.board.cells[0][c] = makeEmptyCell();
+      } else {
+        const g = makeEmptyCell();
+        g.kind = Kind.GARBAGE;
+        g.face = game.rng.int(4);
+        g.shine = game.rng.next();
+        g.bounce = 1;
+        game.board.cells[0][c] = g;
+      }
+    }
+  }
+  clearPowerRects();
+  game.fx.shake = Math.min(16, game.fx.shake + 4 + rows * 1.6);
+  addBanner(`+${rows} GARBAGE`, 520);
+  game.status = `Pressure wave: +${rows} garbage row${rows > 1 ? 's' : ''}`;
+  sfx.play(BANK_PUZZLEPUNCHER, 'garbageRise');
+}
+
+function applyPressureRelief(counts, chainIndex) {
+  const total = counts.normal + counts.crash + counts.power + counts.diamond + counts.garbage;
+  const relief = 0.4 + total * 0.055 + Math.max(0, chainIndex - 1) * 0.55 + counts.power * 0.02;
+  game.pressure.meter = Math.max(0, game.pressure.meter - relief);
+  const canceled = Math.floor(relief / 1.15);
+  if (canceled > 0) {
+    game.pressure.pendingRows = Math.max(0, game.pressure.pendingRows - canceled);
+  }
 }
 
 function resolveBoard(dt) {
@@ -641,11 +904,12 @@ function resolveBoard(dt) {
     game.score += SCORE.TECH;
     game.status = `Tech bonus +${SCORE.TECH}`;
     sfx.play(BANK_PUZZLEPUNCHER, 'techBonus');
+    addBanner('TECH HIT', 660);
     game.pendingDiamond = null;
     resolve.techHandled = true;
     resolve.settling = true;
     resolve.settleTimer = 0;
-    clearPowerGroups();
+    clearPowerRects();
     game.resolve = resolve;
     return;
   }
@@ -664,14 +928,14 @@ function resolveBoard(dt) {
     if (resolve.settling) return;
   }
 
-  markPowerGroups();
+  markPowerRects();
 
   if (game.pendingDiamond && game.pendingDiamond.type === 'TRIGGER') {
     const toClear = collectColorClear(game.pendingDiamond.color, game.pendingDiamond);
     const counts = countClearCells(toClear);
     clearCells(toClear);
-    clearPowerGroups();
-    const totalCleared = counts.normal + counts.crash + counts.power + counts.diamond;
+    clearPowerRects();
+    const totalCleared = counts.normal + counts.crash + counts.power + counts.diamond + counts.garbage;
     const chainIndex = resolve.chainIndex;
     if (chainIndex >= 2) {
       sfx.play(BANK_PUZZLEPUNCHER, 'chain', { chain: chainIndex, chainIndex });
@@ -682,6 +946,8 @@ function resolveBoard(dt) {
     sfx.play(BANK_PUZZLEPUNCHER, 'diamond', { cleared: totalCleared, chain: chainIndex, chainIndex });
     sfx.play(BANK_PUZZLEPUNCHER, 'clear', { cleared: totalCleared, chain: chainIndex, chainIndex });
     scoreEvent(counts, chainIndex, true);
+    triggerClearFx(totalCleared, chainIndex);
+    applyPressureRelief(counts, chainIndex);
     game.pendingDiamond = null;
     resolve.resolved = true;
     resolve.chainIndex += 1;
@@ -696,8 +962,8 @@ function resolveBoard(dt) {
     const toClear = collectCrashClear(triggers);
     const counts = countClearCells(toClear);
     clearCells(toClear);
-    clearPowerGroups();
-    const totalCleared = counts.normal + counts.crash + counts.power + counts.diamond;
+    clearPowerRects();
+    const totalCleared = counts.normal + counts.crash + counts.power + counts.diamond + counts.garbage;
     const chainIndex = resolve.chainIndex;
     if (chainIndex >= 2) {
       sfx.play(BANK_PUZZLEPUNCHER, 'chain', { chain: chainIndex, chainIndex });
@@ -707,6 +973,8 @@ function resolveBoard(dt) {
     }
     sfx.play(BANK_PUZZLEPUNCHER, 'clear', { cleared: totalCleared, chain: chainIndex, chainIndex });
     scoreEvent(counts, chainIndex, false);
+    triggerClearFx(totalCleared, chainIndex);
+    applyPressureRelief(counts, chainIndex);
     resolve.resolved = true;
     resolve.chainIndex += 1;
     resolve.settling = true;
@@ -724,18 +992,92 @@ function resolveBoard(dt) {
     game.score += SCORE.ALL_CLEAR;
     game.status = `All clear +${SCORE.ALL_CLEAR}`;
     sfx.play(BANK_PUZZLEPUNCHER, 'allClear');
+    addBanner('ALL CLEAR', 900);
+    game.pressure.meter = Math.max(0, game.pressure.meter - 2.2);
+    game.pressure.pendingRows = Math.max(0, game.pressure.pendingRows - 2);
+  }
+
+  if (game.pressure.pendingRows > 0) {
+    const amount = Math.min(2, game.pressure.pendingRows);
+    game.pressure.pendingRows -= amount;
+    applyGarbageRows(amount);
+    if (game.state === GameState.GAME_OVER) return;
   }
 
   game.state = GameState.SPAWN;
   game.resolve = null;
 }
 
+function updateCellAnimations(dt) {
+  const d = dt * 0.005;
+  for (let r = 0; r < H; r++) {
+    for (let c = 0; c < W; c++) {
+      const cell = game.board.cells[r][c];
+      if (cell.kind === Kind.EMPTY) continue;
+      cell.bounce = Math.max(0, cell.bounce - d);
+      cell.shine += dt * 0.0001;
+      if (cell.shine > 1) cell.shine -= 1;
+    }
+  }
+}
+
+function updateFx(dt) {
+  game.fx.phase += dt * 0.00016;
+  if (game.fx.phase > 1) game.fx.phase -= 1;
+  game.fx.shake = Math.max(0, game.fx.shake - dt * 0.02);
+  game.fx.hitstop = Math.max(0, game.fx.hitstop - dt);
+
+  for (let i = game.fx.particles.length - 1; i >= 0; i--) {
+    const p = game.fx.particles[i];
+    p.life -= dt;
+    if (p.life <= 0) {
+      game.fx.particles.splice(i, 1);
+      continue;
+    }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 0.00009 * dt;
+  }
+
+  for (let i = game.fx.waves.length - 1; i >= 0; i--) {
+    const w = game.fx.waves[i];
+    w.life -= dt;
+    if (w.life <= 0) game.fx.waves.splice(i, 1);
+  }
+
+  for (let i = game.fx.banners.length - 1; i >= 0; i--) {
+    const b = game.fx.banners[i];
+    b.life -= dt;
+    if (b.life <= 0) game.fx.banners.splice(i, 1);
+  }
+
+  const danger = stackDangerLevel();
+  if (danger >= 0.7 && !game.paused && game.state !== GameState.GAME_OVER) {
+    game.fx.warningTimer += dt;
+    if (game.fx.warningTimer >= 850) {
+      game.fx.warningTimer = 0;
+      sfx.play(BANK_PUZZLEPUNCHER, 'warning');
+    }
+  } else {
+    game.fx.warningTimer = 0;
+  }
+}
+
 function stepGame(dt) {
+  updateFx(dt);
+  updateCellAnimations(dt);
+
   if (game.state === GameState.GAME_OVER) {
     game.input.clearPressed();
     return;
   }
   if (game.paused) {
+    game.input.clearPressed();
+    return;
+  }
+
+  schedulePressure(dt);
+  if (game.fx.hitstop > 0) {
     game.input.clearPressed();
     return;
   }
@@ -756,6 +1098,7 @@ function updateHud() {
   chainEl.textContent = game.lastChain >= 2 ? `${game.lastChain}x` : '-';
   levelEl.textContent = game.level.toString();
   piecesEl.textContent = game.pieceIndex.toString();
+  pressureEl.textContent = game.pressure.meter.toFixed(1);
   statusEl.textContent = game.paused ? 'Paused' : game.status;
 }
 
@@ -776,31 +1119,51 @@ function cellToY(row) {
 
 function drawCell(ctxRef, cell, col, row) {
   const x = cellToX(col);
-  const y = cellToY(row);
+  const yBase = cellToY(row);
   const s = view.cellSize;
+  const bounceOffset = Math.sin((1 - cell.bounce) * Math.PI) * cell.bounce * 5;
+  const y = yBase - bounceOffset;
   if (cell.kind === Kind.DIAMOND) {
     drawDiamond(ctxRef, x, y, s);
     return;
   }
+  if (cell.kind === Kind.GARBAGE) {
+    drawGemFill(ctxRef, x, y, s, PALETTE.X, {
+      face: true,
+      faceVariant: cell.face,
+      shinePhase: cell.shine + game.fx.phase,
+    });
+    drawGemBorder(ctxRef, x, y, s, PALETTE.X.stroke);
+    drawGarbageOverlay(ctxRef, x, y, s);
+    return;
+  }
   if (!cell.color) return;
   const palette = PALETTE[cell.color];
-  if (cell.powerGroupId > 0) {
+  if (cell.powerRectId > 0) {
     const powerPalette = {
       base: palette.light,
       light: '#ffffff',
       dark: palette.base,
       stroke: palette.stroke,
     };
-    drawGemFill(ctxRef, x, y, s, powerPalette);
+    drawGemFill(ctxRef, x, y, s, powerPalette, {
+      face: true,
+      faceVariant: cell.face,
+      shinePhase: cell.shine + game.fx.phase,
+    });
     const edges = {
-      top: !(row < H - 1 && game.board.cells[row + 1][col].powerGroupId === cell.powerGroupId),
-      bottom: !(row > 0 && game.board.cells[row - 1][col].powerGroupId === cell.powerGroupId),
-      left: !(col > 0 && game.board.cells[row][col - 1].powerGroupId === cell.powerGroupId),
-      right: !(col < W - 1 && game.board.cells[row][col + 1].powerGroupId === cell.powerGroupId),
+      top: !(row < H - 1 && game.board.cells[row + 1][col].powerRectId === cell.powerRectId),
+      bottom: !(row > 0 && game.board.cells[row - 1][col].powerRectId === cell.powerRectId),
+      left: !(col > 0 && game.board.cells[row][col - 1].powerRectId === cell.powerRectId),
+      right: !(col < W - 1 && game.board.cells[row][col + 1].powerRectId === cell.powerRectId),
     };
     drawPowerEdges(ctxRef, x, y, s, edges, palette.stroke);
   } else {
-    drawGemFill(ctxRef, x, y, s, palette);
+    drawGemFill(ctxRef, x, y, s, palette, {
+      face: true,
+      faceVariant: cell.face,
+      shinePhase: cell.shine + game.fx.phase,
+    });
     drawGemBorder(ctxRef, x, y, s, palette.stroke);
   }
   if (cell.kind === Kind.CRASH) {
@@ -808,8 +1171,61 @@ function drawCell(ctxRef, cell, col, row) {
   }
 }
 
+function drawEffects() {
+  for (const wave of game.fx.waves) {
+    const t = 1 - wave.life / wave.ttl;
+    const radius = wave.maxR * t;
+    ctx.save();
+    ctx.strokeStyle = `rgba(250, 204, 21, ${0.42 * (1 - t)})`;
+    ctx.lineWidth = 2 + 4 * (1 - t);
+    ctx.beginPath();
+    ctx.arc(wave.cx, wave.cy, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  for (const p of game.fx.particles) {
+    const a = Math.max(0, p.life / p.ttl);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, p.size, p.size);
+    ctx.restore();
+  }
+
+  const danger = stackDangerLevel();
+  if (danger > 0) {
+    const pulse = 0.55 + 0.45 * Math.sin(game.fx.phase * Math.PI * 16);
+    ctx.save();
+    ctx.fillStyle = `rgba(239, 68, 68, ${danger * 0.18 * pulse})`;
+    ctx.fillRect(view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight);
+    ctx.restore();
+  }
+
+  for (const b of game.fx.banners) {
+    const t = 1 - b.life / b.ttl;
+    const alpha = t < 0.2 ? t / 0.2 : (1 - t) / 0.8;
+    const y = view.boardTop + view.boardHeight * (0.42 - t * 0.1);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, alpha);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(7, 11, 20, 0.75)';
+    ctx.fillStyle = '#fef08a';
+    ctx.font = '900 30px Trebuchet MS, Segoe UI, sans-serif';
+    ctx.strokeText(b.text, view.boardLeft + view.boardWidth / 2, y);
+    ctx.fillText(b.text, view.boardLeft + view.boardWidth / 2, y);
+    ctx.restore();
+  }
+}
+
 function drawBoard(alpha) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const shakeX = (game.rng.next() * 2 - 1) * game.fx.shake;
+  const shakeY = (game.rng.next() * 2 - 1) * game.fx.shake * 0.7;
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
 
   const bg = ctx.createLinearGradient(view.boardLeft, view.boardTop, view.boardLeft, view.boardTop + view.boardHeight);
   bg.addColorStop(0, '#0b2b1f');
@@ -879,7 +1295,11 @@ function drawBoard(alpha) {
         drawDiamond(ctx, x, y, s);
       } else {
         const palette = PALETTE[cell.gem.color];
-        drawGemFill(ctx, x, y, s, palette);
+        drawGemFill(ctx, x, y, s, palette, {
+          face: true,
+          faceVariant: (cell.row + cell.col) & 3,
+          shinePhase: game.fx.phase,
+        });
         drawGemBorder(ctx, x, y, s, palette.stroke);
         if (cell.gem.kind === Kind.CRASH) {
           drawCrashOverlay(ctx, x, y, s);
@@ -902,34 +1322,39 @@ function drawBoard(alpha) {
     ctx.fillText(label, view.boardLeft + view.boardWidth / 2, view.boardTop + view.boardHeight / 2);
     ctx.restore();
   }
+
+  drawEffects();
+  ctx.restore();
+}
+
+function drawPreviewPiece(ctxRef, canvasRef, spec) {
+  ctxRef.clearRect(0, 0, canvasRef.width, canvasRef.height);
+  if (!spec) return;
+  const size = 32;
+  const centerX = canvasRef.width / 2;
+  const centerY = canvasRef.height / 2 + 8;
+  const gems = [{ gem: spec.a, idx: 0 }, { gem: spec.b, idx: 1 }];
+  gems.forEach((item, i) => {
+    const x = centerX - size / 2;
+    const y = centerY - size / 2 - i * size;
+    if (item.gem.kind === Kind.DIAMOND) {
+      drawDiamond(ctxRef, x, y, size);
+    } else {
+      const palette = PALETTE[item.gem.color];
+      drawGemFill(ctxRef, x, y, size, palette, {
+        face: true,
+        faceVariant: (item.idx + i) & 3,
+        shinePhase: game.fx.phase,
+      });
+      drawGemBorder(ctxRef, x, y, size, palette.stroke);
+      if (item.gem.kind === Kind.CRASH) drawCrashOverlay(ctxRef, x, y, size);
+    }
+  });
 }
 
 function drawNextPiece() {
-  nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
-  if (!game.nextSpec) return;
-  const size = 34;
-  const centerX = nextCanvas.width / 2;
-  const centerY = nextCanvas.height / 2 + 8;
-
-  const gems = [
-    { gem: game.nextSpec.a, row: 0 },
-    { gem: game.nextSpec.b, row: 1 },
-  ];
-
-  gems.forEach((item, idx) => {
-    const x = centerX - size / 2;
-    const y = centerY - size / 2 - idx * size;
-    if (item.gem.kind === Kind.DIAMOND) {
-      drawDiamond(nextCtx, x, y, size);
-    } else {
-      const palette = PALETTE[item.gem.color];
-      drawGemFill(nextCtx, x, y, size, palette);
-      drawGemBorder(nextCtx, x, y, size, palette.stroke);
-      if (item.gem.kind === Kind.CRASH) {
-        drawCrashOverlay(nextCtx, x, y, size);
-      }
-    }
-  });
+  drawPreviewPiece(nextCtx, nextCanvas, game.queue[0]);
+  drawPreviewPiece(next2Ctx, next2Canvas, game.queue[1]);
 }
 
 function getFallAlpha(alpha) {
