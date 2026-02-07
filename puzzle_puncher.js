@@ -1216,11 +1216,19 @@ function drawCell(ctxRef, cell, col, row) {
     return;
   }
   if (cell.kind === Kind.GARBAGE) {
-    drawGemFill(ctxRef, x, y, s, PALETTE.X, {
+    const tintPalette = PALETTE[cell.color] || PALETTE.X;
+    drawGemFill(ctxRef, x, y, s, tintPalette, {
       face: true,
       faceVariant: cell.face,
       shinePhase: cell.shine + game.fx.phase,
     });
+    // Counter gems should read as gray while still hinting their hidden color.
+    ctxRef.save();
+    ctxRef.globalAlpha = 0.48;
+    ctxRef.fillStyle = '#6b7280';
+    roundRect(ctxRef, x + 1, y + 1, s - 2, s - 2, s * 0.2);
+    ctxRef.fill();
+    ctxRef.restore();
     drawGemBorder(ctxRef, x, y, s, PALETTE.X.stroke);
     drawGarbageOverlay(ctxRef, x, y, s);
     drawCounterNumber(ctxRef, x, y, s, cell.counter ?? 0);
