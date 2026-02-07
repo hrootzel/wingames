@@ -22,7 +22,7 @@ Local, dependency-free implementations of card, puzzle, and arcade games using J
 - **Blocks**: Configurable polyomino stacker with custom grid sizes and piece sets.
 
 ## Arcade Games
-- **Puzzle Puncher**: Drop gem pairs, build power blocks, detonate crash clears.
+- **Puzzle Puncher**: Super Puzzle Fighter Inspired. Drop gem pairs, build power blocks, detonate crash clears.
 - **Pill Popper**: Dr. Mario-style virus buster with falling capsules and chain clears.
 - **Prism Pulse**: Lumines inspired timeline puzzler with 2x2 piece masks, sweep clears, and level/skin speed shifts.
 - **PlopPlop**: Puyo-style blob matching with chain scoring.

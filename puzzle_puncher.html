@@ -30,7 +30,16 @@
         <div class="puzzle-panel">
           <div class="panel-box">
             <h3>Next Pair</h3>
-            <canvas id="next-canvas" class="preview-canvas" width="120" height="120" aria-label="Next piece preview"></canvas>
+            <div class="preview-stack">
+              <div class="preview-row">
+                <span class="preview-label">Next</span>
+                <canvas id="next-canvas" class="preview-canvas" width="120" height="92" aria-label="Next piece preview"></canvas>
+              </div>
+              <div class="preview-row">
+                <span class="preview-label">Then</span>
+                <canvas id="next2-canvas" class="preview-canvas" width="120" height="92" aria-label="Second next piece preview"></canvas>
+              </div>
+            </div>
           </div>
 
           <div class="panel-box">
@@ -40,6 +49,7 @@
               <div>Chain: <span id="chain">-</span></div>
               <div>Level: <span id="level">1</span></div>
               <div>Pieces: <span id="pieces">0</span></div>
+              <div>Pressure: <span id="pressure">0.0</span></div>
             </div>
           </div>
 
