@@ -42,18 +42,28 @@ const PALETTE = {
 
 const SCORE = {
   NORMAL: 10,
+  CRASH: 12,
   POWER: 25,
   GARBAGE: 6,
   TECH: 10000,
   ALL_CLEAR: 5000,
 };
 
+const CHAIN_BONUS_TABLE = [
+  0, 8, 16, 32, 64, 96, 128, 160, 192, 224, 256, 288,
+  320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672,
+];
+
+const SIZE_BONUS_TABLE = [
+  0, 0, 0, 0, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 19, 22, 25, 28, 32, 36, 40,
+];
+
 const DAS = 160;
 const ARR = 60;
 const LOCK_DELAY = 230;
 const FIXED_DT = 1000 / 60;
 const RESOLVE_DROP_INTERVAL = 60;
-const PRESSURE_INTERVAL_BASE = 9000;
+const PRESSURE_INTERVAL_BASE = 14000;
 const PRESSURE_PER_LOCK = 0.28;
 const PRESSURE_WAVE_STRENGTH = 0.9;
 
@@ -693,6 +703,28 @@ function collectCrashClear(triggers) {
       }
     }
   }
+  addAdjacentGarbage(toClear);
+  return toClear;
+}
+
+function collectColorClear(color, diamondCell) {
+  const toClear = new Set();
+  for (let r = 0; r < H; r++) {
+    for (let c = 0; c < W; c++) {
+      const cell = game.board.cells[r][c];
+      if (cell.kind !== Kind.EMPTY && cell.color === color) {
+        toClear.add(`${r},${c}`);
+      }
+    }
+  }
+  if (diamondCell) {
+    toClear.add(`${diamondCell.row},${diamondCell.col}`);
+  }
+  addAdjacentGarbage(toClear);
+  return toClear;
+}
+
+function addAdjacentGarbage(toClear) {
   const extraGarbage = [];
   for (const key of toClear) {
     const [r, c] = key.split(',').map(Number);
@@ -713,40 +745,37 @@ function collectCrashClear(triggers) {
   for (const key of extraGarbage) {
     toClear.add(key);
   }
-  return toClear;
-}
-
-function collectColorClear(color, diamondCell) {
-  const toClear = new Set();
-  for (let r = 0; r < H; r++) {
-    for (let c = 0; c < W; c++) {
-      const cell = game.board.cells[r][c];
-      if (cell.kind !== Kind.EMPTY && cell.color === color) {
-        toClear.add(`${r},${c}`);
-      }
-    }
-  }
-  if (diamondCell) {
-    toClear.add(`${diamondCell.row},${diamondCell.col}`);
-  }
-  return toClear;
 }
 
 function countClearCells(toClear) {
   const counts = { normal: 0, crash: 0, power: 0, diamond: 0, garbage: 0 };
+  const colors = new Set();
+  const powerRectSizes = new Map();
   for (const key of toClear) {
     const [r, c] = key.split(',').map(Number);
     const cell = game.board.cells[r][c];
     if (cell.kind === Kind.CRASH) {
       counts.crash += 1;
+      if (cell.color) colors.add(cell.color);
     } else if (cell.kind === Kind.DIAMOND) {
       counts.diamond += 1;
     } else if (cell.kind === Kind.GARBAGE) {
       counts.garbage += 1;
     } else if (cell.kind === Kind.NORMAL) {
-      if (cell.powerRectId > 0) counts.power += 1;
-      else counts.normal += 1;
+      if (cell.color) colors.add(cell.color);
+      if (cell.powerRectId > 0) {
+        counts.power += 1;
+        powerRectSizes.set(cell.powerRectId, (powerRectSizes.get(cell.powerRectId) ?? 0) + 1);
+      } else {
+        counts.normal += 1;
+      }
     }
+  }
+  counts.totalColored = counts.normal + counts.crash + counts.power;
+  counts.colorVariety = colors.size;
+  counts.largestPowerRect = 0;
+  for (const size of powerRectSizes.values()) {
+    if (size > counts.largestPowerRect) counts.largestPowerRect = size;
   }
   return counts;
 }
@@ -758,16 +787,39 @@ function clearCells(toClear) {
   }
 }
 
+function chainBonusFor(chainIndex) {
+  if (chainIndex <= CHAIN_BONUS_TABLE.length) {
+    return CHAIN_BONUS_TABLE[Math.max(0, chainIndex - 1)];
+  }
+  return CHAIN_BONUS_TABLE[CHAIN_BONUS_TABLE.length - 1] + (chainIndex - CHAIN_BONUS_TABLE.length) * 32;
+}
+
+function sizeBonusFor(totalColored) {
+  if (totalColored < SIZE_BONUS_TABLE.length) return SIZE_BONUS_TABLE[totalColored];
+  return SIZE_BONUS_TABLE[SIZE_BONUS_TABLE.length - 1] + (totalColored - (SIZE_BONUS_TABLE.length - 1)) * 3;
+}
+
 function scoreEvent(counts, chainIndex, isDiamond) {
   const base =
-    SCORE.NORMAL * (counts.normal + counts.crash + counts.diamond) +
+    SCORE.NORMAL * counts.normal +
+    SCORE.CRASH * counts.crash +
     SCORE.POWER * counts.power +
-    SCORE.GARBAGE * counts.garbage;
-  let score = Math.round(base * (1 + 0.5 * (chainIndex - 1)));
-  if (isDiamond) score = Math.round(score * 0.8);
+    SCORE.GARBAGE * counts.garbage +
+    SCORE.NORMAL * counts.diamond;
+
+  const chainBonus = chainBonusFor(chainIndex);
+  const clearSizeBonus = sizeBonusFor(counts.totalColored);
+  const colorBonus = Math.max(0, counts.colorVariety - 1) * 3;
+  const powerSizeBonus = counts.largestPowerRect >= 4
+    ? 4 + Math.floor((counts.largestPowerRect - 4) * 1.5)
+    : 0;
+  const multiplier = Math.max(1, chainBonus + clearSizeBonus + colorBonus + powerSizeBonus);
+
+  let score = Math.round(base * multiplier);
+  if (isDiamond) score = Math.round(score * 0.9);
   game.score += score;
   const chainLabel = chainIndex >= 2 ? `Chain ${chainIndex}` : 'Clear';
-  game.status = `${chainLabel} +${score}`;
+  game.status = `${chainLabel} +${score} (x${multiplier})`;
 }
 
 function isBoardEmpty() {
@@ -824,11 +876,12 @@ function stackDangerLevel() {
 
 function schedulePressure(dt) {
   const p = game.pressure;
-  const interval = Math.max(4600, PRESSURE_INTERVAL_BASE - (game.level - 1) * 280);
+  if (game.pieceIndex < 10) return;
+  const interval = Math.max(7200, PRESSURE_INTERVAL_BASE - (game.level - 1) * 180);
   p.waveTimer += dt;
   while (p.waveTimer >= interval) {
     p.waveTimer -= interval;
-    p.pendingRows += 1 + Math.floor((game.level - 1) / 6);
+    p.pendingRows += 1 + Math.floor((game.level - 1) / 10);
     p.meter += PRESSURE_WAVE_STRENGTH;
   }
   p.meter = Math.max(0, p.meter - dt * 0.00003);
@@ -998,7 +1051,7 @@ function resolveBoard(dt) {
   }
 
   if (game.pressure.pendingRows > 0) {
-    const amount = Math.min(2, game.pressure.pendingRows);
+    const amount = Math.min(1, game.pressure.pendingRows);
     game.pressure.pendingRows -= amount;
     applyGarbageRows(amount);
     if (game.state === GameState.GAME_OVER) return;
