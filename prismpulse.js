@@ -18,12 +18,15 @@ const STORAGE = {
   mode: 'prismpulse.mode',
   timeLimit: 'prismpulse.timeLimit',
   layout: 'prismpulse.layout',
+  singleSkin: 'prismpulse.singleSkin',
   hiEndless: 'prismpulse.hi.endless',
+  hiSinglePrefix: 'prismpulse.hi.single.',
   hiTimePrefix: 'prismpulse.hi.time.',
 };
 
 const MODES = {
   ENDLESS: 'endless',
+  SINGLE_SKIN: 'single_skin',
   TIME: 'time',
 };
 
@@ -31,10 +34,66 @@ const TIME_LIMITS = [60, 180, 300, 600];
 const SCORE_CAP_CLASSIC = 999999;
 
 const SKINS = [
-  { name: 'Pulse', sweep: 6500, bgTop: '#11203a', bgBottom: '#060c19', line: '#60a5fa', light: '#bae6fd', dark: '#1d4ed8' },
-  { name: 'Volt', sweep: 4500, bgTop: '#1a1f3f', bgBottom: '#0a0f24', line: '#a78bfa', light: '#ddd6fe', dark: '#6d28d9' },
-  { name: 'Solar', sweep: 3000, bgTop: '#2d1d10', bgBottom: '#150d05', line: '#f59e0b', light: '#fde68a', dark: '#b45309' },
-  { name: 'Neon', sweep: 1800, bgTop: '#0d2b2c', bgBottom: '#041516', line: '#5eead4', light: '#99f6e4', dark: '#0f766e' },
+  {
+    name: 'Pulse',
+    sweep: 6500,
+    bgTop: '#11203a',
+    bgBottom: '#060c19',
+    line: '#60a5fa',
+    light: '#bae6fd',
+    dark: '#1d4ed8',
+    gridAlpha: 0.12,
+    boardGlowAlpha: 0.38,
+    trailWidth: 30,
+    trailAlpha: 0.42,
+    lineWidth: 3,
+    pattern: 'diag',
+  },
+  {
+    name: 'Volt',
+    sweep: 4500,
+    bgTop: '#1a1f3f',
+    bgBottom: '#0a0f24',
+    line: '#a78bfa',
+    light: '#ddd6fe',
+    dark: '#6d28d9',
+    gridAlpha: 0.14,
+    boardGlowAlpha: 0.42,
+    trailWidth: 36,
+    trailAlpha: 0.46,
+    lineWidth: 3.2,
+    pattern: 'dots',
+  },
+  {
+    name: 'Solar',
+    sweep: 3000,
+    bgTop: '#2d1d10',
+    bgBottom: '#150d05',
+    line: '#f59e0b',
+    light: '#fde68a',
+    dark: '#b45309',
+    gridAlpha: 0.1,
+    boardGlowAlpha: 0.34,
+    trailWidth: 28,
+    trailAlpha: 0.4,
+    lineWidth: 2.8,
+    pattern: 'haze',
+  },
+  {
+    name: 'Neon',
+    sweep: 1800,
+    bgTop: '#0d2b2c',
+    bgBottom: '#041516',
+    line: '#5eead4',
+    light: '#99f6e4',
+    dark: '#0f766e',
+    gridAlpha: 0.16,
+    boardGlowAlpha: 0.46,
+    trailWidth: 40,
+    trailAlpha: 0.52,
+    lineWidth: 3.4,
+    pattern: 'bars',
+  },
 ];
 
 const ORIGINAL_CHALLENGE_SKINS = [
@@ -84,6 +143,7 @@ const settingsCancel = document.getElementById('settings-cancel');
 const modeSelect = document.getElementById('mode-select');
 const timeLimitSelect = document.getElementById('time-limit-select');
 const layoutSelect = document.getElementById('layout-select');
+const skinSelect = document.getElementById('skin-select');
 
 const view = {
   boardX: 0,
@@ -114,6 +174,7 @@ function makeGameState() {
     score: 0,
     highScore: 0,
     mode: MODES.ENDLESS,
+    singleSkinIndex: 0,
     timeLimitSec: 180,
     timeRemainingMs: 0,
     paused: false,
@@ -177,19 +238,23 @@ function loadSettings() {
   const mode = localStorage.getItem(STORAGE.mode);
   const timeLimit = Number(localStorage.getItem(STORAGE.timeLimit));
   const layout = localStorage.getItem(STORAGE.layout);
-  game.mode = mode === MODES.TIME ? MODES.TIME : MODES.ENDLESS;
+  const singleSkin = Number(localStorage.getItem(STORAGE.singleSkin));
+  game.mode = (mode === MODES.TIME || mode === MODES.SINGLE_SKIN) ? mode : MODES.ENDLESS;
   game.timeLimitSec = TIME_LIMITS.includes(timeLimit) ? timeLimit : 180;
   game.layout = layout === 'vertical' ? 'vertical' : 'horizontal';
+  game.singleSkinIndex = clamp(Number.isFinite(singleSkin) ? Math.floor(singleSkin) : 0, 0, SKINS.length - 1);
 }
 
 function saveSettings() {
   localStorage.setItem(STORAGE.mode, game.mode);
   localStorage.setItem(STORAGE.timeLimit, String(game.timeLimitSec));
   localStorage.setItem(STORAGE.layout, game.layout);
+  localStorage.setItem(STORAGE.singleSkin, String(game.singleSkinIndex));
 }
 
 function highScoreKey() {
   if (game.mode === MODES.ENDLESS) return STORAGE.hiEndless;
+  if (game.mode === MODES.SINGLE_SKIN) return `${STORAGE.hiSinglePrefix}${game.singleSkinIndex}`;
   return `${STORAGE.hiTimePrefix}${game.timeLimitSec}`;
 }
 
@@ -252,6 +317,29 @@ function syncSettingsUI() {
   modeSelect.value = game.mode;
   timeLimitSelect.value = String(game.timeLimitSec);
   layoutSelect.value = game.layout;
+  if (skinSelect) skinSelect.value = String(game.singleSkinIndex);
+  refreshSettingsFieldAvailability();
+}
+
+function refreshSettingsFieldAvailability(modeOverride) {
+  const mode = modeOverride ?? game.mode;
+  if (timeLimitSelect) {
+    timeLimitSelect.disabled = mode !== MODES.TIME;
+  }
+  if (skinSelect) {
+    skinSelect.disabled = mode !== MODES.SINGLE_SKIN;
+  }
+}
+
+function buildSkinSelectOptions() {
+  if (!skinSelect) return;
+  skinSelect.textContent = '';
+  for (let i = 0; i < SKINS.length; i++) {
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = SKINS[i].name;
+    skinSelect.appendChild(opt);
+  }
 }
 
 function isSettingsOpen() {
@@ -736,15 +824,19 @@ function handleLevelUps() {
   while (game.squaresTowardNextLevel >= req) {
     game.squaresTowardNextLevel -= req;
     game.level += 1;
-    const profile = challengeProfileForLevel(game.level);
-    game.skinIndex = profile.skinIndex % SKINS.length;
-    game.sweepPeriodMs = SKINS[game.skinIndex].sweep;
+    if (game.mode !== MODES.SINGLE_SKIN) {
+      const profile = challengeProfileForLevel(game.level);
+      game.skinIndex = profile.skinIndex % SKINS.length;
+      game.sweepPeriodMs = SKINS[game.skinIndex].sweep;
+    }
     game.skinFlashMs = 420;
     leveled = true;
     req = levelThreshold(game.level);
   }
   if (leveled) {
-    game.status = `Level ${game.level} - ${challengeProfileForLevel(game.level).name}`;
+    game.status = game.mode === MODES.SINGLE_SKIN
+      ? `Level ${game.level} - ${SKINS[game.singleSkinIndex].name}`
+      : `Level ${game.level} - ${challengeProfileForLevel(game.level).name}`;
     playSfx('levelUp', { level: game.level });
     updateThemeVars();
   }
@@ -861,8 +953,15 @@ function renderHud() {
   scoreEl.textContent = String(game.score);
   highScoreEl.textContent = String(game.highScore);
   levelEl.textContent = String(game.level);
-  skinEl.textContent = challengeProfileForLevel(game.level).name;
-  modeLabelEl.textContent = game.mode === MODES.ENDLESS ? 'Endless' : `Time ${game.timeLimitSec}s`;
+  skinEl.textContent = game.mode === MODES.SINGLE_SKIN
+    ? SKINS[game.singleSkinIndex].name
+    : challengeProfileForLevel(game.level).name;
+  modeLabelEl.textContent =
+    game.mode === MODES.ENDLESS
+      ? 'Endless'
+      : game.mode === MODES.SINGLE_SKIN
+        ? `Single: ${SKINS[game.singleSkinIndex]?.name ?? 'Skin'}`
+        : `Time ${game.timeLimitSec}s`;
   timeLabelEl.textContent = game.mode === MODES.TIME ? formatMs(game.timeRemainingMs) : '--:--';
   statusEl.textContent = game.paused ? 'Paused' : game.status;
   pauseBtn.textContent = game.paused ? 'Resume' : 'Pause';
@@ -947,6 +1046,40 @@ function drawCell(x, y, color, pending, alpha = 1) {
   ctx.restore();
 }
 
+function drawSkinPattern(skin) {
+  ctx.save();
+  if (skin.pattern === 'diag') {
+    ctx.strokeStyle = '#ffffff12';
+    ctx.lineWidth = 1;
+    for (let i = -canvas.height; i < canvas.width; i += 24) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i + canvas.height, canvas.height);
+      ctx.stroke();
+    }
+  } else if (skin.pattern === 'dots') {
+    ctx.fillStyle = '#ffffff18';
+    for (let y = 8; y < canvas.height; y += 16) {
+      for (let x = 8; x < canvas.width; x += 16) {
+        ctx.fillRect(x, y, 1.5, 1.5);
+      }
+    }
+  } else if (skin.pattern === 'haze') {
+    const haze = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    haze.addColorStop(0, '#ffffff08');
+    haze.addColorStop(0.5, '#ffffff00');
+    haze.addColorStop(1, '#ffffff10');
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else if (skin.pattern === 'bars') {
+    ctx.fillStyle = '#ffffff10';
+    for (let x = 0; x < canvas.width; x += 20) {
+      ctx.fillRect(x, 0, 1.25, canvas.height);
+    }
+  }
+  ctx.restore();
+}
+
 function drawBoardBackground() {
   const skin = SKINS[game.skinIndex];
   const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -954,6 +1087,7 @@ function drawBoardBackground() {
   bg.addColorStop(1, skin.bgBottom);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawSkinPattern(skin);
 
   const vignette = ctx.createRadialGradient(
     canvas.width / 2,
@@ -968,7 +1102,8 @@ function drawBoardBackground() {
   ctx.fillStyle = vignette;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = '#00000044';
+  const boardGlowAlpha = clamp(skin.boardGlowAlpha ?? 0.38, 0.2, 0.6);
+  ctx.fillStyle = `rgba(0,0,0,${boardGlowAlpha})`;
   drawRoundedRect(view.boardX, view.boardY, view.boardW, view.boardH, 12);
   ctx.fill();
 
@@ -977,7 +1112,8 @@ function drawBoardBackground() {
   drawRoundedRect(view.boardX, view.boardY, view.boardW, view.boardH, 12);
   ctx.stroke();
 
-  ctx.strokeStyle = '#ffffff12';
+  const gridAlpha = clamp(skin.gridAlpha ?? 0.12, 0.04, 0.25);
+  ctx.strokeStyle = `rgba(255,255,255,${gridAlpha})`;
   ctx.lineWidth = 1;
   for (let x = 1; x < COLS; x++) {
     const px = boardToPixelX(x);
@@ -999,16 +1135,20 @@ function drawTimeline() {
   const t = clamp((game.timelineX + 1) / COLS, 0, 1);
   const x = view.boardX + t * view.boardW;
   const line = SKINS[game.skinIndex].line;
+  const skin = SKINS[game.skinIndex];
+  const trailWidth = skin.trailWidth ?? 30;
+  const trailAlpha = clamp(skin.trailAlpha ?? 0.42, 0.2, 0.7);
+  const lineWidth = skin.lineWidth ?? 3;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  const trail = ctx.createLinearGradient(x - 30, 0, x + 2, 0);
+  const trail = ctx.createLinearGradient(x - trailWidth, 0, x + 2, 0);
   trail.addColorStop(0, '#00000000');
-  trail.addColorStop(1, `${line}66`);
+  trail.addColorStop(1, `${line}${Math.round(trailAlpha * 255).toString(16).padStart(2, '0')}`);
   ctx.fillStyle = trail;
-  ctx.fillRect(x - 30, view.boardY, 32, view.boardH);
+  ctx.fillRect(x - trailWidth, view.boardY, trailWidth + 2, view.boardH);
 
   ctx.strokeStyle = `${line}dd`;
-  ctx.lineWidth = 3;
+  ctx.lineWidth = lineWidth;
   ctx.beginPath();
   ctx.moveTo(x, view.boardY);
   ctx.lineTo(x, view.boardY + view.boardH);
@@ -1091,7 +1231,9 @@ function restartRun() {
   game.pendingGroups = [];
   game.passSquaresCleared = 0;
   game.passClearEvents = 0;
-  game.skinIndex = challengeProfileForLevel(1).skinIndex % SKINS.length;
+  game.skinIndex = game.mode === MODES.SINGLE_SKIN
+    ? game.singleSkinIndex
+    : challengeProfileForLevel(1).skinIndex % SKINS.length;
   game.sweepPeriodMs = SKINS[game.skinIndex].sweep;
   game.skinFlashMs = 0;
   game.paused = false;
@@ -1111,11 +1253,15 @@ function restartRun() {
 }
 
 function applySettingsFromUI() {
-  const nextMode = modeSelect.value === MODES.TIME ? MODES.TIME : MODES.ENDLESS;
+  const modeValue = modeSelect.value;
+  const nextMode = (modeValue === MODES.TIME || modeValue === MODES.SINGLE_SKIN) ? modeValue : MODES.ENDLESS;
   const nextLimit = Number(timeLimitSelect.value);
+  const nextSkin = Number(skinSelect?.value ?? 0);
   game.mode = nextMode;
   game.timeLimitSec = TIME_LIMITS.includes(nextLimit) ? nextLimit : 180;
+  game.singleSkinIndex = clamp(Number.isFinite(nextSkin) ? Math.floor(nextSkin) : 0, 0, SKINS.length - 1);
   game.layout = layoutSelect.value === 'vertical' ? 'vertical' : 'horizontal';
+  refreshSettingsFieldAvailability();
   applyLayoutClass();
   saveSettings();
   setCanvasSize();
@@ -1241,6 +1387,7 @@ function unlockAudio() {
 
 function init() {
   loadSettings();
+  buildSkinSelectOptions();
   applyLayoutClass();
   syncSettingsUI();
   setCanvasSize();
@@ -1270,6 +1417,11 @@ function init() {
   settingsApply.addEventListener('click', () => {
     applySettingsFromUI();
     closeSettings();
+  });
+  modeSelect.addEventListener('change', () => {
+    const modeValue = modeSelect.value;
+    const mode = (modeValue === MODES.TIME || modeValue === MODES.SINGLE_SKIN) ? modeValue : MODES.ENDLESS;
+    refreshSettingsFieldAvailability(mode);
   });
   settingsModal.addEventListener('click', (ev) => {
     if (ev.target === settingsModal) closeSettings();
