@@ -911,8 +911,7 @@ function tickGarbageCounters() {
       }
     }
   }
-  if (converted > 0) {
-    game.status = `Counter gems converted: ${converted}`;
+  if (converted >= 4) {
     addBanner('COUNTER BREAK', 560);
   }
 }
