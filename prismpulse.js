@@ -47,7 +47,6 @@ const SKINS = [
     trailWidth: 30,
     trailAlpha: 0.42,
     lineWidth: 3,
-    pattern: 'diag',
   },
   {
     name: 'Volt',
@@ -62,7 +61,6 @@ const SKINS = [
     trailWidth: 36,
     trailAlpha: 0.46,
     lineWidth: 3.2,
-    pattern: 'dots',
   },
   {
     name: 'Solar',
@@ -77,7 +75,6 @@ const SKINS = [
     trailWidth: 28,
     trailAlpha: 0.4,
     lineWidth: 2.8,
-    pattern: 'haze',
   },
   {
     name: 'Neon',
@@ -92,7 +89,6 @@ const SKINS = [
     trailWidth: 40,
     trailAlpha: 0.52,
     lineWidth: 3.4,
-    pattern: 'bars',
   },
 ];
 
@@ -1046,40 +1042,6 @@ function drawCell(x, y, color, pending, alpha = 1) {
   ctx.restore();
 }
 
-function drawSkinPattern(skin) {
-  ctx.save();
-  if (skin.pattern === 'diag') {
-    ctx.strokeStyle = '#ffffff12';
-    ctx.lineWidth = 1;
-    for (let i = -canvas.height; i < canvas.width; i += 24) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i + canvas.height, canvas.height);
-      ctx.stroke();
-    }
-  } else if (skin.pattern === 'dots') {
-    ctx.fillStyle = '#ffffff18';
-    for (let y = 8; y < canvas.height; y += 16) {
-      for (let x = 8; x < canvas.width; x += 16) {
-        ctx.fillRect(x, y, 1.5, 1.5);
-      }
-    }
-  } else if (skin.pattern === 'haze') {
-    const haze = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    haze.addColorStop(0, '#ffffff08');
-    haze.addColorStop(0.5, '#ffffff00');
-    haze.addColorStop(1, '#ffffff10');
-    ctx.fillStyle = haze;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  } else if (skin.pattern === 'bars') {
-    ctx.fillStyle = '#ffffff10';
-    for (let x = 0; x < canvas.width; x += 20) {
-      ctx.fillRect(x, 0, 1.25, canvas.height);
-    }
-  }
-  ctx.restore();
-}
-
 function drawBoardBackground() {
   const skin = SKINS[game.skinIndex];
   const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -1087,7 +1049,6 @@ function drawBoardBackground() {
   bg.addColorStop(1, skin.bgBottom);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  drawSkinPattern(skin);
 
   const vignette = ctx.createRadialGradient(
     canvas.width / 2,
