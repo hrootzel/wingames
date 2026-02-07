@@ -13,6 +13,7 @@ const DAS_MS = 150;
 const ARR_MS = 60;
 const LIGHT = 0;
 const DARK = 1;
+const FALL_KEY_BIAS = 64;
 
 const STORAGE = {
   mode: 'prismpulse.mode',
@@ -152,6 +153,10 @@ const view = {
 const game = makeGameState();
 const sfx = new SfxEngine({ master: 0.72 });
 let audioUnlocked = false;
+let cachedProfileLevel = -1;
+let cachedProfile = null;
+const clearMarkFlags = new Uint8Array(COLS * ROWS);
+const clearMarkList = [];
 
 function playSfx(name, payload) {
   if (!audioUnlocked) return;
@@ -165,7 +170,6 @@ function makeGameState() {
     active: null,
     queue: [],
     nextPieceId: 1,
-    activePieceId: null,
     input: makeInput(),
     score: 0,
     highScore: 0,
@@ -230,6 +234,14 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function cellIndex(x, y) {
+  return y * COLS + x;
+}
+
+function fallCoordKey(x, y) {
+  return ((y + FALL_KEY_BIAS) << 8) | (x + FALL_KEY_BIAS);
+}
+
 function loadSettings() {
   const mode = localStorage.getItem(STORAGE.mode);
   const timeLimit = Number(localStorage.getItem(STORAGE.timeLimit));
@@ -274,12 +286,19 @@ function baseFallIntervalMs() {
 }
 
 function challengeProfileForLevel(level) {
-  let remaining = Math.max(1, Math.floor(level));
+  const lv = Math.max(1, Math.floor(level));
+  if (cachedProfile && cachedProfileLevel === lv) {
+    return cachedProfile;
+  }
+
+  let remaining = lv;
   let idx = 0;
   while (idx < ORIGINAL_CHALLENGE_SKINS.length) {
     const skin = ORIGINAL_CHALLENGE_SKINS[idx];
     if (remaining <= skin.levelsInSkin) {
-      return { ...skin, skinIndex: idx };
+      cachedProfileLevel = lv;
+      cachedProfile = { ...skin, skinIndex: idx };
+      return cachedProfile;
     }
     remaining -= skin.levelsInSkin;
     idx += 1;
@@ -289,9 +308,18 @@ function challengeProfileForLevel(level) {
   const loop2Levels = remaining;
   const last = ORIGINAL_CHALLENGE_SKINS.length - 1;
   if (loop2Levels >= 106) {
-    return { name: 'SQUARE DANCE', holdMs: 500, fallMs: 100, blocksToLevel: 30, levelsInSkin: 9999, skinIndex: last };
+    cachedProfileLevel = lv;
+    cachedProfile = { name: 'SQUARE DANCE', holdMs: 500, fallMs: 100, blocksToLevel: 30, levelsInSkin: 9999, skinIndex: last };
+    return cachedProfile;
   }
-  return { ...ORIGINAL_CHALLENGE_SKINS[Math.min(last, Math.floor((loop2Levels - 1) / 4) % ORIGINAL_CHALLENGE_SKINS.length)], holdMs: 670, fallMs: 130, blocksToLevel: 28 };
+  cachedProfileLevel = lv;
+  cachedProfile = {
+    ...ORIGINAL_CHALLENGE_SKINS[Math.min(last, Math.floor((loop2Levels - 1) / 4) % ORIGINAL_CHALLENGE_SKINS.length)],
+    holdMs: 670,
+    fallMs: 130,
+    blocksToLevel: 28,
+  };
+  return cachedProfile;
 }
 
 function updateThemeVars() {
@@ -439,11 +467,9 @@ function spawnPiece() {
   }
   game.active = {
     cells,
-    pieceId: piece.id,
     spawnDelayMs: challengeProfileForLevel(game.level).holdMs ?? SPAWN_DELAY_MS,
     fallMs: 0,
   };
-  game.activePieceId = piece.id;
 }
 
 function isInside(x, y) {
@@ -474,7 +500,7 @@ function stepActiveFall() {
   const blocks = [...game.active.cells].sort((a, b) => a.y - b.y || a.x - b.x);
   const canMove = new Map();
   const indexByCoord = new Map();
-  blocks.forEach((b, i) => indexByCoord.set(`${b.x},${b.y}`, i));
+  blocks.forEach((b, i) => indexByCoord.set(fallCoordKey(b.x, b.y), i));
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
@@ -487,7 +513,7 @@ function stepActiveFall() {
       canMove.set(i, false);
       continue;
     }
-    const belowIdx = indexByCoord.get(`${block.x},${by}`);
+    const belowIdx = indexByCoord.get(fallCoordKey(block.x, by));
     if (belowIdx !== undefined) {
       canMove.set(i, !!canMove.get(belowIdx));
       continue;
@@ -531,14 +557,13 @@ function stepActiveFall() {
       continue;
     }
     if (block.y < 0 || block.x < 0 || block.x >= COLS) continue;
-    game.grid[block.y][block.x] = { color: block.color, pending: false, special: false, groupId: null };
+    game.grid[block.y][block.x] = { color: block.color, pending: false, special: false };
   }
 
   if (settledAny) {
     playSfx('lock');
     if (stillFalling.length === 0) {
       game.active = null;
-      game.activePieceId = null;
     } else {
       game.active.cells = stillFalling;
     }
@@ -607,10 +632,9 @@ function lockActive() {
       continue;
     }
     if (block.y < 0 || block.x < 0 || block.x >= COLS) continue;
-    game.grid[block.y][block.x] = { color: block.color, pending: false, special: false, groupId: null };
+    game.grid[block.y][block.x] = { color: block.color, pending: false, special: false };
   }
   game.active = null;
-  game.activePieceId = null;
   playSfx('lock');
   detectPendingSquares();
   if (toppedOut) {
@@ -622,10 +646,7 @@ function clearPendingFlags() {
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
       const cell = game.grid[y][x];
-      if (cell) {
-        cell.pending = false;
-        cell.groupId = null;
-      }
+      if (cell) cell.pending = false;
     }
   }
 }
@@ -639,7 +660,7 @@ function detectPendingSquares() {
   clearPendingFlags();
   const anchorMap = new Map();
   const markCell = (x, y, anchorKey, color) => {
-    const key = `${x},${y}`;
+    const key = cellIndex(x, y);
     let entry = anchorMap.get(key);
     if (!entry) {
       entry = { x, y, color, anchors: new Set() };
@@ -666,9 +687,9 @@ function detectPendingSquares() {
 
   const visited = new Set();
   const groups = [];
-  for (const [key, entry] of anchorMap) {
-    if (visited.has(key)) continue;
-    visited.add(key);
+  for (const [entryKey, entry] of anchorMap) {
+    if (visited.has(entryKey)) continue;
+    visited.add(entryKey);
     const queue = [entry];
     const cells = [];
     const anchors = new Set();
@@ -682,12 +703,14 @@ function detectPendingSquares() {
       for (const aKey of cur.anchors) anchors.add(aKey);
 
       const neighbors = [
-        `${cur.x - 1},${cur.y}`,
-        `${cur.x + 1},${cur.y}`,
-        `${cur.x},${cur.y - 1}`,
-        `${cur.x},${cur.y + 1}`,
+        [cur.x - 1, cur.y],
+        [cur.x + 1, cur.y],
+        [cur.x, cur.y - 1],
+        [cur.x, cur.y + 1],
       ];
-      for (const nKey of neighbors) {
+      for (const [nx, ny] of neighbors) {
+        if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+        const nKey = cellIndex(nx, ny);
         if (visited.has(nKey)) continue;
         const next = anchorMap.get(nKey);
         if (!next || next.color !== color) continue;
@@ -698,14 +721,12 @@ function detectPendingSquares() {
 
     const crossedCol = currentSweepColumn();
     const armPass = maxX <= crossedCol ? game.passIndex + 1 : game.passIndex;
-    const groupId = `${armPass}:${maxX}:${groups.length}`;
     for (const cellPos of cells) {
       const cell = game.grid[cellPos.y][cellPos.x];
       if (!cell) continue;
       cell.pending = true;
-      cell.groupId = groupId;
     }
-    groups.push({ id: groupId, armPass, maxX, cells, squares: anchors.size });
+    groups.push({ armPass, maxX, cells, squares: anchors.size });
   }
   game.pendingGroups = groups;
 }
@@ -730,18 +751,24 @@ function clearPendingInColumn(col) {
     const targets = game.pendingGroups.filter((group) => group.armPass === game.passIndex && group.maxX === col);
     if (targets.length === 0) return;
 
-    const cellsToClear = new Set();
+    clearMarkList.length = 0;
     let clearedSquares = 0;
     for (const group of targets) {
       clearedSquares += group.squares;
       for (const pos of group.cells) {
-        cellsToClear.add(`${pos.x},${pos.y}`);
+        const idx = cellIndex(pos.x, pos.y);
+        if (clearMarkFlags[idx] === 0) {
+          clearMarkFlags[idx] = 1;
+          clearMarkList.push(idx);
+        }
       }
     }
 
-    for (const key of cellsToClear) {
-      const [x, y] = key.split(',').map(Number);
+    for (const idx of clearMarkList) {
+      const y = Math.floor(idx / COLS);
+      const x = idx - y * COLS;
       game.grid[y][x] = null;
+      clearMarkFlags[idx] = 0;
     }
 
     game.passSquaresCleared += clearedSquares;
@@ -803,11 +830,6 @@ function isBoardEmpty() {
     }
   }
   return true;
-}
-
-function jitteredSweep(base) {
-  const factor = 0.95 + game.rng.next() * 0.1;
-  return Math.round(base * factor);
 }
 
 function handleLevelUps() {
@@ -1176,7 +1198,6 @@ function restartRun() {
   game.grid = makeGrid();
   game.active = null;
   game.nextPieceId = 1;
-  game.activePieceId = null;
   game.queue = [makePieceSpec(), makePieceSpec(), makePieceSpec()];
   game.score = 0;
   game.level = 1;
