@@ -1323,14 +1323,14 @@ function handleKeyDown(ev) {
     return;
   }
 
-  if (key === 'x' || key === 'e' || key === 'arrowup') {
-    game.input.pressed.rotateCW = true;
+  if (key === 'x' || key === 'e') {
+    game.input.pressed.rotateCCW = true;
     ev.preventDefault();
     return;
   }
 
-  if (key === 'z' || key === 'q') {
-    game.input.pressed.rotateCCW = true;
+  if (key === 'z' || key === 'q' || key === 'arrowup') {
+    game.input.pressed.rotateCW = true;
     ev.preventDefault();
     return;
   }
