@@ -156,7 +156,67 @@ function makeGame() {
     status: 'Ready.',
     statusBeforePause: 'Ready.',
     timers: { gravityElapsed: 0 },
+    fx: {
+      phase: 0,
+      shake: 0,
+      hitstop: 0,
+      pulse: 0,
+      particles: [],
+      banners: [],
+    },
   };
+}
+
+function addBanner(text) {
+  game.fx.banners.push({ text, life: 900, ttl: 900 });
+}
+
+function triggerClearFx(clearedCount, chainIndex, distinctColors) {
+  const fx = game.fx;
+  fx.hitstop = Math.max(fx.hitstop, chainIndex >= 2 ? 70 : 42);
+  fx.shake = Math.min(12, fx.shake + 1.3 + chainIndex * 1.15 + clearedCount * 0.05);
+  fx.pulse = Math.min(1.2, fx.pulse + 0.3 + chainIndex * 0.08 + distinctColors * 0.06);
+  const particleCount = Math.min(44, 9 + clearedCount * 2 + chainIndex * 4);
+  for (let i = 0; i < particleCount; i++) {
+    const ang = game.rng.next() * Math.PI * 2;
+    const speed = 24 + game.rng.next() * 86 + chainIndex * 8;
+    const hue = (190 + game.rng.next() * 90 + chainIndex * 8) % 360;
+    fx.particles.push({
+      x: view.boardLeft + view.boardWidth * (0.16 + game.rng.next() * 0.68),
+      y: view.boardTop + view.boardHeight * (0.18 + game.rng.next() * 0.64),
+      vx: Math.cos(ang) * speed,
+      vy: Math.sin(ang) * speed - 36,
+      life: 260 + game.rng.next() * 420,
+      ttl: 260 + game.rng.next() * 420,
+      size: 2 + game.rng.next() * 5,
+      hue,
+    });
+  }
+  if (chainIndex >= 2) addBanner(`${chainIndex}-CHAIN`);
+}
+
+function updateFx(dt) {
+  const fx = game.fx;
+  fx.phase = (fx.phase + dt * 0.0032) % (Math.PI * 2);
+  fx.shake = Math.max(0, fx.shake - dt * 0.017);
+  fx.pulse = Math.max(0, fx.pulse - dt * 0.0024);
+  for (let i = fx.particles.length - 1; i >= 0; i--) {
+    const p = fx.particles[i];
+    p.life -= dt;
+    if (p.life <= 0) {
+      fx.particles.splice(i, 1);
+      continue;
+    }
+    p.x += p.vx * (dt / 1000);
+    p.y += p.vy * (dt / 1000);
+    p.vy += 210 * (dt / 1000);
+    p.vx *= 0.992;
+  }
+  for (let i = fx.banners.length - 1; i >= 0; i--) {
+    const b = fx.banners[i];
+    b.life -= dt;
+    if (b.life <= 0) fx.banners.splice(i, 1);
+  }
 }
 
 function resetBoard() {
@@ -605,6 +665,7 @@ function resolveBoard(dt) {
   } else {
     game.status = `Pop! +${linkScore}`;
   }
+  triggerClearFx(info.clearedCount, chainIndex, info.distinctColors);
   sfx.play(BANK_PLOPPLOP, 'clear', { cleared: info.clearedCount, chain: chainIndex });
   resolve.clearedAny = true;
   resolve.chainIndex += 1;
@@ -614,11 +675,18 @@ function resolveBoard(dt) {
 }
 
 function stepGame(dt) {
+  updateFx(dt);
   if (game.state === GameState.GAME_OVER) {
     game.input.clearPressed();
     return;
   }
   if (game.paused) {
+    game.input.clearPressed();
+    return;
+  }
+
+  if (game.fx.hitstop > 0) {
+    game.fx.hitstop = Math.max(0, game.fx.hitstop - dt);
     game.input.clearPressed();
     return;
   }
@@ -649,18 +717,119 @@ function cellToY(row) {
   return view.boardTop + (H - 1 - row) * view.cellSize;
 }
 
+function roundRect(ctxRef, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctxRef.beginPath();
+  ctxRef.moveTo(x + rr, y);
+  ctxRef.arcTo(x + w, y, x + w, y + h, rr);
+  ctxRef.arcTo(x + w, y + h, x, y + h, rr);
+  ctxRef.arcTo(x, y + h, x, y, rr);
+  ctxRef.arcTo(x, y, x + w, y, rr);
+  ctxRef.closePath();
+}
+
+function getGhostDropRows(pair) {
+  if (!pair) return null;
+  const cells = activeCells(pair);
+  let drop = H;
+  for (const cell of cells) {
+    let d = 0;
+    let nr = cell.row - 1;
+    while (nr >= 0 && game.board.isEmpty(nr, cell.col)) {
+      d += 1;
+      nr -= 1;
+    }
+    if (d < drop) drop = d;
+  }
+  if (!Number.isFinite(drop) || drop <= 0) return null;
+  return cells.map((cell) => ({ ...cell, row: cell.row - drop }));
+}
+
+function drawEffects() {
+  const pulse = game.fx.pulse;
+  if (pulse > 0) {
+    const spread = 18 + pulse * 18;
+    const glow = ctx.createRadialGradient(
+      view.boardLeft + view.boardWidth / 2,
+      view.boardTop + view.boardHeight / 2,
+      22,
+      view.boardLeft + view.boardWidth / 2,
+      view.boardTop + view.boardHeight / 2,
+      view.boardWidth * 0.68 + spread
+    );
+    glow.addColorStop(0, `rgba(254, 240, 138, ${0.2 * pulse})`);
+    glow.addColorStop(1, 'rgba(254, 240, 138, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight);
+  }
+
+  for (const p of game.fx.particles) {
+    const t = Math.max(0, p.life / p.ttl);
+    ctx.save();
+    ctx.globalAlpha = t;
+    ctx.fillStyle = `hsl(${p.hue} 90% 66%)`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * (0.45 + t * 0.55), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  for (const b of game.fx.banners) {
+    const t = 1 - b.life / b.ttl;
+    const alpha = t < 0.2 ? t / 0.2 : (1 - t) / 0.8;
+    const y = view.boardTop + view.boardHeight * (0.45 - t * 0.14);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, alpha);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(3, 8, 20, 0.78)';
+    ctx.fillStyle = '#fef08a';
+    ctx.font = '900 31px Trebuchet MS, Segoe UI, sans-serif';
+    ctx.strokeText(b.text, view.boardLeft + view.boardWidth / 2, y);
+    ctx.fillText(b.text, view.boardLeft + view.boardWidth / 2, y);
+    ctx.restore();
+  }
+}
+
 function drawBoard(alpha) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const shakeX = (game.rng.next() * 2 - 1) * game.fx.shake;
+  const shakeY = (game.rng.next() * 2 - 1) * game.fx.shake * 0.72;
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
 
   const bg = ctx.createLinearGradient(view.boardLeft, view.boardTop, view.boardLeft, view.boardTop + view.boardHeight);
-  bg.addColorStop(0, '#0f1b21');
-  bg.addColorStop(1, '#0a1419');
+  bg.addColorStop(0, '#153141');
+  bg.addColorStop(0.56, '#102635');
+  bg.addColorStop(1, '#0a1623');
+  roundRect(ctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
   ctx.fillStyle = bg;
-  ctx.fillRect(view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight);
+  ctx.fill();
 
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  const sheen = ctx.createLinearGradient(view.boardLeft, view.boardTop, view.boardLeft, view.boardTop + view.boardHeight);
+  sheen.addColorStop(0, 'rgba(255,255,255,0.12)');
+  sheen.addColorStop(0.5, 'rgba(255,255,255,0)');
+  sheen.addColorStop(1, 'rgba(255,255,255,0.04)');
+  roundRect(ctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
+  ctx.fillStyle = sheen;
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.11)';
   ctx.lineWidth = 2;
-  ctx.strokeRect(view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight);
+  roundRect(ctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
+  ctx.stroke();
+
+  const spawnPulse = 0.11 + 0.08 * Math.sin(game.fx.phase * 2.2);
+  ctx.save();
+  ctx.fillStyle = `rgba(134, 239, 172, ${spawnPulse})`;
+  ctx.fillRect(
+    view.boardLeft + SPAWN_COL * view.cellSize,
+    view.boardTop,
+    view.cellSize,
+    view.cellSize
+  );
+  ctx.restore();
 
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
   ctx.lineWidth = 1;
@@ -681,7 +850,7 @@ function drawBoard(alpha) {
 
   ctx.save();
   ctx.globalAlpha = 0.25;
-  ctx.fillStyle = '#0b0f12';
+  ctx.fillStyle = '#070d14';
   const hiddenHeight = (H - VISIBLE_H) * view.cellSize;
   ctx.fillRect(view.boardLeft, view.boardTop, view.boardWidth, hiddenHeight);
   ctx.restore();
@@ -729,6 +898,30 @@ function drawBoard(alpha) {
   }
 
   if (game.active) {
+    const ghostCells = getGhostDropRows(game.active);
+    if (ghostCells) {
+      const a = ghostCells[0];
+      const b = ghostCells[1];
+      ctx.save();
+      ctx.globalAlpha = 0.22;
+      if (a.puyo.color === b.puyo.color) {
+        drawBridge(
+          ctx,
+          cellToX(a.col) + view.cellSize / 2,
+          cellToY(a.row) + view.cellSize / 2,
+          cellToX(b.col) + view.cellSize / 2,
+          cellToY(b.row) + view.cellSize / 2,
+          a.puyo.color,
+          view.cellSize
+        );
+      }
+      drawPuyo(ctx, cellToX(a.col), cellToY(a.row), view.cellSize, a.puyo.color);
+      drawPuyo(ctx, cellToX(b.col), cellToY(b.row), view.cellSize, b.puyo.color);
+      ctx.restore();
+    }
+  }
+
+  if (game.active) {
     const offset = getFallOffset(alpha);
     const cells = activeCells(game.active);
     const axis = cells[0];
@@ -756,16 +949,45 @@ function drawBoard(alpha) {
     ctx.fillText(label, view.boardLeft + view.boardWidth / 2, view.boardTop + view.boardHeight / 2);
     ctx.restore();
   }
+  drawEffects();
+  ctx.restore();
 }
 
 function drawNextPair() {
   nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
   if (!game.nextSpec) return;
   const size = 32;
+  const glow = nextCtx.createRadialGradient(
+    nextCanvas.width / 2,
+    nextCanvas.height / 2,
+    6,
+    nextCanvas.width / 2,
+    nextCanvas.height / 2,
+    56
+  );
+  glow.addColorStop(0, 'rgba(186, 230, 253, 0.2)');
+  glow.addColorStop(1, 'rgba(186, 230, 253, 0)');
+  nextCtx.fillStyle = glow;
+  nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+
+  nextCtx.save();
+  const bob = Math.sin(game.fx.phase * 2.4) * 2.4;
   const x = nextCanvas.width / 2 - size / 2;
-  const y = nextCanvas.height / 2 + 6;
+  const y = nextCanvas.height / 2 + 6 + bob;
+  if (game.nextSpec.childColor === game.nextSpec.axisColor) {
+    drawBridge(
+      nextCtx,
+      x + size / 2,
+      y - size / 2,
+      x + size / 2,
+      y + size / 2,
+      game.nextSpec.axisColor,
+      size
+    );
+  }
   drawPuyo(nextCtx, x, y - size, size, game.nextSpec.childColor);
   drawPuyo(nextCtx, x, y, size, game.nextSpec.axisColor);
+  nextCtx.restore();
 }
 
 function canMoveDown() {
@@ -943,6 +1165,12 @@ function newGame() {
   game.statusBeforePause = 'Ready.';
   game.resolve = null;
   game.timers.gravityElapsed = 0;
+  game.fx.phase = 0;
+  game.fx.shake = 0;
+  game.fx.hitstop = 0;
+  game.fx.pulse = 0;
+  game.fx.particles.length = 0;
+  game.fx.banners.length = 0;
   pauseBtn.textContent = 'Pause';
 }
 
