@@ -29,7 +29,12 @@ function drawFacet(ctx, x, y, w, h, alpha = 0.2) {
   ctx.restore();
 }
 
-function drawNormalBrick(ctx, brick, color) {
+function stageTone(stage, row, colorIndex) {
+  const hue = (stage * 21 + row * 11 + colorIndex * 7) % 360;
+  return `hsl(${hue} 85% 62%)`;
+}
+
+function drawNormalBrick(ctx, brick, color, stage) {
   const x = brick.x + 1;
   const y = brick.y + 1;
   const w = brick.w - 2;
@@ -40,8 +45,36 @@ function drawNormalBrick(ctx, brick, color) {
   ctx.fillStyle = crystalFill(ctx, x, y, w, h, color);
   ctx.fill(path);
 
+  // Subtle per-stage tint for more visual variety across stages.
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = stageTone(stage, brick.row, brick.colorIndex);
+  ctx.fill(path);
+
+  ctx.globalAlpha = 1;
   drawFacet(ctx, x, y, w, h, 0.24);
 
+  // Glass top highlight.
+  ctx.globalAlpha = 0.33;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(x + 2, y + 2, w - 4, h * 0.2);
+
+  // Diagonal sheen.
+  ctx.globalAlpha = 0.14;
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.06, y + h * 0.9);
+  ctx.lineTo(x + w * 0.34, y + h * 0.09);
+  ctx.lineTo(x + w * 0.41, y + h * 0.09);
+  ctx.lineTo(x + w * 0.13, y + h * 0.9);
+  ctx.closePath();
+  ctx.fill();
+
+  // Tiny sparkle point.
+  ctx.globalAlpha = 0.45;
+  ctx.beginPath();
+  ctx.arc(x + w * 0.82, y + h * 0.24, 1.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 1;
   const edge = ctx.createLinearGradient(x, y, x + w, y + h);
   edge.addColorStop(0, 'rgba(255,255,255,0.45)');
   edge.addColorStop(0.45, 'rgba(255,255,255,0.08)');
@@ -115,7 +148,7 @@ function drawGoldBrick(ctx, brick) {
   ctx.restore();
 }
 
-export function drawBricks(ctx, bricks, brickColors) {
+export function drawBricks(ctx, bricks, brickColors, stage = 1) {
   for (const brick of bricks) {
     if (brick.type === 'gold') {
       drawGoldBrick(ctx, brick);
@@ -128,7 +161,7 @@ export function drawBricks(ctx, bricks, brickColors) {
     }
 
     const color = brickColors[brick.colorIndex % brickColors.length];
-    drawNormalBrick(ctx, brick, color);
+    drawNormalBrick(ctx, brick, color, stage);
   }
 }
 
@@ -156,6 +189,14 @@ export function drawPaddle(ctx, paddle, y, effects) {
   ctx.globalAlpha = 0.35;
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(x + 5, y + 2, w - 10, h * 0.24);
+
+  const gloss = ctx.createLinearGradient(x, y, x + w, y + h);
+  gloss.addColorStop(0, 'rgba(255,255,255,0.26)');
+  gloss.addColorStop(0.45, 'rgba(255,255,255,0)');
+  gloss.addColorStop(1, 'rgba(255,255,255,0.18)');
+  ctx.globalAlpha = 0.38;
+  ctx.fillStyle = gloss;
+  ctx.fill(path);
 
   ctx.globalAlpha = 1;
   ctx.strokeStyle = 'rgba(255,255,255,0.4)';
@@ -215,6 +256,14 @@ export function drawBalls(ctx, balls, effects) {
     ctx.beginPath();
     ctx.arc(ball.x - r * 0.35, ball.y - r * 0.35, r * 0.22, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.globalAlpha = 0.2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, r - 0.7, Math.PI * 1.1, Math.PI * 1.95);
+    ctx.stroke();
+
     ctx.restore();
   }
 }

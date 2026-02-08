@@ -1000,7 +1000,7 @@ function render() {
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, W, H);
 
-  drawSpriteBricks(ctx, bricks, BRICK_COLORS);
+  drawSpriteBricks(ctx, bricks, BRICK_COLORS, stage);
   drawSpritePaddle(ctx, paddle, PADDLE_Y, effects);
   drawSpriteBalls(ctx, balls, effects);
   drawSpriteBullets(ctx, bullets, BULLET_W, BULLET_H);
@@ -1149,6 +1149,7 @@ settingsApply?.addEventListener('click', () => {
 startGame();
 render();
 requestAnimationFrame(gameLoop);
+
 
 
 
