@@ -56,6 +56,22 @@
     sfx.noise({ duration: 0.04, volume: 0.02, tint: 0.35, delay: 0.002 });
   },
 
+  explosion: (sfx, p = {}) => {
+    const row = p.row ?? 0;
+    const isSilver = p.type === 'silver';
+    const base = (isSilver ? 210 : 170) + row * 10;
+    sfx.noise({ duration: 0.07, volume: isSilver ? 0.03 : 0.04, tint: isSilver ? 0.74 : 0.48 });
+    sfx.tone({
+      freq: base,
+      type: 'triangle',
+      duration: 0.09,
+      volume: 0.05,
+      slideTo: Math.max(80, base * 0.5),
+      slideMs: 0.09,
+    });
+    sfx.tone({ freq: base * 1.7, type: 'square', duty: 0.18, duration: 0.05, volume: 0.02, delay: 0.012 });
+  },
+
   capsuleDrop: (sfx, p = {}) => {
     const code = String(p.type ?? 'E');
     const idx = 'ESC DLBP'.replace(/\s/g, '').indexOf(code);

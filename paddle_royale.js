@@ -37,7 +37,11 @@ const settingsCancel = document.getElementById('settings-cancel');
 const dipLives = document.getElementById('dip-lives');
 const dipBonus = document.getElementById('dip-bonus');
 const dipDifficulty = document.getElementById('dip-difficulty');
+const dipSpeed = document.getElementById('dip-speed');
 const dipContinue = document.getElementById('dip-continue');
+const dipTrails = document.getElementById('dip-trails');
+const dipSounds = document.getElementById('dip-sounds');
+const dipExplosions = document.getElementById('dip-explosions');
 
 const sfx = new SfxEngine({ master: 0.5 });
 let audioUnlocked = false;
@@ -101,7 +105,11 @@ const DEFAULT_SETTINGS = {
   lives: '3',
   bonus: '20_60',
   difficulty: 'easy',
+  speed: 'normal',
   continueMode: 'with',
+  trails: 'on',
+  sounds: 'on',
+  explosions: 'on',
 };
 
 
@@ -154,6 +162,7 @@ let bonusClaimed = 0;
 let brickHitStreak = 0;
 let brickStreakTimer = 0;
 let catchReleaseTimer = 0;
+let explosions = [];
 
 let effects = {
   expand: false,
@@ -178,8 +187,12 @@ function sanitizeSettings(next) {
   const lives = next.lives === '5' ? '5' : '3';
   const bonus = next.bonus === '20_only' ? '20_only' : '20_60';
   const difficulty = next.difficulty === 'hard' ? 'hard' : 'easy';
+  const speed = next.speed === 'turbo' ? 'turbo' : next.speed === 'fast' ? 'fast' : 'normal';
   const continueMode = next.continueMode === 'without' ? 'without' : 'with';
-  return { lives, bonus, difficulty, continueMode };
+  const trails = next.trails === 'off' ? 'off' : 'on';
+  const sounds = next.sounds === 'off' ? 'off' : 'on';
+  const explosions = next.explosions === 'off' ? 'off' : 'on';
+  return { lives, bonus, difficulty, speed, continueMode, trails, sounds, explosions };
 }
 
 function loadSettings() {
@@ -200,7 +213,11 @@ function syncSettingsUI(next) {
   dipLives.value = next.lives;
   dipBonus.value = next.bonus;
   dipDifficulty.value = next.difficulty;
+  dipSpeed.value = next.speed;
   dipContinue.value = next.continueMode;
+  dipTrails.value = next.trails;
+  dipSounds.value = next.sounds;
+  dipExplosions.value = next.explosions;
 }
 
 function applySettingsFromUI() {
@@ -208,9 +225,14 @@ function applySettingsFromUI() {
     lives: dipLives.value,
     bonus: dipBonus.value,
     difficulty: dipDifficulty.value,
+    speed: dipSpeed.value,
     continueMode: dipContinue.value,
+    trails: dipTrails.value,
+    sounds: dipSounds.value,
+    explosions: dipExplosions.value,
   });
   settings = next;
+  sfx.setEnabled(settings.sounds === 'on');
   saveSettings(next);
   syncSettingsUI(next);
   startGame();
@@ -247,7 +269,13 @@ function seededRandom(seed) {
 
 function currentBallSpeed() {
   const table = speedValuesForDifficulty(settings.difficulty);
-  return table[clamp(speedIndex, 0, table.length - 1)];
+  return table[clamp(speedIndex, 0, table.length - 1)] * gameSpeedFactor();
+}
+
+function gameSpeedFactor() {
+  if (settings.speed === 'turbo') return 1.3;
+  if (settings.speed === 'fast') return 1.15;
+  return 1;
 }
 
 function chooseCapsule(rand) {
@@ -281,6 +309,7 @@ function makeBall(stuck = false, x = 0, y = 0) {
     vy: 0,
     stuck,
     served: false,
+    trail: [],
   };
 }
 
@@ -307,6 +336,7 @@ function clearRoundObjects() {
   balls = [];
   bullets = [];
   capsules = [];
+  explosions = [];
 }
 
 function resetBallsForServe() {
@@ -324,6 +354,7 @@ function clearTransientEffectsOnLifeLoss() {
 
 function initStage() {
   bricks = [];
+  explosions = [];
   const rows = getStageRows(stage);
   const silverHits = silverHitsForStage(stage);
 
@@ -589,11 +620,34 @@ function spawnCapsule(brick) {
   capsules.push({
     x: brick.x + brick.w / 2,
     y: brick.y + brick.h / 2,
-    vy: settings.difficulty === 'hard' ? 2.5 : 2.1,
+    vy: (settings.difficulty === 'hard' ? 2.5 : 2.1) * gameSpeedFactor(),
     type: brick.capsule,
   });
   sfx.play(BANK_PADDLEROYALE, 'capsuleDrop', { type: brick.capsule });
   brick.capsule = null;
+}
+
+function spawnBrickExplosion(brick) {
+  if (settings.explosions !== 'on') return;
+  const cx = brick.x + brick.w * 0.5;
+  const cy = brick.y + brick.h * 0.5;
+  const count = 10 + Math.floor(Math.random() * 5);
+  const baseColor = BRICK_COLORS[clamp(brick.colorIndex, 0, BRICK_COLORS.length - 1)] || '#fbbf24';
+
+  for (let i = 0; i < count; i++) {
+    const t = (i / count) * Math.PI * 2 + Math.random() * 0.35;
+    const speed = 1.4 + Math.random() * 2.2;
+    explosions.push({
+      x: cx,
+      y: cy,
+      vx: Math.cos(t) * speed,
+      vy: Math.sin(t) * speed - 0.25,
+      life: 20 + Math.floor(Math.random() * 14),
+      maxLife: 34,
+      size: 2 + Math.random() * 3.5,
+      color: baseColor,
+    });
+  }
 }
 
 function damageBrick(brick, sourceIsBall) {
@@ -619,6 +673,10 @@ function damageBrick(brick, sourceIsBall) {
   if (brick.hits <= 0) {
     awardScore(brick.points);
     spawnCapsule(brick);
+    spawnBrickExplosion(brick);
+    if (settings.explosions === 'on') {
+      sfx.play(BANK_PADDLEROYALE, 'explosion', { row: brick.row, type: brick.type });
+    }
     sfx.play(BANK_PADDLEROYALE, 'brickBreak', { row: brick.row, type: brick.type, streak: brickHitStreak });
     return true;
   }
@@ -630,8 +688,9 @@ function fireLaser() {
   if (!effects.laser || state !== State.PLAYING) return;
   if (paddle.laserCooldown > 0) return;
 
-  bullets.push({ x: paddle.x + 10, y: PADDLE_Y - 2, vy: -BULLET_SPEED });
-  bullets.push({ x: paddle.x + paddle.width - 10, y: PADDLE_Y - 2, vy: -BULLET_SPEED });
+  const vy = -BULLET_SPEED * gameSpeedFactor();
+  bullets.push({ x: paddle.x + 10, y: PADDLE_Y - 2, vy });
+  bullets.push({ x: paddle.x + paddle.width - 10, y: PADDLE_Y - 2, vy });
   paddle.laserCooldown = 16;
   sfx.play(BANK_PADDLEROYALE, 'laserFire');
 }
@@ -705,8 +764,16 @@ function updateBalls() {
     if (ball.stuck) {
       ball.x = paddle.x + paddle.width / 2;
       ball.y = PADDLE_Y - BALL_R - 2;
+      ball.trail = [];
       keep.push(ball);
       continue;
+    }
+
+    if (settings.trails === 'on') {
+      ball.trail.push({ x: ball.x, y: ball.y });
+      if (ball.trail.length > 10) ball.trail.shift();
+    } else {
+      ball.trail = [];
     }
 
     ball.x += ball.vx;
@@ -835,6 +902,20 @@ function updateCapsules() {
   capsules = keep;
 }
 
+function updateExplosions() {
+  if (explosions.length === 0) return;
+  const next = [];
+  for (const p of explosions) {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= 0.985;
+    p.vy = p.vy * 0.985 + 0.08;
+    p.life -= 1;
+    if (p.life > 0) next.push(p);
+  }
+  explosions = next;
+}
+
 function breakableBricksLeft() {
   return bricks.filter((b) => b.type !== BrickType.GOLD).length;
 }
@@ -918,11 +999,49 @@ function render() {
   }
 
   drawSpriteBricks(ctx, bricks, BRICK_COLORS, stage);
+  if (settings.trails === 'on') drawBallTrails(ctx, balls);
+  if (settings.explosions === 'on') drawExplosions(ctx);
   drawSpritePaddle(ctx, paddle, PADDLE_Y, effects);
   drawSpriteBalls(ctx, balls, effects);
   drawSpriteBullets(ctx, bullets, BULLET_W, BULLET_H);
   drawSpriteCapsules(ctx, capsules);
   drawOverlay();
+}
+
+function drawBallTrails(ctx, list) {
+  for (const ball of list) {
+    if (!ball.trail || ball.trail.length === 0) continue;
+    for (let i = 0; i < ball.trail.length; i++) {
+      const t = ball.trail[i];
+      const k = (i + 1) / ball.trail.length;
+      ctx.fillStyle = `rgba(255, 221, 107, ${0.05 + 0.22 * k})`;
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, 1.6 + 3.1 * k, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawExplosions(ctx) {
+  if (explosions.length === 0) return;
+  ctx.save();
+  for (const p of explosions) {
+    const alpha = clamp(p.life / p.maxLife, 0, 1);
+    const glow = p.size * (1.45 - alpha * 0.35);
+
+    ctx.globalAlpha = alpha * 0.65;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, glow, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 245, 214, ${alpha * 0.42})`;
+    ctx.fill();
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 function togglePause() {
@@ -956,6 +1075,9 @@ function gameLoop(ts) {
       if (levelCompleteTimer <= 0) nextStage();
     } else {
       tick();
+    }
+    if (state !== State.PAUSED && state !== State.DEAD && state !== State.WON) {
+      updateExplosions();
     }
   }
 
@@ -1065,6 +1187,7 @@ settingsApply?.addEventListener('click', () => {
   closeSettings();
 });
 
+sfx.setEnabled(settings.sounds === 'on');
 startGame();
 render();
 requestAnimationFrame(gameLoop);
