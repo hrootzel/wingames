@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -12,13 +12,16 @@
     <header class="app-header compact-header">
       <div>
         <h1>Paddle Royale</h1>
-        <p class="subtitle">Break bricks, catch powerups, clear levels.</p>
+        <p class="subtitle">Arcade-style brick breaker with capsules and staged progression.</p>
+      </div>
+      <div class="settings">
+        <button id="settings-toggle" class="icon-button" aria-expanded="false" aria-controls="settings-modal" aria-label="Settings" title="Settings">Settings</button>
       </div>
     </header>
 
     <div class="hud">
       <div class="status-row">
-        <span id="status">Click to launch ball.</span>
+        <span id="status">Press Space or click to launch.</span>
       </div>
     </div>
 
@@ -32,7 +35,7 @@
           <h3>Score</h3>
           <div class="paddle-stats">
             <div>Score: <span id="score">0</span></div>
-            <div>Level: <span id="level">1</span></div>
+            <div>Stage: <span id="level">1</span></div>
             <div>Lives: <span id="lives">3</span></div>
             <div>High: <span id="high">0</span></div>
           </div>
@@ -51,14 +54,100 @@
       <div class="panel-box">
         <h3>Controls</h3>
         <div class="key-hints">
-          <div><span class="key">← A</span> Move left</div>
-          <div><span class="key">→ D</span> Move right</div>
-          <div><span class="key">Space</span> Launch ball</div>
+          <div><span class="key">Left / A</span> Move left</div>
+          <div><span class="key">Right / D</span> Move right</div>
+          <div><span class="key">Mouse / Touch</span> Move paddle</div>
+          <div><span class="key">Space</span> Launch / Fire laser</div>
+          <div><span class="key">Click / Tap</span> Launch / Fire laser</div>
           <div><span class="key">P</span> Pause</div>
-          <div><span class="key">R</span> Restart</div>
+          <div><span class="key">C</span> Continue (if enabled)</div>
+          <div><span class="key">R</span> Restart run</div>
         </div>
       </div>
     </footer>
+  </div>
+
+  <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="settings-title">DIP Settings</h2>
+        <button id="settings-close" class="icon-button" aria-label="Close settings">X</button>
+      </header>
+
+      <div class="ms-form">
+        <div class="settings-grid">
+          <label class="ms-field">
+            <span>Lives</span>
+            <select id="dip-lives">
+              <option value="3">3</option>
+              <option value="5">5</option>
+            </select>
+          </label>
+
+          <label class="ms-field">
+            <span>Bonus Life</span>
+            <select id="dip-bonus">
+              <option value="20_60">20k + every 60k</option>
+              <option value="20_only">20k only</option>
+            </select>
+          </label>
+
+          <label class="ms-field">
+            <span>Difficulty</span>
+            <select id="dip-difficulty">
+              <option value="easy">Easy</option>
+              <option value="hard">Hard</option>
+            </select>
+          </label>
+
+          <label class="ms-field">
+            <span>Game Speed</span>
+            <select id="dip-speed">
+              <option value="normal">Normal</option>
+              <option value="fast">Fast</option>
+              <option value="turbo">Turbo</option>
+            </select>
+          </label>
+
+          <label class="ms-field">
+            <span>Continue</span>
+            <select id="dip-continue">
+              <option value="with">With</option>
+              <option value="without">Without</option>
+            </select>
+          </label>
+
+          <label class="ms-field">
+            <span>Trails</span>
+            <select id="dip-trails">
+              <option value="on">On</option>
+              <option value="off">Off</option>
+            </select>
+          </label>
+
+          <label class="ms-field">
+            <span>Game Sounds</span>
+            <select id="dip-sounds">
+              <option value="on">On</option>
+              <option value="off">Off</option>
+            </select>
+          </label>
+
+          <label class="ms-field">
+            <span>Explosions</span>
+            <select id="dip-explosions">
+              <option value="on">On</option>
+              <option value="off">Off</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="ms-actions">
+        <button id="settings-apply">Apply / Restart</button>
+        <button id="settings-cancel" class="secondary">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="paddle_royale.js"></script>
