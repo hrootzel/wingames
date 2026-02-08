@@ -1,5 +1,6 @@
-﻿import { SfxEngine } from './sfx_engine.js';
+import { SfxEngine } from './sfx_engine.js';
 import { BANK_PADDLEROYALE } from './sfx_bank_paddle_royale.js';
+import { initGameShell } from './game-shell.js';
 import {
   drawBalls as drawSpriteBalls,
   drawBallTrails as drawSpriteBallTrails,
@@ -1195,6 +1196,15 @@ settingsApply?.addEventListener('click', () => {
 });
 
 sfx.setEnabled(settings.sounds === 'on');
+initGameShell({
+  surfaceEl: '#paddle-surface',
+  canvasEl: canvas,
+  baseWidth: W,
+  baseHeight: H,
+  mode: 'integer',
+  fit: 'css',
+});
 startGame();
 render();
 requestAnimationFrame(gameLoop);
+

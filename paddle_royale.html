@@ -2,9 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <title>Paddle Royale</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="game-shell.css">
   <link rel="stylesheet" href="paddle_royale.css">
 </head>
 <body class="paddle-royale">
@@ -25,12 +27,14 @@
       </div>
     </div>
 
-    <div class="board paddle-board">
-      <div class="paddle-stage">
-        <canvas id="paddle-canvas" width="480" height="640"></canvas>
+    <div class="board paddle-board gs-shell" style="--game-ar: 3 / 4;">
+      <div class="paddle-stage gs-stage">
+        <div class="paddle-surface gs-surface" id="paddle-surface">
+          <canvas id="paddle-canvas" width="480" height="640"></canvas>
+        </div>
       </div>
 
-      <div class="paddle-side">
+      <div class="paddle-side gs-hud">
         <div class="panel-box">
           <h3>Score</h3>
           <div class="paddle-stats">

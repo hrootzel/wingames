@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Puzzle Puncher</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="game-shell.css">
   <link rel="stylesheet" href="puzzle_puncher.css">
 </head>
 <body>
@@ -22,12 +24,14 @@
     </div>
 
     <div class="board puzzle-board">
-      <div class="puzzle-wrap">
-        <div class="puzzle-stage">
-          <canvas id="game-canvas" width="320" height="600" aria-label="Puzzle Puncher playfield"></canvas>
+      <div class="puzzle-wrap gs-shell" style="--game-ar: 8 / 15;">
+        <div class="puzzle-stage gs-stage">
+          <div class="puzzle-surface gs-surface" id="puzzle-surface">
+            <canvas id="game-canvas" width="320" height="600" aria-label="Puzzle Puncher playfield"></canvas>
+          </div>
         </div>
 
-        <div class="puzzle-panel">
+        <div class="puzzle-panel gs-hud">
           <div class="panel-box">
             <h3>Next Pair</h3>
             <div class="preview-stack">

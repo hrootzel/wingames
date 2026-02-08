@@ -14,10 +14,7 @@ body.superbuster {
 }
 
 .buster-wrap {
-  display: grid;
-  grid-template-columns: minmax(320px, 1fr) 260px;
-  gap: 16px;
-  align-items: start;
+  --gs-hud-width: 260px;
 }
 
 .buster-stage {
@@ -42,8 +39,7 @@ body.superbuster {
 }
 
 .buster-panel {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 12px;
 }
 
@@ -90,23 +86,4 @@ body.superbuster {
 .buster-controls {
   margin-top: 12px;
   justify-content: flex-start;
-}
-
-@media (max-width: 980px) {
-  .buster-wrap {
-    grid-template-columns: 1fr;
-  }
-
-  .buster-panel {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .panel-box {
-    flex: 1 1 240px;
-  }
-
-  #buster-canvas {
-    max-width: 100%;
-  }
 }

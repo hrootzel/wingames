@@ -14,13 +14,8 @@
 }
 
 .prismpulse .pulse-wrap {
-  display: grid;
-  gap: 14px;
-  align-items: start;
-}
-
-.prismpulse.layout-horizontal .pulse-wrap {
-  grid-template-columns: minmax(260px, 1fr) minmax(220px, 260px);
+  --gs-gap: 14px;
+  --gs-hud-width: clamp(220px, 24vw, 260px);
 }
 
 .prismpulse.layout-vertical .pulse-wrap {
@@ -97,9 +92,6 @@
 }
 
 .prismpulse #pulse-canvas {
-  width: 100%;
-  max-width: 760px;
-  height: auto;
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.6);
   box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 24px var(--pulse-glow);
@@ -107,9 +99,19 @@
 }
 
 .prismpulse .pulse-side {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 12px;
+}
+
+@media (orientation: portrait) {
+  .prismpulse .pulse-side {
+    grid-template-columns: 1fr;
+  }
+
+  .prismpulse .preview-panel {
+    order: -1;
+  }
 }
 
 .prismpulse .panel-box {
@@ -158,9 +160,9 @@
 }
 
 .prismpulse .pulse-controls {
+  display: grid;
   margin-top: 12px;
-  flex-direction: column;
-  align-items: stretch;
+  gap: 8px;
 }
 
 .prismpulse .pulse-controls button {
@@ -292,18 +294,10 @@
 }
 
 @media (max-width: 950px) {
-  .prismpulse .pulse-wrap {
-    grid-template-columns: 1fr;
-  }
-
-  .prismpulse .pulse-side {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    align-items: start;
-  }
-
-  .prismpulse.layout-vertical .pulse-side {
-    display: contents;
+  .prismpulse .pulse-surface {
+    width: min(100%, calc(100dvh - 150px));
+    max-height: calc(100dvh - 150px);
+    margin-inline: auto;
   }
 
   .prismpulse.layout-vertical .score-panel .quick-stats {

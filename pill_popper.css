@@ -11,29 +11,17 @@
 .pill-popper .pill-wrap {
   display: grid;
   gap: 16px;
-  height: 100vh;
-  max-height: 100vh;
-  align-items: stretch;
-  justify-items: center;
-  justify-content: center;
 }
 
 .pill-popper .pill-stage-area {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 180px);
-  grid-template-rows: minmax(0, 1fr);
-  gap: 12px;
-  align-items: stretch;
-  justify-content: start;
+  --gs-gap: 12px;
+  --gs-hud-width: 180px;
   min-width: 0;
-  min-height: 0;
-  height: 100%;
-  max-height: 100%;
 }
 
 .pill-popper .pill-side {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 12px;
   min-width: 0;
 }
@@ -42,7 +30,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 8px;
+  padding: 6px;
   background: var(--pill-panel);
   border-radius: 12px;
   border: 1px solid var(--pill-border);
@@ -50,11 +38,13 @@
   min-width: 0;
 }
 
+.pill-popper .pill-surface {
+  width: min(100%, calc((100dvh - 250px) * (16 / 27)));
+  max-height: calc(100dvh - 250px);
+  margin-inline: auto;
+}
+
 .pill-popper #pill-canvas {
-  width: 100%;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.6);
   box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 24px var(--pill-glow);
@@ -246,6 +236,16 @@
 }
 
 @media (max-width: 900px) {
+  .pill-popper .subtitle,
+  .pill-popper .hud {
+    display: none;
+  }
+
+  .pill-popper .pill-surface {
+    width: min(100%, calc((100dvh - 190px) * (16 / 27)));
+    max-height: calc(100dvh - 190px);
+  }
+
   .pill-popper .footer-controls {
     grid-template-columns: 1fr;
   }

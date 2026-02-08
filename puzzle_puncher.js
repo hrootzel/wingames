@@ -1,6 +1,7 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_PUZZLEPUNCHER } from './sfx_bank_puzzle_puncher.js';
 import { roundRect } from './rendering_engine.js';
+import { initGameShell } from './game-shell.js';
 import {
   drawGemFill,
   drawGemBorder,
@@ -1627,5 +1628,14 @@ pauseBtn.addEventListener('click', () => togglePause());
 document.addEventListener('pointerdown', unlockAudio, { once: true });
 
 setupView();
+initGameShell({
+  surfaceEl: '#puzzle-surface',
+  canvasEl: canvas,
+  baseWidth: canvas.width,
+  baseHeight: canvas.height,
+  mode: 'fractional',
+  fit: 'css',
+  onResize: setupView,
+});
 newGame();
 loop();
