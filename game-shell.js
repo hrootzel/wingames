@@ -1,3 +1,39 @@
+/**
+ * Game Shell - Responsive layout system for arcade games
+ * 
+ * USAGE:
+ * 
+ * 1. HTML Structure:
+ *    <div class="your-game gs-shell">
+ *      <div class="gs-surface">
+ *        <canvas id="canvas" width="640" height="480"></canvas>
+ *      </div>
+ *      <div class="gs-hud">
+ *        <div class="panel-box" data-gs-snap="top" data-gs-fit="required">
+ *          <!-- HUD content -->
+ *        </div>
+ *      </div>
+ *    </div>
+ * 
+ * 2. Initialize:
+ *    initGameShell({
+ *      shellEl: '.your-game',      // Required: container with gs-shell class
+ *      canvasEl: canvas,            // Required: canvas element or selector
+ *      baseWidth: 640,              // Required: logical canvas width
+ *      baseHeight: 480,             // Required: logical canvas height
+ *      mode: 'fractional',          // Optional: 'fractional' or 'integer' scaling
+ *      fit: 'css',                  // Optional: 'css' or 'logical'
+ *      onResize: callback           // Optional: called after resize
+ *    });
+ * 
+ * 3. Layout Behavior:
+ *    - Automatically switches between side (HUD beside canvas) and stack (HUD below)
+ *    - Wide canvases (aspect > 1.05) prefer stack layout
+ *    - Tall canvases (aspect < 1.05) prefer side layout
+ *    - HUD compresses (zoom 0.5-1.0) in side layout when needed
+ *    - Stack layout reserves 40% height (min 250px) for HUD
+ */
+
 function resolveElement(value, name) {
   if (!value) throw new Error(`Missing ${name}`);
   if (typeof value === 'string') {

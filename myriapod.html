@@ -22,13 +22,13 @@
       </div>
     </div>
 
-    <div class="board myriapod-board">
-      <div class="myriapod-stage">
+    <div class="board myriapod-board gs-shell" style="--game-ar: 15 / 16;">
+      <div class="myriapod-stage gs-surface">
         <canvas id="myriapod-canvas" width="240" height="256"></canvas>
       </div>
 
-      <div class="myriapod-side">
-        <div class="panel-box">
+      <div class="myriapod-side gs-hud">
+        <div class="panel-box" data-gs-snap="top" data-gs-fit="required">
           <h3>Score</h3>
           <div class="myriapod-stats">
             <div>Score: <span id="score">0</span></div>
@@ -38,7 +38,7 @@
           </div>
         </div>
 
-        <div class="panel-box">
+        <div class="panel-box" data-gs-snap="top" data-gs-fit="required">
           <div class="myriapod-controls">
             <button id="new-game">New Game</button>
             <button id="pause">Pause</button>

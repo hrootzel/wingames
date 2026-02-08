@@ -22,15 +22,15 @@
       </div>
     </div>
 
-    <div class="board snake-board">
-      <div class="snake-stage">
+    <div class="board snake-board gs-shell" style="--game-ar: 1 / 1;">
+      <div class="snake-stage gs-surface" id="snake-surface">
         <canvas id="snake-canvas" width="400" height="400"></canvas>
       </div>
 
-      <div class="snake-side">
-        <div class="panel-box">
+      <div class="snake-side gs-hud">
+        <div class="panel-box" data-gs-snap="top" data-gs-fit="required" data-gs-cols="2">
           <h3>Score</h3>
-          <div class="snake-stats">
+          <div class="snake-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
             <div>Score: <span id="score">0</span></div>
             <div>Length: <span id="length">3</span></div>
             <div>Speed: <span id="speed">1</span></div>
@@ -38,8 +38,8 @@
           </div>
         </div>
 
-        <div class="panel-box">
-          <div class="snake-controls">
+        <div class="panel-box" data-gs-snap="top" data-gs-fit="required" data-gs-cols="2">
+          <div class="snake-controls" style="display: flex; gap: 0.5rem;">
             <button id="new-game">New Game</button>
             <button id="pause">Pause</button>
           </div>
