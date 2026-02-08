@@ -1,5 +1,12 @@
 ﻿import { SfxEngine } from './sfx_engine.js';
 import { BANK_PADDLEROYALE } from './sfx_bank_paddle_royale.js';
+import {
+  drawBalls as drawSpriteBalls,
+  drawBricks as drawSpriteBricks,
+  drawBullets as drawSpriteBullets,
+  drawCapsules as drawSpriteCapsules,
+  drawPaddle as drawSpritePaddle,
+} from './paddle_royale_sprite.js';
 
 const canvas = document.getElementById('paddle-canvas');
 const ctx = canvas.getContext('2d');
@@ -974,84 +981,6 @@ function tick() {
   }
 }
 
-function drawBricks() {
-  for (const brick of bricks) {
-    if (brick.type === BrickType.GOLD) {
-      ctx.fillStyle = '#f59e0b';
-      ctx.globalAlpha = 0.95;
-      ctx.fillRect(brick.x + 1, brick.y + 1, brick.w - 2, brick.h - 2);
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = '#fde68a';
-      ctx.strokeRect(brick.x + 2, brick.y + 2, brick.w - 4, brick.h - 4);
-      continue;
-    }
-
-    if (brick.type === BrickType.SILVER) {
-      const hp = brick.hits / brick.maxHits;
-      ctx.fillStyle = '#94a3b8';
-      ctx.globalAlpha = 0.35 + hp * 0.65;
-      ctx.fillRect(brick.x + 1, brick.y + 1, brick.w - 2, brick.h - 2);
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = 'bold 11px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(String(brick.hits), brick.x + brick.w / 2, brick.y + brick.h / 2 + 4);
-      continue;
-    }
-
-    const color = BRICK_COLORS[brick.colorIndex % BRICK_COLORS.length];
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.9;
-    ctx.fillRect(brick.x + 1, brick.y + 1, brick.w - 2, brick.h - 2);
-    ctx.globalAlpha = 1;
-  }
-}
-
-function drawPaddle() {
-  ctx.fillStyle = effects.laser ? '#ef4444' : '#3b82f6';
-  ctx.fillRect(paddle.x, PADDLE_Y, paddle.width, PADDLE_H);
-
-  if (effects.laser) {
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(paddle.x + 8, PADDLE_Y - 4, 6, 4);
-    ctx.fillRect(paddle.x + paddle.width - 14, PADDLE_Y - 4, 6, 4);
-  }
-}
-
-function drawBalls() {
-  ctx.fillStyle = effects.breakTimer > 0 ? '#f97316' : '#fbbf24';
-  for (const ball of balls) {
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-function drawBullets() {
-  if (bullets.length === 0) return;
-  ctx.fillStyle = '#f8fafc';
-  for (const bullet of bullets) {
-    ctx.fillRect(bullet.x - BULLET_W / 2, bullet.y - BULLET_H, BULLET_W, BULLET_H);
-  }
-}
-
-function drawCapsules() {
-  if (capsules.length === 0) return;
-
-  for (const cap of capsules) {
-    ctx.fillStyle = '#111827';
-    ctx.strokeStyle = '#e5e7eb';
-    ctx.lineWidth = 2;
-    ctx.fillRect(cap.x - 12, cap.y - 8, 24, 16);
-    ctx.strokeRect(cap.x - 12, cap.y - 8, 24, 16);
-
-    ctx.fillStyle = '#facc15';
-    ctx.font = 'bold 12px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(cap.type, cap.x, cap.y + 4);
-  }
-}
-
 function drawOverlay() {
   if (state !== State.PAUSED && state !== State.DEAD && state !== State.WON) return;
 
@@ -1071,11 +1000,11 @@ function render() {
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, W, H);
 
-  drawBricks();
-  drawPaddle();
-  drawBalls();
-  drawBullets();
-  drawCapsules();
+  drawSpriteBricks(ctx, bricks, BRICK_COLORS);
+  drawSpritePaddle(ctx, paddle, PADDLE_Y, effects);
+  drawSpriteBalls(ctx, balls, effects);
+  drawSpriteBullets(ctx, bullets, BULLET_W, BULLET_H);
+  drawSpriteCapsules(ctx, capsules);
   drawOverlay();
 }
 
@@ -1220,3 +1149,6 @@ settingsApply?.addEventListener('click', () => {
 startGame();
 render();
 requestAnimationFrame(gameLoop);
+
+
+
