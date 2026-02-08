@@ -132,6 +132,7 @@ const skinEl = document.getElementById('skin');
 const modeLabelEl = document.getElementById('mode-label');
 const timeLabelEl = document.getElementById('time-label');
 const queuePreviewEl = document.getElementById('queue-preview');
+const holdPreviewEl = document.getElementById('hold-preview');
 const newBtn = document.getElementById('new-game');
 const pauseBtn = document.getElementById('pause');
 const settingsToggle = document.getElementById('settings-toggle');
@@ -193,6 +194,14 @@ function makeGameState() {
     skinIndex: 0,
     sweepPeriodMs: SKINS[0].sweep,
     skinFlashMs: 0,
+    skinTransition: null,  // {fromIndex, toIndex, progress}
+    holdPiece: null,
+    holdUsed: false,
+    comboDisplay: 0,
+    comboDisplayTimer: 0,
+    clearFx: [],       // [{x,y,timer,ttl,color}]
+    scorePopups: [],    // [{x,y,text,life,ttl}]
+    dangerLevel: 0,
     status: 'Ready.',
     statusBeforePause: 'Ready.',
     layout: 'horizontal',
@@ -203,11 +212,13 @@ function makeGameState() {
 function makeInput() {
   return {
     held: { left: false, right: false, down: false },
-    pressed: { rotateCW: false, rotateCCW: false },
+    pressed: { rotateCW: false, rotateCCW: false, hardDrop: false, hold: false },
     repeat: { left: -DAS_MS, right: -DAS_MS },
     clearPressed() {
       this.pressed.rotateCW = false;
       this.pressed.rotateCCW = false;
+      this.pressed.hardDrop = false;
+      this.pressed.hold = false;
     },
   };
 }
@@ -407,6 +418,26 @@ function buildQueuePreview() {
     }
     queuePreviewEl.appendChild(pieceEl);
   }
+  buildHoldPreview();
+}
+
+function buildHoldPreview() {
+  if (!holdPreviewEl) return;
+  holdPreviewEl.textContent = '';
+  if (!game.holdPiece) return;
+  const matrix = previewMatrixFromMask(game.holdPiece.mask);
+  const pieceEl = document.createElement('div');
+  pieceEl.className = 'preview-piece';
+  if (game.holdUsed) pieceEl.style.opacity = '0.4';
+  for (let sy = 0; sy < PIECE_SIZE; sy++) {
+    for (let sx = 0; sx < PIECE_SIZE; sx++) {
+      const cell = document.createElement('div');
+      const dark = matrix[sy][sx] === DARK;
+      cell.className = `preview-cell ${dark ? 'dark' : 'light'}`;
+      pieceEl.appendChild(cell);
+    }
+  }
+  holdPreviewEl.appendChild(pieceEl);
 }
 
 function previewMatrixFromMask(mask) {
@@ -502,6 +533,65 @@ function moveActive(dx) {
   }
   playSfx('move');
   return true;
+}
+
+function getGhostCells() {
+  if (!game.active) return null;
+  // Clone cells and simulate full gravity settle per-cell
+  const cells = game.active.cells.map(c => ({ x: c.x, y: c.y, color: c.color }));
+  // Sort bottom-up so lower cells settle first
+  cells.sort((a, b) => a.y - b.y);
+  // Track occupied positions (grid + already-settled ghost cells)
+  const occupied = new Set();
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      if (game.grid[y][x]) occupied.add(y * COLS + x);
+    }
+  }
+  for (const c of cells) {
+    let y = c.y;
+    while (y - 1 >= 0 && !occupied.has((y - 1) * COLS + c.x)) y--;
+    if (y < ROWS) occupied.add(y * COLS + c.x);
+    c.y = y;
+  }
+  return cells;
+}
+
+function hardDropActive() {
+  if (!game.active) return;
+  const ghost = getGhostCells();
+  if (!ghost) return;
+  let dropped = 0;
+  for (let i = 0; i < game.active.cells.length; i++) {
+    dropped += game.active.cells[i].y - ghost[i].y;
+    game.active.cells[i].y = ghost[i].y;
+  }
+  game.score = Math.min(SCORE_CAP_CLASSIC, game.score + dropped);
+  game.active.spawnDelayMs = 0;
+  lockActive();
+  playSfx('hardDrop');
+}
+
+function holdActive() {
+  if (!game.active || game.holdUsed) return;
+  const currentMask = game.active.cells.reduce((m, c, i) => {
+    return c.color === DARK ? m | (1 << i) : m;
+  }, 0);
+  const spec = { id: game.nextPieceId++, mask: currentMask };
+  if (game.holdPiece) {
+    const swap = game.holdPiece;
+    game.holdPiece = spec;
+    game.active = null;
+    const cells = maskToCells(swap.mask, SPAWN_X, SPAWN_Y);
+    game.active = { cells, spawnDelayMs: challengeProfileForLevel(game.level).holdMs ?? SPAWN_DELAY_MS, fallMs: 0 };
+  } else {
+    game.holdPiece = spec;
+    game.active = null;
+    spawnPiece();
+  }
+  game.holdUsed = true;
+  buildHoldPreview();
+  playSfx('rotate');
 }
 
 function stepActiveFall() {
@@ -634,6 +724,7 @@ function rotateActive(dir) {
 
 function lockActive() {
   if (!game.active) return;
+  game.holdUsed = false;
   let toppedOut = false;
   for (const block of game.active.cells) {
     if (block.y >= ROWS) {
@@ -776,12 +867,17 @@ function clearPendingInColumn(col) {
     for (const idx of clearMarkList) {
       const y = Math.floor(idx / COLS);
       const x = idx - y * COLS;
+      const cell = game.grid[y][x];
+      // Spawn clear FX
+      game.clearFx.push({ x, y, timer: 0, ttl: 350, color: cell ? cell.color : LIGHT });
       game.grid[y][x] = null;
       clearMarkFlags[idx] = 0;
     }
 
     game.passSquaresCleared += clearedSquares;
     game.passClearEvents += 1;
+    game.comboDisplay = game.passClearEvents;
+    game.comboDisplayTimer = 1500;
     playSfx('clearTick', { squares: clearedSquares, combo: game.passClearEvents });
     if (game.passClearEvents >= 2) {
       playSfx('combo', { combo: game.passClearEvents });
@@ -803,13 +899,18 @@ function scoreSweepPass() {
     game.status = count >= 4
       ? `Sweep +${points} (${count} squares, x4 bonus)`
       : `Sweep +${points} (${count} squares)`;
+    // Score popup at sweep line position
+    const sweepX = view.boardX + clamp((game.timelineX + 1) / COLS, 0, 1) * view.boardW;
+    game.scorePopups.push({ x: sweepX, y: view.boardY + view.boardH * 0.4, text: `+${points}`, life: 900, ttl: 900 });
     const colorMask = boardColorMask();
     if (isBoardEmpty()) {
       game.score += 10000;
       game.status += ' + All Deleted 10000';
+      game.scorePopups.push({ x: view.boardX + view.boardW / 2, y: view.boardY + view.boardH * 0.25, text: 'ALL DELETED +10000', life: 1400, ttl: 1400 });
     } else if ((colorMask & (colorMask - 1)) === 0 && colorMask !== 0) {
       game.score += 1000;
       game.status += ' + Single Color 1000';
+      game.scorePopups.push({ x: view.boardX + view.boardW / 2, y: view.boardY + view.boardH * 0.25, text: 'SINGLE COLOR +1000', life: 1200, ttl: 1200 });
     }
     game.score = Math.min(SCORE_CAP_CLASSIC, game.score);
     handleLevelUps();
@@ -849,7 +950,11 @@ function handleLevelUps() {
     game.level += 1;
     if (game.mode !== MODES.SINGLE_SKIN) {
       const profile = challengeProfileForLevel(game.level);
-      game.skinIndex = profile.skinIndex % SKINS.length;
+      const newSkin = profile.skinIndex % SKINS.length;
+      if (newSkin !== game.skinIndex) {
+        game.skinTransition = { fromIndex: game.skinIndex, toIndex: newSkin, progress: 0 };
+      }
+      game.skinIndex = newSkin;
       game.sweepPeriodMs = SKINS[game.skinIndex].sweep;
     }
     game.skinFlashMs = 420;
@@ -935,6 +1040,14 @@ function updateActivePiece(dt) {
 
   if (game.input.pressed.rotateCW) rotateActive(1);
   if (game.input.pressed.rotateCCW) rotateActive(-1);
+  if (game.input.pressed.hardDrop) {
+    hardDropActive();
+    return;
+  }
+  if (game.input.pressed.hold) {
+    holdActive();
+    return;
+  }
 
   if (game.active.spawnDelayMs > 0) {
     if (game.input.held.down) {
@@ -1035,14 +1148,18 @@ function drawCell(x, y, color, pending, alpha = 1) {
   const py = boardToPixelY(y);
   const s = view.cell;
   const base = skinColor(color);
+  // Rhythm pulse: cells breathe with sweep position
+  const sweepPhase = (game.timelineX / COLS) * Math.PI * 2;
+  const breathe = 1 + Math.sin(sweepPhase + x * 0.4 + y * 0.3) * 0.03;
   ctx.save();
   ctx.globalAlpha = alpha;
+  const inset = Math.max(1, (1 - breathe) * 2 + 1);
   const grad = ctx.createLinearGradient(px, py, px + s, py + s);
   grad.addColorStop(0, '#ffffff44');
   grad.addColorStop(0.25, base);
   grad.addColorStop(1, '#00000066');
   ctx.fillStyle = grad;
-  drawRoundedRect(px + 1, py + 1, s - 2, s - 2, Math.max(4, s * 0.16));
+  drawRoundedRect(px + inset, py + inset, s - inset * 2, s - inset * 2, Math.max(4, s * 0.16));
   ctx.fill();
 
   ctx.strokeStyle = '#ffffff55';
@@ -1051,8 +1168,8 @@ function drawCell(x, y, color, pending, alpha = 1) {
   ctx.stroke();
 
   if (pending) {
-    const pulse = 0.35 + 0.3 * Math.sin(performance.now() * 0.012);
-    ctx.globalAlpha = pulse;
+    const pulse = 0.4 + 0.35 * Math.sin(performance.now() * 0.014);
+    ctx.globalAlpha = pulse * alpha;
     ctx.fillStyle = '#ffffff';
     drawRoundedRect(px + 3, py + 3, s - 6, s - 6, Math.max(3, s * 0.12));
     ctx.fill();
@@ -1067,6 +1184,17 @@ function drawBoardBackground() {
   bg.addColorStop(1, skin.bgBottom);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Board pulse to sweep rhythm
+  const sweepPhase = (game.timelineX / COLS) * Math.PI * 2;
+  const pulseAlpha = 0.04 + Math.sin(sweepPhase) * 0.025;
+  if (pulseAlpha > 0) {
+    ctx.save();
+    ctx.globalAlpha = pulseAlpha;
+    ctx.fillStyle = skin.line;
+    ctx.fillRect(view.boardX, view.boardY, view.boardW, view.boardH);
+    ctx.restore();
+  }
 
   const vignette = ctx.createRadialGradient(
     canvas.width / 2,
@@ -1086,10 +1214,21 @@ function drawBoardBackground() {
   drawRoundedRect(view.boardX, view.boardY, view.boardW, view.boardH, 12);
   ctx.fill();
 
-  ctx.strokeStyle = '#ffffff26';
-  ctx.lineWidth = 2;
-  drawRoundedRect(view.boardX, view.boardY, view.boardW, view.boardH, 12);
-  ctx.stroke();
+  // Danger border glow
+  if (game.dangerLevel > 0) {
+    const dPulse = 0.3 + 0.2 * Math.sin(performance.now() * 0.008);
+    ctx.save();
+    ctx.strokeStyle = game.dangerLevel >= 2 ? `rgba(239,68,68,${dPulse})` : `rgba(251,191,36,${dPulse * 0.6})`;
+    ctx.lineWidth = game.dangerLevel >= 2 ? 4 : 2.5;
+    drawRoundedRect(view.boardX, view.boardY, view.boardW, view.boardH, 12);
+    ctx.stroke();
+    ctx.restore();
+  } else {
+    ctx.strokeStyle = '#ffffff26';
+    ctx.lineWidth = 2;
+    drawRoundedRect(view.boardX, view.boardY, view.boardW, view.boardH, 12);
+    ctx.stroke();
+  }
 
   const gridAlpha = clamp(skin.gridAlpha ?? 0.12, 0.04, 0.25);
   ctx.strokeStyle = `rgba(255,255,255,${gridAlpha})`;
@@ -1169,14 +1308,97 @@ function draw() {
     }
   }
 
+  // Ghost piece
+  if (game.active && !game.paused && !game.gameOver) {
+    const ghost = getGhostCells();
+    if (ghost) {
+      for (const g of ghost) {
+        if (g.y < 0 || g.y >= ROWS) continue;
+        drawCell(g.x, g.y, g.color, false, 0.2);
+      }
+    }
+  }
+
+  // Active piece (including above-board preview during spawn delay)
   if (game.active) {
     for (const block of game.active.cells) {
-      if (block.y < 0 || block.y >= ROWS) continue;
+      if (block.y < 0) continue;
+      if (block.y >= ROWS) {
+        // Draw above board as preview
+        const px = boardToPixelX(block.x);
+        const py = view.boardY - (block.y - ROWS + 1) * view.cell;
+        const s = view.cell;
+        const base = skinColor(block.color);
+        ctx.save();
+        ctx.globalAlpha = 0.7;
+        const grad = ctx.createLinearGradient(px, py, px + s, py + s);
+        grad.addColorStop(0, '#ffffff44');
+        grad.addColorStop(0.25, base);
+        grad.addColorStop(1, '#00000066');
+        ctx.fillStyle = grad;
+        drawRoundedRect(px + 1, py + 1, s - 2, s - 2, Math.max(4, s * 0.16));
+        ctx.fill();
+        ctx.restore();
+        continue;
+      }
       drawCell(block.x, block.y, block.color, false, 0.95);
     }
   }
 
+  // Clear FX: flash and fade particles
+  for (const fx of game.clearFx) {
+    const t = fx.timer / fx.ttl;
+    const px = boardToPixelX(fx.x);
+    const py = boardToPixelY(fx.y);
+    const s = view.cell;
+    ctx.save();
+    ctx.globalAlpha = (1 - t) * 0.7;
+    ctx.fillStyle = '#ffffff';
+    const scale = 1 + t * 0.5;
+    const cx = px + s / 2;
+    const cy = py + s / 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, s * 0.4 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   drawTimeline();
+
+  // Combo counter
+  if (game.comboDisplay >= 2) {
+    const alpha = Math.min(1, game.comboDisplayTimer / 400);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 24px Trebuchet MS, Segoe UI, sans-serif';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillStyle = '#fef08a';
+    const comboText = `${game.comboDisplay}x COMBO`;
+    ctx.strokeText(comboText, view.boardX + view.boardW / 2, view.boardY + view.boardH * 0.15);
+    ctx.fillText(comboText, view.boardX + view.boardW / 2, view.boardY + view.boardH * 0.15);
+    ctx.restore();
+  }
+
+  // Score popups
+  for (const sp of game.scorePopups) {
+    const t = 1 - sp.life / sp.ttl;
+    const alpha = t < 0.15 ? t / 0.15 : Math.max(0, (1 - t) / 0.6);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '700 15px Trebuchet MS, Segoe UI, sans-serif';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillStyle = '#fef9c3';
+    ctx.strokeText(sp.text, sp.x, sp.y - t * 30);
+    ctx.fillText(sp.text, sp.x, sp.y - t * 30);
+    ctx.restore();
+  }
+
   drawSkinFlash();
   drawStateOverlay();
 }
@@ -1214,6 +1436,14 @@ function restartRun() {
     : challengeProfileForLevel(1).skinIndex % SKINS.length;
   game.sweepPeriodMs = SKINS[game.skinIndex].sweep;
   game.skinFlashMs = 0;
+  game.skinTransition = null;
+  game.holdPiece = null;
+  game.holdUsed = false;
+  game.comboDisplay = 0;
+  game.comboDisplayTimer = 0;
+  game.clearFx.length = 0;
+  game.scorePopups.length = 0;
+  game.dangerLevel = 0;
   game.paused = false;
   game.gameOver = false;
   game.status = game.mode === MODES.TIME ? 'Time Attack started.' : 'Endless started.';
@@ -1250,6 +1480,48 @@ function update(dt) {
   if (game.skinFlashMs > 0) {
     game.skinFlashMs = Math.max(0, game.skinFlashMs - dt);
   }
+  // Skin crossfade
+  if (game.skinTransition) {
+    game.skinTransition.progress += dt / 1000;
+    if (game.skinTransition.progress >= 1) game.skinTransition = null;
+  }
+  // Combo display decay
+  if (game.comboDisplayTimer > 0) {
+    game.comboDisplayTimer -= dt;
+    if (game.comboDisplayTimer <= 0) { game.comboDisplay = 0; game.comboDisplayTimer = 0; }
+  }
+  // Clear FX
+  for (let i = game.clearFx.length - 1; i >= 0; i--) {
+    game.clearFx[i].timer += dt;
+    if (game.clearFx[i].timer >= game.clearFx[i].ttl) {
+      game.clearFx[i] = game.clearFx[game.clearFx.length - 1];
+      game.clearFx.pop();
+    }
+  }
+  // Score popups
+  for (let i = game.scorePopups.length - 1; i >= 0; i--) {
+    game.scorePopups[i].life -= dt;
+    if (game.scorePopups[i].life <= 0) {
+      game.scorePopups[i] = game.scorePopups[game.scorePopups.length - 1];
+      game.scorePopups.pop();
+    }
+  }
+  // Danger level
+  let maxH = 0;
+  for (let x = 0; x < COLS; x++) {
+    for (let y = ROWS - 1; y >= 0; y--) {
+      if (game.grid[y][x]) { maxH = Math.max(maxH, y + 1); break; }
+    }
+  }
+  game.dangerLevel = maxH >= ROWS - 2 ? 2 : maxH >= ROWS - 3 ? 1 : 0;
+
+  // Danger SFX
+  game._dangerCd = (game._dangerCd || 0) - dt;
+  if (game.dangerLevel >= 2 && game._dangerCd <= 0 && !game.gameOver) {
+    playSfx('danger');
+    game._dangerCd = 2500;
+  }
+
   if (!isSettingsOpen()) {
     updateActivePiece(dt);
     runTimeline(dt);
@@ -1309,6 +1581,18 @@ function handleKeyDown(ev) {
 
   if (key === 'z' || key === 'q' || key === 'arrowup') {
     game.input.pressed.rotateCW = true;
+    ev.preventDefault();
+    return;
+  }
+
+  if (key === ' ') {
+    game.input.pressed.hardDrop = true;
+    ev.preventDefault();
+    return;
+  }
+
+  if (key === 'c' || key === 'shift') {
+    game.input.pressed.hold = true;
     ev.preventDefault();
     return;
   }

@@ -35,6 +35,7 @@
   border: 1px solid rgba(0, 0, 0, 0.6);
   box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 24px var(--plop-glow);
   background: #10191b;
+  animation: plopBoardGlow 4.2s ease-in-out infinite;
 }
 
 .plopplop .plop-panel {
@@ -60,6 +61,13 @@
 .plopplop .preview-canvas {
   display: block;
   margin: 0 auto;
+  border-radius: 8px;
+  background: rgba(3, 9, 12, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 88px;
+  max-width: 88px;
+  height: auto;
+  aspect-ratio: 120 / 150;
 }
 
 .plopplop .plop-stats {
@@ -90,6 +98,105 @@
 .plopplop .plop-controls {
   margin-top: 12px;
   justify-content: space-between;
+}
+
+.plopplop .settings {
+  margin-left: auto;
+}
+
+.plopplop .icon-button {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--plop-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+
+.plopplop .icon-button:hover {
+  transform: translateY(-1px);
+}
+
+.plopplop .hidden {
+  display: none !important;
+}
+
+.plopplop .ms-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 24, 0.65);
+  display: grid;
+  place-items: center;
+  z-index: 3000;
+}
+
+.plopplop .ms-modal-card {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  width: min(92vw, 380px);
+  padding: 16px;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.45);
+}
+
+.plopplop .ms-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.plopplop .ms-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.plopplop .ms-form {
+  margin-top: 14px;
+}
+
+.plopplop .ms-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.plopplop .ms-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: #22c55e;
+}
+
+.plopplop .ms-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.plopplop button.secondary {
+  background: transparent;
+  color: inherit;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  box-shadow: none;
+}
+
+@keyframes plopBoardGlow {
+  0%, 100% {
+    box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 22px var(--plop-glow);
+  }
+  50% {
+    box-shadow:
+      0 0 24px rgba(0, 0, 0, 0.45),
+      0 0 32px var(--plop-glow),
+      0 0 16px rgba(56, 189, 248, 0.34);
+  }
 }
 
 @media (max-width: 900px) {

@@ -15,6 +15,9 @@
         <h1>PlopPlop</h1>
         <p class="subtitle">Drop pairs, link blobs, chain pops.</p>
       </div>
+      <div class="settings">
+        <button id="settings-toggle" class="icon-button" aria-expanded="false" aria-controls="settings-modal" aria-label="Settings" title="Settings">Settings</button>
+      </div>
     </header>
 
     <div class="hud">
@@ -33,8 +36,8 @@
 
         <div class="plop-panel gs-hud">
           <div class="panel-box" data-gs-snap="top" data-gs-fit="required">
-            <h3>Next Pair</h3>
-            <canvas id="next-canvas" class="preview-canvas" width="120" height="120" aria-label="Next pair preview"></canvas>
+            <h3>Next</h3>
+            <canvas id="next-canvas" class="preview-canvas" width="120" height="150" aria-label="Next pair preview"></canvas>
           </div>
 
           <div class="panel-box" data-gs-snap="top" data-gs-fit="required">
@@ -72,6 +75,27 @@
       Connect four or more of the same color to pop them. Chains score big, so set up
       cascades by stacking colors and letting gravity do the work.
     </p>
+  </div>
+
+  <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="settings-title">Settings</h2>
+        <button id="settings-close" class="icon-button" aria-label="Close settings">X</button>
+      </header>
+
+      <div class="ms-form">
+        <label class="ms-field ms-check">
+          <input id="ghost-preview-toggle" type="checkbox" checked>
+          <span>Ghost Preview</span>
+        </label>
+      </div>
+
+      <div class="ms-actions">
+        <button id="settings-apply">Apply</button>
+        <button id="settings-cancel" class="secondary">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="plop_plop.js"></script>

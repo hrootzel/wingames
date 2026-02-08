@@ -165,6 +165,9 @@ function makeState() {
     dasDir: 0,
     dasCounter: 0,
     arrCounter: 0,
+    clearFlash: [],
+    landBounce: [],
+    particles: [],
   };
 }
 
@@ -418,8 +421,28 @@ function applyScoring(cleared) {
 
 function clearFullLines() {
   let cleared = 0;
+  const flashRows = [];
   for (let y = state.settings.h - 1; y >= 0; y -= 1) {
     if (state.board[y].every((v) => v !== 0)) {
+      flashRows.push(y);
+      for (let x = 0; x < state.settings.w; x++) {
+        const color = palette(state.board[y][x]);
+        const rgb = hexToRgb(color);
+        for (let i = 0; i < 3; i++) {
+          state.particles.push({
+            x: x * view.cell + view.cell / 2,
+            y: y * view.cell + view.cell / 2,
+            vx: (Math.random() - 0.5) * 2,
+            vy: (Math.random() - 0.5) * 2 - 1,
+            r: rgb.r,
+            g: rgb.g,
+            b: rgb.b,
+            size: 2 + Math.random() * 2,
+            timer: 0,
+            ttl: 400 + Math.random() * 200,
+          });
+        }
+      }
       state.board.splice(y, 1);
       state.board.unshift(new Array(state.settings.w).fill(0));
       cleared += 1;
@@ -429,8 +452,20 @@ function clearFullLines() {
   if (cleared > 0) {
     state.lines += cleared;
     updateLevel();
+    for (const row of flashRows) {
+      state.clearFlash.push({ row, timer: 0, ttl: 300 });
+    }
   }
   return cleared;
+}
+
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 255, g: 255, b: 255 };
 }
 
 function collides(piece, nx, ny, nrot) {
@@ -504,6 +539,7 @@ function lockPiece(opts = {}) {
       continue;
     }
     state.board[y][x] = p.colorIndex;
+    state.landBounce.push({ x, y, timer: 0, ttl: 200 });
   }
   state.active = null;
   state.pieces += 1;
@@ -636,6 +672,9 @@ function stepGame() {
     input.clearPressed();
     return;
   }
+  
+  updateEffects();
+  
   if (!state.active) {
     spawnNextPiece();
     input.clearPressed();
@@ -661,6 +700,36 @@ function stepGame() {
   }
   handleGravity();
   input.clearPressed();
+}
+
+function updateEffects() {
+  for (let i = state.clearFlash.length - 1; i >= 0; i--) {
+    const fx = state.clearFlash[i];
+    fx.timer += FIXED_DT;
+    if (fx.timer >= fx.ttl) {
+      state.clearFlash[i] = state.clearFlash[state.clearFlash.length - 1];
+      state.clearFlash.pop();
+    }
+  }
+  for (let i = state.landBounce.length - 1; i >= 0; i--) {
+    const fx = state.landBounce[i];
+    fx.timer += FIXED_DT;
+    if (fx.timer >= fx.ttl) {
+      state.landBounce[i] = state.landBounce[state.landBounce.length - 1];
+      state.landBounce.pop();
+    }
+  }
+  for (let i = state.particles.length - 1; i >= 0; i--) {
+    const p = state.particles[i];
+    p.timer += FIXED_DT;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.15;
+    if (p.timer >= p.ttl) {
+      state.particles[i] = state.particles[state.particles.length - 1];
+      state.particles.pop();
+    }
+  }
 }
 
 function updateView() {
@@ -713,13 +782,44 @@ function palette(index) {
   return PALETTE[index] || '#e2e8f0';
 }
 
-function drawCell(context, x, y, cell, color) {
+function drawCell(context, x, y, cell, color, opts = {}) {
   const px = x * cell;
   const py = y * cell;
-  context.fillStyle = color;
-  context.fillRect(px, py, cell, cell);
-  context.strokeStyle = 'rgba(255, 255, 255, 0.18)';
-  context.strokeRect(px + 0.5, py + 0.5, cell - 1, cell - 1);
+  const r = Math.max(2, cell * 0.12);
+  const ghost = opts.ghost || false;
+
+  context.save();
+  if (ghost) context.globalAlpha = 0.22;
+
+  // Body gradient
+  const grad = context.createLinearGradient(px, py, px + cell, py + cell);
+  grad.addColorStop(0, '#ffffff33');
+  grad.addColorStop(0.3, color);
+  grad.addColorStop(1, '#00000055');
+  context.fillStyle = grad;
+  context.beginPath();
+  context.roundRect(px + 1, py + 1, cell - 2, cell - 2, r);
+  context.fill();
+
+  // Top highlight
+  context.fillStyle = 'rgba(255,255,255,0.18)';
+  context.fillRect(px + 2, py + 1, cell - 4, Math.max(1, cell * 0.18));
+
+  // Inner border
+  context.strokeStyle = 'rgba(255,255,255,0.22)';
+  context.lineWidth = 1;
+  context.beginPath();
+  context.roundRect(px + 1.5, py + 1.5, cell - 3, cell - 3, r);
+  context.stroke();
+
+  // Outer shadow edge
+  context.strokeStyle = 'rgba(0,0,0,0.3)';
+  context.lineWidth = 1;
+  context.beginPath();
+  context.roundRect(px + 0.5, py + 0.5, cell - 1, cell - 1, r);
+  context.stroke();
+
+  context.restore();
 }
 
 function drawBoard() {
@@ -733,7 +833,14 @@ function drawBoard() {
     for (let x = 0; x < state.settings.w; x += 1) {
       const v = state.board[y][x];
       if (v !== 0) {
-        drawCell(ctx, x, y, view.cell, palette(v));
+        const bounce = state.landBounce.find(b => b.x === x && b.y === y);
+        const squash = bounce ? 1 - Math.sin((bounce.timer / bounce.ttl) * Math.PI) * 0.15 : 1;
+        ctx.save();
+        ctx.translate(x * view.cell + view.cell / 2, y * view.cell + view.cell / 2);
+        ctx.scale(1, squash);
+        ctx.translate(-view.cell / 2, -view.cell / 2);
+        drawCell(ctx, 0, 0, view.cell, palette(v));
+        ctx.restore();
       }
     }
   }
@@ -748,6 +855,20 @@ function drawBoard() {
         drawCell(ctx, x, y, view.cell, color);
       }
     }
+  }
+
+  for (const fx of state.clearFlash) {
+    const alpha = 1 - fx.timer / fx.ttl;
+    ctx.fillStyle = `rgba(255,255,255,${alpha * 0.6})`;
+    ctx.fillRect(0, fx.row * view.cell, view.boardW, view.cell);
+  }
+
+  for (const p of state.particles) {
+    const alpha = 1 - p.timer / p.ttl;
+    ctx.fillStyle = `rgba(${p.r},${p.g},${p.b},${alpha})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
@@ -958,12 +1079,12 @@ function handleKeyDown(ev) {
     ev.preventDefault();
     return;
   }
-  if (key === 'arrowup' || key === 'x' || key === 'w') {
+  if (key === 'arrowup' || key === 'z' || key === 'w') {
     input.pressed.rotate = true;
     ev.preventDefault();
     return;
   }
-  if (key === 'z' || key === 'q') {
+  if (key === 'x' || key === 'q') {
     input.pressed.rotateCCW = true;
     ev.preventDefault();
     return;

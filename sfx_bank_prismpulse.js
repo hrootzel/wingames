@@ -94,6 +94,15 @@ export const BANK_PRISMPULSE = {
     });
   },
 
+  hardDrop: (sfx) => {
+    crystalChord(sfx, 440, [1, RATIOS.P5, RATIOS.OCT], {
+      volume: 0.06,
+      decay: 0.16,
+      spreadMs: 8,
+    });
+    sfx.noise({ duration: 0.05, volume: 0.04, tint: 0.5 });
+  },
+
   clearTick: (sfx, p) => {
     const n = Math.max(1, p.squares ?? 1);
     const root = 740 + Math.min(280, n * 45);
@@ -180,5 +189,10 @@ export const BANK_PRISMPULSE = {
     crystalBell(sfx, { freq: 440, volume: 0.05, decay: 0.2, shimmer: false });
     crystalBell(sfx, { freq: 349.23, volume: 0.042, decay: 0.2, delay: 0.09, shimmer: false });
     crystalBell(sfx, { freq: 261.63, volume: 0.036, decay: 0.24, delay: 0.18, shimmer: false });
+  },
+
+  danger: (sfx) => {
+    crystalBell(sfx, { freq: 330, volume: 0.04, decay: 0.1, shimmer: false });
+    crystalBell(sfx, { freq: 294, volume: 0.035, decay: 0.1, delay: 0.06, shimmer: false });
   },
 };
