@@ -867,7 +867,10 @@ function drawBoard(alpha) {
         const by = ay;
         ctx.save();
         if (r >= VISIBLE_H) ctx.globalAlpha = 0.6;
-        drawBridge(ctx, ax, ay, bx, by, cell.color, view.cellSize);
+        drawBridge(ctx, ax, ay, bx, by, cell.color, view.cellSize, {
+          phase: game.fx.phase,
+          seed: (r * W + c) * 0.19,
+        });
         ctx.restore();
       }
       const up = r + 1 < H ? game.board.cells[r + 1][c] : null;
@@ -878,7 +881,10 @@ function drawBoard(alpha) {
         const by = cellToY(r + 1) + view.cellSize / 2;
         ctx.save();
         if (r >= VISIBLE_H || r + 1 >= VISIBLE_H) ctx.globalAlpha = 0.6;
-        drawBridge(ctx, ax, ay, bx, by, cell.color, view.cellSize);
+        drawBridge(ctx, ax, ay, bx, by, cell.color, view.cellSize, {
+          phase: game.fx.phase,
+          seed: (r * W + c) * 0.23,
+        });
         ctx.restore();
       }
     }
@@ -892,7 +898,10 @@ function drawBoard(alpha) {
       const y = cellToY(r);
       ctx.save();
       if (r >= VISIBLE_H) ctx.globalAlpha = 0.6;
-      drawPuyo(ctx, x, y, view.cellSize, cell.color);
+      drawPuyo(ctx, x, y, view.cellSize, cell.color, {
+        phase: game.fx.phase,
+        seed: r * W + c,
+      });
       ctx.restore();
     }
   }
@@ -912,11 +921,18 @@ function drawBoard(alpha) {
           cellToX(b.col) + view.cellSize / 2,
           cellToY(b.row) + view.cellSize / 2,
           a.puyo.color,
-          view.cellSize
+          view.cellSize,
+          { phase: game.fx.phase, seed: a.row * W + a.col }
         );
       }
-      drawPuyo(ctx, cellToX(a.col), cellToY(a.row), view.cellSize, a.puyo.color);
-      drawPuyo(ctx, cellToX(b.col), cellToY(b.row), view.cellSize, b.puyo.color);
+      drawPuyo(ctx, cellToX(a.col), cellToY(a.row), view.cellSize, a.puyo.color, {
+        phase: game.fx.phase,
+        seed: a.row * W + a.col + 0.4,
+      });
+      drawPuyo(ctx, cellToX(b.col), cellToY(b.row), view.cellSize, b.puyo.color, {
+        phase: game.fx.phase,
+        seed: b.row * W + b.col + 0.4,
+      });
       ctx.restore();
     }
   }
@@ -929,10 +945,19 @@ function drawBoard(alpha) {
     const axisPos = { x: cellToX(axis.col) + view.cellSize / 2, y: cellToY(axis.row) + view.cellSize / 2 + offset };
     const childPos = { x: cellToX(child.col) + view.cellSize / 2, y: cellToY(child.row) + view.cellSize / 2 + offset };
     if (axis.puyo.color === child.puyo.color) {
-      drawBridge(ctx, axisPos.x, axisPos.y, childPos.x, childPos.y, axis.puyo.color, view.cellSize);
+      drawBridge(ctx, axisPos.x, axisPos.y, childPos.x, childPos.y, axis.puyo.color, view.cellSize, {
+        phase: game.fx.phase,
+        seed: game.pieceIndex * 0.31,
+      });
     }
-    drawPuyo(ctx, cellToX(axis.col), cellToY(axis.row) + offset, view.cellSize, axis.puyo.color);
-    drawPuyo(ctx, cellToX(child.col), cellToY(child.row) + offset, view.cellSize, child.puyo.color);
+    drawPuyo(ctx, cellToX(axis.col), cellToY(axis.row) + offset, view.cellSize, axis.puyo.color, {
+      phase: game.fx.phase,
+      seed: game.pieceIndex + 0.9,
+    });
+    drawPuyo(ctx, cellToX(child.col), cellToY(child.row) + offset, view.cellSize, child.puyo.color, {
+      phase: game.fx.phase,
+      seed: game.pieceIndex + 1.8,
+    });
   }
 
   if (game.paused || game.state === GameState.GAME_OVER) {
@@ -982,11 +1007,18 @@ function drawNextPair() {
       x + size / 2,
       y + size / 2,
       game.nextSpec.axisColor,
-      size
+      size,
+      { phase: game.fx.phase, seed: game.pieceIndex * 0.27 + 0.2 }
     );
   }
-  drawPuyo(nextCtx, x, y - size, size, game.nextSpec.childColor);
-  drawPuyo(nextCtx, x, y, size, game.nextSpec.axisColor);
+  drawPuyo(nextCtx, x, y - size, size, game.nextSpec.childColor, {
+    phase: game.fx.phase,
+    seed: game.pieceIndex + 2.2,
+  });
+  drawPuyo(nextCtx, x, y, size, game.nextSpec.axisColor, {
+    phase: game.fx.phase,
+    seed: game.pieceIndex + 3.1,
+  });
   nextCtx.restore();
 }
 
