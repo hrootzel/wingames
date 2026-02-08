@@ -69,6 +69,8 @@ const BRICK_OFFSET_Y = 60;
 const BREAK_GATE_TOP = Math.floor(H * 0.64);
 const BREAK_GATE_BOTTOM = BREAK_GATE_TOP + 72;
 const CATCH_AUTO_RELEASE_FRAMES = 120;
+const BG_THEMES = ['blue1', 'green', 'blue2', 'red'];
+const BG_PATTERN_CACHE = new Map();
 
 const STORAGE_HIGH = 'paddle_royale.high';
 const STORAGE_SETTINGS = 'paddle_royale.settings';
@@ -984,9 +986,112 @@ function drawOverlay() {
   if (state === State.WON) ctx.fillText('ALL CLEAR', W / 2, H / 2);
 }
 
-function render() {
-  ctx.fillStyle = '#0f172a';
+function stageTheme(stageNum) {
+  return BG_THEMES[(Math.max(1, stageNum) - 1) % BG_THEMES.length];
+}
+
+function stagePalette(theme) {
+  switch (theme) {
+    case 'green':
+      return { base: '#12471e', lineA: '#1f6a31', lineB: '#2e7c42', accent: '#3b9a56' };
+    case 'blue2':
+      return { base: '#13253f', lineA: '#1b3e68', lineB: '#28527e', accent: '#3a73a6' };
+    case 'red':
+      return { base: '#3c1820', lineA: '#632330', lineB: '#7a3342', accent: '#9a4a58' };
+    case 'blue1':
+    default:
+      return { base: '#0f2f4c', lineA: '#1a486f', lineB: '#245e89', accent: '#3d7eaf' };
+  }
+}
+
+function makePatternKey(stageNum) {
+  return `${stageTheme(stageNum)}:${(Math.max(1, stageNum) - 1) % 8}`;
+}
+
+function tileHash(x, y, seed) {
+  let n = (x * 73856093) ^ (y * 19349663) ^ (seed * 83492791);
+  n ^= n >>> 13;
+  n = Math.imul(n, 1274126177);
+  return (n ^ (n >>> 16)) >>> 0;
+}
+
+function buildStagePattern(stageNum) {
+  const key = makePatternKey(stageNum);
+  if (BG_PATTERN_CACHE.has(key)) return BG_PATTERN_CACHE.get(key);
+
+  const theme = stageTheme(stageNum);
+  const pal = stagePalette(theme);
+  const seed = (Math.max(1, stageNum) - 1) % 8;
+
+  const tile = document.createElement('canvas');
+  tile.width = 64;
+  tile.height = 64;
+  const g = tile.getContext('2d');
+
+  g.fillStyle = pal.base;
+  g.fillRect(0, 0, tile.width, tile.height);
+
+  // Muted geometric maze style using quarter arcs and short joins.
+  for (let gy = 0; gy < 8; gy++) {
+    for (let gx = 0; gx < 8; gx++) {
+      const h = tileHash(gx, gy, seed);
+      const px = gx * 8;
+      const py = gy * 8;
+      const mode = h & 3;
+
+      g.lineWidth = 1.5;
+      g.strokeStyle = (h & 0x10) ? pal.lineA : pal.lineB;
+      g.beginPath();
+      if (mode === 0) g.arc(px + 0, py + 0, 6, 0, Math.PI / 2);
+      else if (mode === 1) g.arc(px + 8, py + 0, 6, Math.PI / 2, Math.PI);
+      else if (mode === 2) g.arc(px + 8, py + 8, 6, Math.PI, Math.PI * 1.5);
+      else g.arc(px + 0, py + 8, 6, Math.PI * 1.5, Math.PI * 2);
+      g.stroke();
+
+      if (h & 0x20) {
+        g.strokeStyle = pal.accent;
+        g.beginPath();
+        g.moveTo(px + 2, py + 4);
+        g.lineTo(px + 6, py + 4);
+        g.stroke();
+      }
+    }
+  }
+
+  const pattern = ctx.createPattern(tile, 'repeat');
+  BG_PATTERN_CACHE.set(key, pattern);
+  return pattern;
+}
+
+function drawStageBackground(ctx, stageNum) {
+  const pattern = buildStagePattern(stageNum);
+  if (pattern) {
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, W, H);
+  } else {
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  const theme = stageTheme(stageNum);
+  const pal = stagePalette(theme);
+  const glow = ctx.createLinearGradient(0, 0, 0, H);
+  glow.addColorStop(0, 'rgba(255,255,255,0.03)');
+  glow.addColorStop(0.6, 'rgba(0,0,0,0)');
+  glow.addColorStop(1, 'rgba(0,0,0,0.22)');
+  ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
+
+  // Soft vignette to keep foreground readability.
+  const vignette = ctx.createRadialGradient(W * 0.5, H * 0.48, H * 0.18, W * 0.5, H * 0.48, H * 0.82);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)');
+  vignette.addColorStop(1, `rgba(0,0,0,${theme === 'green' ? '0.36' : '0.32'})`);
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function render() {
+  drawStageBackground(ctx, stage);
 
   if (effects.breakGate) {
     ctx.save();
