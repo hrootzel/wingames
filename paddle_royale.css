@@ -255,15 +255,21 @@
   }
 
   .paddle-side {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     margin-top: 0;
     gap: 6px;
   }
 
-  .paddle-stats {
+  .paddle-board[data-gs-layout="stack"] .paddle-side {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .paddle-stats {
     gap: 4px 8px;
     font-size: 12px;
+  }
+
+  .paddle-board[data-gs-layout="stack"] .paddle-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .paddle-side .panel-box {
@@ -287,10 +293,18 @@
   }
 
   .paddle-side {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .paddle-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .paddle-board[data-gs-layout="stack"] .paddle-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .paddle-board[data-gs-layout="stack"] .paddle-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
