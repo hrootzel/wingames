@@ -475,6 +475,7 @@ initGameShell({
   canvasEl: canvas,
   baseWidth: WORLD_W,
   baseHeight: WORLD_H,
+  canvasBias: 'wide',
   mode: 'fractional',
   fit: 'css',
 });

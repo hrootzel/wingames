@@ -1633,6 +1633,7 @@ initGameShell({
   canvasEl: canvas,
   baseWidth: canvas.width,
   baseHeight: canvas.height,
+
   mode: 'fractional',
   fit: 'css',
   onResize: setupView,

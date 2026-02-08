@@ -1382,6 +1382,7 @@ function init() {
     canvasEl: canvas,
     baseWidth: canvas.width,
     baseHeight: canvas.height,
+    canvasBias: 'wide',
     mode: 'fractional',
     fit: 'css',
     onResize: () => setCanvasSize(),
