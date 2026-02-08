@@ -18,7 +18,6 @@ const GameState = {
   SPAWN: 'SPAWN',
   FALLING: 'FALLING',
   RESOLVE: 'RESOLVE',
-  GARBAGE_DROP: 'GARBAGE_DROP',
   GAME_OVER: 'GAME_OVER',
 };
 
@@ -38,9 +37,6 @@ const CHAIN_POWER = [
   0, 8, 16, 32, 64, 96, 128, 160, 192, 224, 256, 288,
   320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672,
 ];
-
-// Margin time constants (arcade: ~96 frames countdown before garbage drops)
-const MARGIN_TIME_FRAMES = 96;
 
 // Arcade nuisance rate: 70 points per garbage
 const NUISANCE_RATE = 70;
@@ -88,6 +84,8 @@ const STORAGE = {
 const DEFAULT_SETTINGS = {
   ghostPreview: true,
 };
+
+const EMPTY_CELL = Object.freeze({ kind: Kind.EMPTY, color: null });
 
 const game = makeGame();
 const { drawPuyo, drawBridge } = createPlopPlopSprite(PALETTE, BRIDGE_PINCH, BRIDGE_STEPS);
@@ -153,13 +151,9 @@ function closeSettings() {
   settingsToggle.setAttribute('aria-expanded', 'false');
 }
 
-function makeEmptyCell() {
-  return { kind: Kind.EMPTY, color: null };
-}
-
 function makeBoard() {
   const cells = Array.from({ length: H }, () =>
-    Array.from({ length: W }, () => makeEmptyCell())
+    Array.from({ length: W }, () => EMPTY_CELL)
   );
   return {
     cells,
@@ -207,9 +201,8 @@ function makeGame() {
     level: 1,
     score: 0,
     lastChain: 0,
-    maxChain: 0, // Track best chain for display
-    pendingGarbage: 0, // Nuisance blobs waiting to drop
-    garbageCounter: 0, // Accumulated points toward garbage
+    maxChain: 0,
+    garbageCounter: 0,
     status: 'Ready.',
     statusBeforePause: 'Ready.',
     timers: { gravityElapsed: 0 },
@@ -261,7 +254,8 @@ function updateFx(dt) {
     const p = fx.particles[i];
     p.life -= dt;
     if (p.life <= 0) {
-      fx.particles.splice(i, 1);
+      fx.particles[i] = fx.particles[fx.particles.length - 1];
+      fx.particles.pop();
       continue;
     }
     p.x += p.vx * (dt / 1000);
@@ -272,14 +266,17 @@ function updateFx(dt) {
   for (let i = fx.banners.length - 1; i >= 0; i--) {
     const b = fx.banners[i];
     b.life -= dt;
-    if (b.life <= 0) fx.banners.splice(i, 1);
+    if (b.life <= 0) {
+      fx.banners[i] = fx.banners[fx.banners.length - 1];
+      fx.banners.pop();
+    }
   }
 }
 
 function resetBoard() {
   for (let r = 0; r < H; r++) {
     for (let c = 0; c < W; c++) {
-      game.board.cells[r][c] = makeEmptyCell();
+      game.board.cells[r][c] = EMPTY_CELL;
     }
   }
 }
@@ -292,19 +289,9 @@ function rollPairSpec(rng) {
   return { axisColor: rollColor(rng), childColor: rollColor(rng) };
 }
 
+const ORIENT_OFFSETS = [{ dr: 1, dc: 0 }, { dr: 0, dc: 1 }, { dr: -1, dc: 0 }, { dr: 0, dc: -1 }];
 function orientOffset(orient) {
-  switch (orient & 3) {
-    case 0:
-      return { dr: 1, dc: 0 };
-    case 1:
-      return { dr: 0, dc: 1 };
-    case 2:
-      return { dr: -1, dc: 0 };
-    case 3:
-      return { dr: 0, dc: -1 };
-    default:
-      return { dr: 1, dc: 0 };
-  }
+  return ORIENT_OFFSETS[orient & 3];
 }
 
 function makeActivePair(spec) {
@@ -389,7 +376,7 @@ function lockPair() {
   }
   game.active = null;
   game.state = GameState.RESOLVE;
-  game.resolve = { chainIndex: 1, clearedAny: false, settling: true, settleTimer: 0 };
+  game.resolve = { chainIndex: 1, clearedAny: false, settling: true, settleTimer: 0, totalScore: 0 };
 }
 
 function handleHorizontalRepeat(dt) {
@@ -460,19 +447,6 @@ function stepFalling(dt) {
   }
 }
 
-function applyGravity() {
-  for (let c = 0; c < W; c++) {
-    const stack = [];
-    for (let r = 0; r < H; r++) {
-      const cell = game.board.cells[r][c];
-      if (cell.kind !== Kind.EMPTY) stack.push(cell);
-    }
-    for (let r = 0; r < H; r++) {
-      game.board.cells[r][c] = stack[r] ? stack[r] : makeEmptyCell();
-    }
-  }
-}
-
 function settleOnce() {
   let moved = false;
   for (let r = 1; r < H; r++) {
@@ -481,7 +455,7 @@ function settleOnce() {
       if (!cell || cell.kind === Kind.EMPTY) continue;
       if (!game.board.isEmpty(r - 1, c)) continue;
       game.board.set(r - 1, c, cell);
-      game.board.set(r, c, makeEmptyCell());
+      game.board.set(r, c, EMPTY_CELL);
       moved = true;
     }
   }
@@ -556,21 +530,9 @@ function chainPower(chainIndex) {
   return Math.min(999, 672 + 32 * (chainIndex - 24));
 }
 
+const COLOR_BONUS = [0, 0, 3, 6, 12, 24];
 function colorBonus(distinctColors) {
-  switch (distinctColors) {
-    case 1:
-      return 0;
-    case 2:
-      return 3;
-    case 3:
-      return 6;
-    case 4:
-      return 12;
-    case 5:
-      return 24;
-    default:
-      return 0;
-  }
+  return COLOR_BONUS[distinctColors] || 0;
 }
 
 function groupBonusForSize(n) {
@@ -642,12 +604,12 @@ function clearGroups(groups) {
 
   // Clear colored blobs
   for (const id of popSet) {
-    game.board.set((id / W) | 0, id % W, makeEmptyCell());
+    game.board.set((id / W) | 0, id % W, EMPTY_CELL);
   }
 
   // Clear garbage blobs
   for (const id of garbageToRemove) {
-    game.board.set((id / W) | 0, id % W, makeEmptyCell());
+    game.board.set((id / W) | 0, id % W, EMPTY_CELL);
   }
 
   return { clearedCount, distinctColors: colors.size, groupSizes };
@@ -764,6 +726,18 @@ function setupView() {
   view.boardHeight = H * view.cellSize;
   view.boardLeft = Math.floor((canvas.width - view.boardWidth) / 2);
   view.boardTop = Math.floor((canvas.height - view.boardHeight) / 2);
+
+  const bg = ctx.createLinearGradient(view.boardLeft, view.boardTop, view.boardLeft, view.boardTop + view.boardHeight);
+  bg.addColorStop(0, '#153141');
+  bg.addColorStop(0.56, '#102635');
+  bg.addColorStop(1, '#0a1623');
+  view.bgGrad = bg;
+
+  const sheen = ctx.createLinearGradient(view.boardLeft, view.boardTop, view.boardLeft, view.boardTop + view.boardHeight);
+  sheen.addColorStop(0, 'rgba(255,255,255,0.12)');
+  sheen.addColorStop(0.5, 'rgba(255,255,255,0)');
+  sheen.addColorStop(1, 'rgba(255,255,255,0.04)');
+  view.sheenGrad = sheen;
 }
 
 function cellToX(col) {
@@ -856,18 +830,12 @@ function drawBoard(alpha) {
   ctx.save();
   ctx.translate(shakeX, shakeY);
 
-  const bg = ctx.createLinearGradient(view.boardLeft, view.boardTop, view.boardLeft, view.boardTop + view.boardHeight);
-  bg.addColorStop(0, '#153141');
-  bg.addColorStop(0.56, '#102635');
-  bg.addColorStop(1, '#0a1623');
+  const bg = view.bgGrad;
   roundRect(ctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
   ctx.fillStyle = bg;
   ctx.fill();
 
-  const sheen = ctx.createLinearGradient(view.boardLeft, view.boardTop, view.boardLeft, view.boardTop + view.boardHeight);
-  sheen.addColorStop(0, 'rgba(255,255,255,0.12)');
-  sheen.addColorStop(0.5, 'rgba(255,255,255,0)');
-  sheen.addColorStop(1, 'rgba(255,255,255,0.04)');
+  const sheen = view.sheenGrad;
   roundRect(ctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
   ctx.fillStyle = sheen;
   ctx.fill();
@@ -1133,17 +1101,10 @@ function togglePause() {
   pauseBtn.textContent = game.paused ? 'Resume' : 'Pause';
 }
 
-function preventArrowScroll(ev) {
-  const tag = ev.target && ev.target.tagName;
-  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
-  if (ev.key === 'ArrowDown' || ev.key === 'Down') {
-    ev.preventDefault();
-  }
-}
-
 function handleKeyDown(ev) {
   const tag = ev.target && ev.target.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  if (ev.key === 'ArrowDown' || ev.key === 'Down') ev.preventDefault();
   if (isSettingsOpen()) return;
   const key = ev.key.toLowerCase();
   if (ev.repeat) {
@@ -1230,13 +1191,11 @@ function handleKeyUp(ev) {
   }
 }
 
-function newGame() {
+function resetGameState() {
   const seed = (Date.now() >>> 0) ^ (Math.random() * 0xffffffff);
   game.rng = makeRng(seed);
   resetBoard();
-  game.input.held.left = false;
-  game.input.held.right = false;
-  game.input.held.down = false;
+  Object.assign(game.input.held, { left: false, right: false, down: false });
   game.input.clearPressed();
   game.repeat.left = -DAS;
   game.repeat.right = -DAS;
@@ -1244,16 +1203,15 @@ function newGame() {
   game.paused = false;
   game.active = null;
   game.nextSpec = rollPairSpec(game.rng);
+  game.resolve = null;
   game.pieceIndex = 0;
   game.level = 1;
   game.score = 0;
   game.lastChain = 0;
   game.maxChain = 0;
-  game.pendingGarbage = 0;
   game.garbageCounter = 0;
   game.status = 'Ready.';
   game.statusBeforePause = 'Ready.';
-  game.resolve = null;
   game.timers.gravityElapsed = 0;
   game.fx.phase = 0;
   game.fx.shake = 0;
@@ -1261,6 +1219,10 @@ function newGame() {
   game.fx.pulse = 0;
   game.fx.particles.length = 0;
   game.fx.banners.length = 0;
+}
+
+function newGame() {
+  resetGameState();
   pauseBtn.textContent = 'Pause';
 }
 
@@ -1280,8 +1242,7 @@ function loop() {
   requestAnimationFrame(frame);
 }
 
-document.addEventListener('keydown', preventArrowScroll, { passive: false });
-document.addEventListener('keydown', handleKeyDown);
+document.addEventListener('keydown', handleKeyDown, { passive: false });
 document.addEventListener('keyup', handleKeyUp);
 newBtn.addEventListener('click', () => newGame());
 pauseBtn.addEventListener('click', () => togglePause());
