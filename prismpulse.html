@@ -30,7 +30,7 @@
       <div id="pulse-shell" class="pulse-wrap gs-shell" style="--game-ar: 18 / 13;">
         <div class="pulse-stage gs-stage">
           <div class="pulse-surface gs-surface" id="pulse-surface">
-            <canvas id="pulse-canvas" width="720" height="520" aria-label="Prism Pulse playfield"></canvas>
+            <canvas id="pulse-canvas" width="400" height="280" aria-label="Prism Pulse playfield"></canvas>
           </div>
         </div>
 
@@ -42,13 +42,20 @@
 
           <div class="panel-box score-panel" data-gs-snap="top" data-gs-fit="required">
             <h3>Scoreboard</h3>
-            <div class="quick-stats pulse-stats">
+            <div class="quick-stats pulse-stats" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;">
               <div>Score: <span id="score">0</span></div>
               <div>High: <span id="high-score">0</span></div>
               <div>Level: <span id="level">1</span></div>
               <div>Skin: <span id="skin">Pulse</span></div>
               <div>Mode: <span id="mode-label">Endless</span></div>
               <div>Time: <span id="time-label">--:--</span></div>
+            </div>
+          </div>
+
+          <div class="panel-box" data-gs-snap="bottom" data-gs-fit="optional">
+            <div class="control-group pulse-controls">
+              <button id="new-game">New Game</button>
+              <button id="pause">Pause</button>
             </div>
           </div>
 
@@ -61,21 +68,10 @@
               <div><span class="key">P / Esc</span> Pause</div>
               <div><span class="key">R</span> Restart</div>
             </div>
-            <div class="control-group pulse-controls">
-              <button id="new-game">New Game</button>
-              <button id="pause">Pause</button>
-            </div>
           </div>
         </div>
       </div>
     </div>
-
-    <footer class="pulse-footer">
-      <p class="tips">
-        Form matching 2x2 squares (or larger rectangles), then let the timeline sweep clear pending tiles.
-        Clears score at the end of each pass: 40 per square, and 4x pass bonus when 4+ squares clear in one sweep.
-      </p>
-    </footer>
   </div>
 
   <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">

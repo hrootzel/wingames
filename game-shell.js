@@ -130,8 +130,10 @@ export function initGameShell(options) {
     const sideCanvasWMin = Math.max(0, availW - hudMinWidth - gap);
     const sideScaleMax = computeScale(Math.min(sideCanvasWMin / logicalW, availH / logicalH), mode);
 
-    // Stack layout: canvas gets full availW, height is constrained
-    const stackScale = computeScale(Math.min(availW / logicalW, availH / logicalH), mode);
+    // Stack layout: canvas gets full availW, but reserve space for HUD below
+    const hudReserve = Math.max(250, availH * 0.4);
+    const stackAvailH = Math.max(1, availH - hudReserve);
+    const stackScale = computeScale(Math.min(availW / logicalW, stackAvailH / logicalH), mode);
 
     // The effective side scale is the best we can get (possibly by shrinking HUD)
     const bestSideScale = Math.max(sideScale, sideScaleMax);
@@ -203,9 +205,14 @@ export function initGameShell(options) {
       cssW = Math.max(1, logicalW * scale);
       cssH = Math.max(1, logicalH * scale);
     } else {
-      // Stack: canvas takes full width, limited by height
+      // Stack: canvas takes full width, but reserve space for HUD below
       if (shell) shell.style.removeProperty('--gs-hud-width-live');
-      const rawScale = Math.min(availW / logicalW, availH / logicalH);
+      
+      // Reserve approximately 40% of height for HUD in stack mode, or minimum 250px
+      const hudReserve = Math.max(250, availH * 0.4);
+      const canvasAvailH = Math.max(1, availH - hudReserve);
+      
+      const rawScale = Math.min(availW / logicalW, canvasAvailH / logicalH);
       scale = computeScale(rawScale, mode);
       cssW = Math.max(1, logicalW * scale);
       cssH = Math.max(1, logicalH * scale);

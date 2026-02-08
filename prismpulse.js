@@ -994,7 +994,7 @@ function setCanvasSize() {
   const width = canvas.width;
   const height = canvas.height;
 
-  const pad = Math.max(20, Math.floor(width * 0.06));
+  const pad = Math.max(12, Math.floor(width * 0.03));
   view.boardX = pad;
   view.boardY = pad;
   view.boardW = width - pad * 2;
@@ -1378,11 +1378,11 @@ function init() {
   document.addEventListener('pointerdown', unlockAudio, { once: true });
   document.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
   initGameShell({
+    shellEl: '#pulse-shell',
     surfaceEl: '#pulse-surface',
     canvasEl: canvas,
     baseWidth: canvas.width,
     baseHeight: canvas.height,
-    canvasBias: 'wide',
     mode: 'fractional',
     fit: 'css',
     onResize: () => setCanvasSize(),
