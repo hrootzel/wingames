@@ -60,6 +60,12 @@ const chainEl = document.getElementById('chain');
 const levelEl = document.getElementById('level');
 const piecesEl = document.getElementById('pieces');
 const statusEl = document.getElementById('status');
+const settingsToggle = document.getElementById('settings-toggle');
+const settingsModal = document.getElementById('settings-modal');
+const settingsClose = document.getElementById('settings-close');
+const settingsApply = document.getElementById('settings-apply');
+const settingsCancel = document.getElementById('settings-cancel');
+const ghostPreviewToggle = document.getElementById('ghost-preview-toggle');
 const newBtn = document.getElementById('new-game');
 const pauseBtn = document.getElementById('pause');
 
@@ -76,9 +82,16 @@ const view = {
 
 const BRIDGE_PINCH = 0.62;
 const BRIDGE_STEPS = 8;
+const STORAGE = {
+  ghostPreview: 'plop_plop.ghostPreview',
+};
+const DEFAULT_SETTINGS = {
+  ghostPreview: true,
+};
 
 const game = makeGame();
 const { drawPuyo, drawBridge } = createPlopPlopSprite(PALETTE, BRIDGE_PINCH, BRIDGE_STEPS);
+let settings = loadSettings();
 
 function makeRng(seed) {
   let t = seed >>> 0;
@@ -94,6 +107,50 @@ function makeRng(seed) {
       return Math.floor(this.next() * n);
     },
   };
+}
+
+function sanitizeSettings(next) {
+  return {
+    ghostPreview: next.ghostPreview !== false,
+  };
+}
+
+function loadSettings() {
+  const rawGhost = localStorage.getItem(STORAGE.ghostPreview);
+  if (rawGhost === null) return { ...DEFAULT_SETTINGS };
+  return sanitizeSettings({ ghostPreview: rawGhost !== 'false' });
+}
+
+function saveSettings(next) {
+  localStorage.setItem(STORAGE.ghostPreview, next.ghostPreview ? 'true' : 'false');
+}
+
+function syncSettingsUI(next) {
+  if (ghostPreviewToggle) ghostPreviewToggle.checked = next.ghostPreview;
+}
+
+function applySettingsFromUI() {
+  const next = sanitizeSettings({
+    ghostPreview: !!ghostPreviewToggle.checked,
+  });
+  settings = next;
+  saveSettings(settings);
+  syncSettingsUI(settings);
+}
+
+function isSettingsOpen() {
+  return settingsModal && !settingsModal.classList.contains('hidden');
+}
+
+function openSettings() {
+  syncSettingsUI(settings);
+  settingsModal.classList.remove('hidden');
+  settingsToggle.setAttribute('aria-expanded', 'true');
+}
+
+function closeSettings() {
+  settingsModal.classList.add('hidden');
+  settingsToggle.setAttribute('aria-expanded', 'false');
 }
 
 function makeEmptyCell() {
@@ -906,7 +963,7 @@ function drawBoard(alpha) {
     }
   }
 
-  if (game.active) {
+  if (settings.ghostPreview && game.active) {
     const ghostCells = getGhostDropRows(game.active);
     if (ghostCells) {
       const a = ghostCells[0];
@@ -1087,6 +1144,7 @@ function preventArrowScroll(ev) {
 function handleKeyDown(ev) {
   const tag = ev.target && ev.target.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  if (isSettingsOpen()) return;
   const key = ev.key.toLowerCase();
   if (ev.repeat) {
     if (key === 'arrowdown') {
@@ -1227,9 +1285,26 @@ document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
 newBtn.addEventListener('click', () => newGame());
 pauseBtn.addEventListener('click', () => togglePause());
+settingsToggle.addEventListener('click', () => openSettings());
+settingsClose.addEventListener('click', () => closeSettings());
+settingsCancel.addEventListener('click', () => closeSettings());
+settingsModal.addEventListener('click', (ev) => {
+  if (ev.target === settingsModal) closeSettings();
+});
+settingsApply.addEventListener('click', () => {
+  applySettingsFromUI();
+  closeSettings();
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && isSettingsOpen()) {
+    closeSettings();
+    ev.preventDefault();
+  }
+});
 document.addEventListener('pointerdown', unlockAudio, { once: true });
 
 setupView();
+syncSettingsUI(settings);
 initGameShell({
   shellEl: '.plop-wrap',
   surfaceEl: '#plop-surface',
