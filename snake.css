@@ -1,22 +1,17 @@
 .snake-game #app { max-width: 900px; }
 
 .snake-board {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.snake-stage {
-  background: #0f172a;
-  border-radius: 8px;
-  box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+  --gs-snap-col-min: 140px;
 }
 
 #snake-canvas {
   display: block;
-  width: 100%;
-  height: 100%;
+  border-radius: 8px;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+}
+
+.snake-stage {
+  overflow: hidden;
 }
 
 .snake-side {
@@ -29,14 +24,14 @@
   gap: 12px;
 }
 
-.snake-side .panel-box {
+.snake-board .panel-box {
   background: rgba(0,0,0,0.2);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
 }
 
-.snake-side .panel-box h3 {
+.snake-board .panel-box h3 {
   margin: 0 0 8px 0;
   font-size: 13px;
   text-transform: uppercase;
@@ -46,8 +41,10 @@
 
 .snake-stats {
   display: grid;
-  gap: 4px;
+  grid-template-columns: auto auto;
+  gap: 2px 1rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .snake-controls {
@@ -77,13 +74,3 @@
   margin-right: 4px;
 }
 
-.snake-board[data-gs-layout="stack"] .gs-snap-top {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  align-items: start;
-}
-
-.snake-board[data-gs-layout="stack"] .gs-snap-top > * {
-  outline: 1px dashed rgba(255,255,255,0.3);
-}

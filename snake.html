@@ -5,6 +5,7 @@
   <meta name="color-scheme" content="dark">
   <title>Snake</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="game-shell.css">
   <link rel="stylesheet" href="snake.css">
 </head>
 <body class="snake-game">
@@ -23,14 +24,16 @@
     </div>
 
     <div class="board snake-board gs-shell" style="--game-ar: 1 / 1;">
-      <div class="snake-stage gs-surface" id="snake-surface">
-        <canvas id="snake-canvas" width="400" height="400"></canvas>
+      <div class="snake-stage gs-stage">
+        <div class="gs-surface" id="snake-surface">
+          <canvas id="snake-canvas" width="400" height="400"></canvas>
+        </div>
       </div>
 
       <div class="snake-side gs-hud">
         <div class="panel-box" data-gs-snap="top" data-gs-fit="required" data-gs-cols="2">
           <h3>Score</h3>
-          <div class="snake-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <div class="snake-stats">
             <div>Score: <span id="score">0</span></div>
             <div>Length: <span id="length">3</span></div>
             <div>Speed: <span id="speed">1</span></div>

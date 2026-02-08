@@ -1,6 +1,8 @@
 :root {
   --gs-gap: 16px;
   --gs-hud-width: clamp(220px, 28vw, 360px);
+  --gs-snap-col-min: 200px;
+  --gs-hud-col-min: 220px;
 }
 
 .gs-shell {
@@ -59,11 +61,11 @@
 .gs-shell[data-gs-mode="portrait"][data-gs-top-active="true"] .gs-snap-top,
 .gs-shell[data-gs-mode="portrait"][data-gs-bottom-active="true"] .gs-snap-bottom {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--gs-snap-col-min), 100%), 1fr));
 }
 
 .gs-shell[data-gs-layout="stack"] .gs-hud {
-  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--gs-hud-col-min), 100%), 1fr));
 }
 
 .gs-shell[data-gs-layout="stack"][data-gs-hud="column"] .gs-hud {

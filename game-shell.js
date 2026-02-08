@@ -155,7 +155,8 @@ export function initGameShell(options) {
   // Pure geometry: compute canvas scale for side layout vs stack layout
   function pickLayout(availW, availH, gap) {
     const hudW = getHudNaturalWidth();
-    const autoBias = logicalW > logicalH * 1.05 ? 'wide' : 'tall';
+    const aspect = logicalW / logicalH;
+    const autoBias = aspect > 1.05 ? 'wide' : aspect < 0.95 ? 'tall' : 'square';
     const bias = (canvasBias === 'wide' || canvasBias === 'tall') ? canvasBias : autoBias;
 
     // Side layout: canvas gets (availW - hudW - gap) x availH
@@ -176,7 +177,8 @@ export function initGameShell(options) {
 
     // Pick whichever gives a bigger canvas, with a small bias toward the "natural" layout
     // For tall canvases, prefer side (sidebar). For wide canvases, prefer stack (top/bottom).
-    const biasThreshold = bias === 'tall' ? 0.92 : 1.05;
+    // Square canvases use neutral threshold — no layout preference.
+    const biasThreshold = bias === 'tall' ? 0.92 : bias === 'wide' ? 1.05 : 1.0;
     const useSide = bestSideScale >= stackScale * biasThreshold && sideCanvasW >= logicalW * 0.2;
 
     // Compute the actual HUD scale if we use side layout

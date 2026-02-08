@@ -594,11 +594,13 @@ init();
 
 initGameShell({
   shellEl: '.myriapod-board',
+  surfaceEl: '#myriapod-surface',
   canvasEl: canvas,
   baseWidth: W,
   baseHeight: H,
-  mode: 'integer',
-  fit: 'css'
+  mode: 'fractional',
+  fit: 'css',
+  viewportPadding: 80
 });
 
 render();
