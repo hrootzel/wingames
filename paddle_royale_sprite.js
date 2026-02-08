@@ -1,4 +1,140 @@
 ﻿import { roundRectPath, shadeHex } from './rendering_engine.js';
+const BG_THEMES = ['blue1', 'green', 'blue2', 'red'];
+const BG_CANVAS_CACHE = new Map();
+
+function stageTheme(stageNum) {
+  return BG_THEMES[(Math.max(1, stageNum) - 1) % BG_THEMES.length];
+}
+
+function stagePalette(theme) {
+  switch (theme) {
+    case 'green':
+      return { base: '#12471e', lineA: '#1f6a31', lineB: '#2e7c42', accent: '#3b9a56' };
+    case 'blue2':
+      return { base: '#13253f', lineA: '#1b3e68', lineB: '#28527e', accent: '#3a73a6' };
+    case 'red':
+      return { base: '#3c1820', lineA: '#632330', lineB: '#7a3342', accent: '#9a4a58' };
+    case 'blue1':
+    default:
+      return { base: '#0f2f4c', lineA: '#1a486f', lineB: '#245e89', accent: '#3d7eaf' };
+  }
+}
+
+function tileHash(x, y, seed) {
+  let n = (x * 73856093) ^ (y * 19349663) ^ (seed * 83492791);
+  n ^= n >>> 13;
+  n = Math.imul(n, 1274126177);
+  return (n ^ (n >>> 16)) >>> 0;
+}
+
+function buildBackgroundCanvas(width, height, stageNum) {
+  const theme = stageTheme(stageNum);
+  const seed = (Math.max(1, stageNum) - 1) % 8;
+  const key = `${width}x${height}:${theme}:${seed}`;
+  const cached = BG_CANVAS_CACHE.get(key);
+  if (cached) return cached;
+
+  const pal = stagePalette(theme);
+
+  const tile = document.createElement('canvas');
+  tile.width = 64;
+  tile.height = 64;
+  const g = tile.getContext('2d');
+
+  g.fillStyle = pal.base;
+  g.fillRect(0, 0, tile.width, tile.height);
+
+  for (let gy = 0; gy < 8; gy++) {
+    for (let gx = 0; gx < 8; gx++) {
+      const h = tileHash(gx, gy, seed);
+      const px = gx * 8;
+      const py = gy * 8;
+      const mode = h & 3;
+
+      g.lineWidth = 1.5;
+      g.strokeStyle = (h & 0x10) ? pal.lineA : pal.lineB;
+      g.beginPath();
+      if (mode === 0) g.arc(px + 0, py + 0, 6, 0, Math.PI / 2);
+      else if (mode === 1) g.arc(px + 8, py + 0, 6, Math.PI / 2, Math.PI);
+      else if (mode === 2) g.arc(px + 8, py + 8, 6, Math.PI, Math.PI * 1.5);
+      else g.arc(px + 0, py + 8, 6, Math.PI * 1.5, Math.PI * 2);
+      g.stroke();
+
+      if (h & 0x20) {
+        g.strokeStyle = pal.accent;
+        g.beginPath();
+        g.moveTo(px + 2, py + 4);
+        g.lineTo(px + 6, py + 4);
+        g.stroke();
+      }
+    }
+  }
+
+  const layer = document.createElement('canvas');
+  layer.width = width;
+  layer.height = height;
+  const lg = layer.getContext('2d');
+  const pattern = lg.createPattern(tile, 'repeat');
+  lg.fillStyle = pattern || pal.base;
+  lg.fillRect(0, 0, width, height);
+
+  const glow = lg.createLinearGradient(0, 0, 0, height);
+  glow.addColorStop(0, 'rgba(255,255,255,0.03)');
+  glow.addColorStop(0.6, 'rgba(0,0,0,0)');
+  glow.addColorStop(1, 'rgba(0,0,0,0.22)');
+  lg.fillStyle = glow;
+  lg.fillRect(0, 0, width, height);
+
+  const vignette = lg.createRadialGradient(width * 0.5, height * 0.48, height * 0.18, width * 0.5, height * 0.48, height * 0.82);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)');
+  vignette.addColorStop(1, `rgba(0,0,0,${theme === 'green' ? '0.36' : '0.32'})`);
+  lg.fillStyle = vignette;
+  lg.fillRect(0, 0, width, height);
+
+  BG_CANVAS_CACHE.set(key, layer);
+  return layer;
+}
+
+export function drawStageBackground(ctx, width, height, stageNum) {
+  const bg = buildBackgroundCanvas(width, height, stageNum);
+  ctx.drawImage(bg, 0, 0);
+}
+
+export function drawBallTrails(ctx, balls) {
+  for (const ball of balls) {
+    if (!ball.trail || ball.trail.length === 0) continue;
+    for (let i = 0; i < ball.trail.length; i++) {
+      const t = ball.trail[i];
+      const k = (i + 1) / ball.trail.length;
+      ctx.fillStyle = `rgba(255, 221, 107, ${0.05 + 0.22 * k})`;
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, 1.6 + 3.1 * k, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+export function drawExplosions(ctx, explosions) {
+  if (explosions.length === 0) return;
+  ctx.save();
+  for (const p of explosions) {
+    const alpha = Math.max(0, Math.min(1, p.life / p.maxLife));
+    const glow = p.size * (1.45 - alpha * 0.35);
+
+    ctx.globalAlpha = alpha * 0.65;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, glow, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 245, 214, ${alpha * 0.42})`;
+    ctx.fill();
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
 
 function crystalFill(ctx, x, y, w, h, baseColor) {
   const grad = ctx.createLinearGradient(x, y, x, y + h);
