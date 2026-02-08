@@ -7,6 +7,14 @@ import {
   drawCapsules as drawSpriteCapsules,
   drawPaddle as drawSpritePaddle,
 } from './paddle_royale_sprite.js';
+import {
+  TOTAL_STAGES,
+  SPEED_COUNTER_TABLE,
+  capsuleCountForStage,
+  getStageRows,
+  silverHitsForStage,
+  speedValuesForDifficulty,
+} from './paddle_royale_levels.js';
 
 const canvas = document.getElementById('paddle-canvas');
 const ctx = canvas.getContext('2d');
@@ -51,7 +59,6 @@ const BRICK_COLS = 10;
 const BRICK_W = W / BRICK_COLS;
 const BRICK_H = 20;
 const BRICK_OFFSET_Y = 60;
-const TOTAL_STAGES = 33;
 
 const STORAGE_HIGH = 'paddle_royale.high';
 const STORAGE_SETTINGS = 'paddle_royale.settings';
@@ -93,19 +100,6 @@ const DEFAULT_SETTINGS = {
   continueMode: 'with',
 };
 
-const SPEED_VALUES_EASY = [
-  3.3, 3.55, 3.8, 4.05, 4.3, 4.55, 4.8, 5.05,
-  5.3, 5.55, 5.8, 6.05, 6.3, 6.55, 6.8, 7.05,
-];
-const SPEED_VALUES_HARD = [
-  3.7, 3.95, 4.2, 4.45, 4.7, 4.95, 5.2, 5.45,
-  5.7, 5.95, 6.2, 6.45, 6.7, 6.95, 7.2, 7.45,
-];
-
-const SPEED_COUNTER_TABLE = [
-  4, 10, 18, 28, 40, 54, 70, 88,
-  108, 130, 154, 180, 208, 238, 270, 9999,
-];
 
 const CAPSULE_WEIGHTS = [
   CapsuleType.EXPAND,
@@ -125,118 +119,6 @@ const CAPSULE_WEIGHTS = [
   CapsuleType.SLOW,
 ];
 
-const STAGE_TEMPLATES = [
-  [
-    '..12344321',
-    '.123456543',
-    '1234567654',
-    'S123GG321S',
-    '8765435678',
-    '.876545678',
-    '..8766678.',
-    '...88..88.',
-  ],
-  [
-    '11......11',
-    '122....221',
-    '1234..4321',
-    '1235665321',
-    'S234GG432S',
-    '2345665432',
-    '3456776543',
-    '4567887654',
-  ],
-  [
-    '...3333...',
-    '..344443..',
-    '.345GG543.',
-    '3456666543',
-    '4567777654',
-    'S567888765',
-    '.678888876',
-    '..7899987.',
-  ],
-  [
-    '1.2.3.4.5.',
-    '.2.3.4.5.6',
-    '3.4.5.6.7.',
-    '.4.5.G.6.7',
-    '5.6.G.G.7.',
-    '.6.7.G.8.1',
-    '7.8.1.2.3.',
-    'S8.1.2.3.S',
-  ],
-  [
-    '1111222211',
-    '2222333322',
-    '3333444433',
-    '4444GG4444',
-    '5555GG5555',
-    '6666777766',
-    '7777888877',
-    '8888999988',
-  ],
-  [
-    '..12SS21..',
-    '.12344321.',
-    '1235665321',
-    '2345GG5432',
-    '3456GG6543',
-    '4567777654',
-    '.567888765',
-    '..678998..',
-  ],
-  [
-    '1S1S1S1S1S',
-    '2121212121',
-    '3232323232',
-    '434GG43434',
-    '545GG54545',
-    '6565656565',
-    '7676767676',
-    '8S8S8S8S8S',
-  ],
-  [
-    '....11....',
-    '...1221...',
-    '..123321..',
-    '.123GG321.',
-    '1234GG4321',
-    '.234666432',
-    '..3455543.',
-    '...46664..',
-  ],
-  [
-    '8765434567',
-    '7654323456',
-    '6543212345',
-    '5432GG2345',
-    '4321GG1234',
-    '3212343212',
-    '2123454321',
-    'S12345678S',
-  ],
-  [
-    '1234567891',
-    '2345678912',
-    '3456789123',
-    '4567GG1234',
-    '5678GG2345',
-    '6789123456',
-    '7891234567',
-    '8912345678',
-  ],
-  [
-    'SS......SS',
-    'S12344321S',
-    '1234555432',
-    '23456GG432',
-    '34567GG543',
-    '4567887654',
-    '5678998765',
-    'SS......SS',
-  ],
-];
 
 let state = State.IDLE;
 let settings = loadSettings();
@@ -274,8 +156,6 @@ let effects = {
   laser: false,
   breakTimer: 0,
 };
-
-const stageDefs = buildStageDefs();
 
 highEl.textContent = highScore;
 syncSettingsUI(settings);
@@ -360,42 +240,9 @@ function seededRandom(seed) {
   };
 }
 
-function shiftRow(row, offset) {
-  const chars = row.split('');
-  const len = chars.length;
-  const out = new Array(len);
-  for (let i = 0; i < len; i++) {
-    out[(i + offset + len) % len] = chars[i];
-  }
-  return out.join('');
-}
-
-function buildStageDefs() {
-  const defs = [];
-  for (let i = 0; i < TOTAL_STAGES; i++) {
-    const template = STAGE_TEMPLATES[i % STAGE_TEMPLATES.length];
-    const shift = i % BRICK_COLS;
-    const rows = template.map((r, rowIdx) => shiftRow(r, (shift + rowIdx) % BRICK_COLS));
-    defs.push({ rows });
-  }
-  return defs;
-}
-
-function speedValues() {
-  return settings.difficulty === 'hard' ? SPEED_VALUES_HARD : SPEED_VALUES_EASY;
-}
-
 function currentBallSpeed() {
-  const table = speedValues();
+  const table = speedValuesForDifficulty(settings.difficulty);
   return table[clamp(speedIndex, 0, table.length - 1)];
-}
-
-function silverHitsForStage(stageNum) {
-  return clamp(1 + Math.floor((stageNum - 1) / 8), 1, 6);
-}
-
-function capsuleCountForStage(stageNum) {
-  return clamp(2 + Math.floor((stageNum - 1) / 5), 2, 8);
 }
 
 function chooseCapsule(rand) {
@@ -468,11 +315,11 @@ function clearTransientEffectsOnLifeLoss() {
 
 function initStage() {
   bricks = [];
-  const def = stageDefs[stage - 1];
+  const rows = getStageRows(stage);
   const silverHits = silverHitsForStage(stage);
 
   for (let r = 0; r < BRICK_ROWS; r++) {
-    const row = def.rows[r] || '..........';
+    const row = rows[r] || '..........';
     for (let c = 0; c < BRICK_COLS; c++) {
       const ch = row[c] || '.';
       if (ch === '.') continue;
