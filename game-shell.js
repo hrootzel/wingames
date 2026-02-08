@@ -46,8 +46,10 @@ export function initGameShell(options) {
     bottomLaneMaxViewportFraction = 0.24,
     minLaneScale = 0.6,
     sideHudMinScale = 0.58,
-    sideScaleTolerance = 0.55,
-    ignoreHeaderInFit = true,
+    sideScaleTolerance = 0.72,
+    sideHudPreferredMinScale = 0.72,
+    forceStackBelowWidth = 560,
+    ignoreHeaderInFit = false,
     onResize,
     context,
   } = options || {};
@@ -197,7 +199,9 @@ export function initGameShell(options) {
   function shouldUseSideLayout(hostRect) {
     if (!shell || !hud) return true;
     const viewport = window.visualViewport;
+    const viewportW = viewport?.width || window.innerWidth || hostRect.width || 1;
     const viewportH = viewport?.height || window.innerHeight || hostRect.height || 1;
+    if (viewportW <= forceStackBelowWidth) return false;
     const shellTop = Math.max(0, shell.getBoundingClientRect().top);
     const topInset = ignoreHeaderInFit ? 0 : shellTop;
     const fullHeightBudget = Math.max(1, viewportH - topInset - viewportPadding);
@@ -216,23 +220,29 @@ export function initGameShell(options) {
       Math.min(sideCanvasWAtMinHud / logicalWidth, fullHeightBudget / logicalHeight),
       mode,
     );
+    const desiredCanvasW = logicalWidth * (fullHeightBudget / logicalHeight);
+    const remainingForHudAtDesiredCanvas = shellRect.width - desiredCanvasW - colGap;
+    const hudScaleNeeded = hudRect.width > 0
+      ? Math.min(1, Math.max(0, remainingForHudAtDesiredCanvas / hudRect.width))
+      : 1;
     const stackScale = computeScale(Math.min(shellRect.width / logicalWidth, fullHeightBudget / logicalHeight), mode);
     const requiredHudH = requiredContainerHeight(hud);
 
     const sideFitsHud = requiredHudH * sideHudMinScale <= fullHeightBudget + 1;
     const sideScaleOk = Math.max(sideScale, sideScaleBest) >= stackScale * sideScaleTolerance;
+    const sideHudScaleOk = hudScaleNeeded >= sideHudPreferredMinScale;
     const sideWidthOk = sideCanvasW > logicalWidth * 0.35;
-    return sideFitsHud && sideScaleOk && sideWidthOk;
+    return sideFitsHud && sideScaleOk && sideHudScaleOk && sideWidthOk;
   }
 
   let lastCssW = -1;
   let lastCssH = -1;
 
-  function applyResize() {
+  function applyResize(forceStack = false) {
     const hostRect = fitHost.getBoundingClientRect();
     if (hostRect.width <= 0) return;
 
-    const sidePreferred = shouldUseSideLayout(hostRect);
+    const sidePreferred = forceStack ? false : shouldUseSideLayout(hostRect);
     applyLayoutMode(sidePreferred);
     const portraitLike = !sidePreferred;
     applySnapLayout(portraitLike);
@@ -356,6 +366,17 @@ export function initGameShell(options) {
       lastCssW = cssW;
       lastCssH = cssH;
     }
+
+    if (!portraitLike && !forceStack && shell) {
+      const viewportNow = window.visualViewport;
+      const viewportHNow = viewportNow?.height || window.innerHeight || 0;
+      const shellBottom = shell.getBoundingClientRect().bottom;
+      if (shellBottom > viewportHNow + 2) {
+        applyResize(true);
+        return;
+      }
+    }
+
     if (fit === 'backing') {
       const dpr = window.devicePixelRatio || 1;
       const targetW = Math.max(1, Math.round(cssW * dpr));
