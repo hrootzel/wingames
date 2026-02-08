@@ -232,7 +232,10 @@ export function initGameShell(options) {
     const viewport = window.visualViewport;
     const viewportH = viewport?.height || window.innerHeight || hostRect.height;
     const shellTop = shell ? Math.max(0, shell.getBoundingClientRect().top) : Math.max(0, hostRect.top);
-    const topInset = ignoreHeaderInFit ? 0 : shellTop;
+    // Use the lesser of visual position and a small cap so the header/status bar
+    // above the shell doesn't over-shrink the canvas. Content above the shell
+    // scrolls away during play, so we only reserve minimal space for it.
+    const topInset = ignoreHeaderInFit ? 0 : Math.min(shellTop, viewportH * 0.08);
     const availW = hostRect.width;
     const availH = Math.max(1, viewportH - topInset - viewportPadding);
 
@@ -367,7 +370,15 @@ export function initGameShell(options) {
 
   bindDprListener();
   applyResize();
-  requestAnimationFrame(() => applyResize());
+  requestAnimationFrame(() => {
+    applyResize();
+    // Auto-scroll the shell into view so the header scrolls away,
+    // giving the canvas maximum space from the start.
+    if (shell && shell.getBoundingClientRect().top > 0) {
+      shell.scrollIntoView({ block: 'start', behavior: 'instant' });
+      applyResize();
+    }
+  });
 
   return {
     resize: applyResize,
