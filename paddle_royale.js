@@ -1128,14 +1128,13 @@ canvas.addEventListener('pointermove', (ev) => {
   movePaddleFromClientX(ev.clientX);
 });
 
-canvas.addEventListener('pointerdown', (ev) => {
+function handleCanvasTap(clientX) {
   if (!audioUnlocked) {
     sfx.unlock();
     audioUnlocked = true;
   }
   if (isSettingsOpen()) return;
-  ev.preventDefault();
-  movePaddleFromClientX(ev.clientX);
+  movePaddleFromClientX(clientX);
   if (state === State.READY || state === State.IDLE) {
     if (state === State.IDLE) startGame();
     launchStuckBalls();
@@ -1146,7 +1145,27 @@ canvas.addEventListener('pointerdown', (ev) => {
     return;
   }
   if (state === State.PLAYING) fireLaser();
+}
+
+canvas.style.touchAction = 'none';
+
+canvas.addEventListener('pointerdown', (ev) => {
+  ev.preventDefault();
+  handleCanvasTap(ev.clientX);
 });
+
+// Fallback touch listeners for browsers/devices with unreliable pointer events.
+canvas.addEventListener('touchstart', (ev) => {
+  if (ev.touches.length === 0) return;
+  ev.preventDefault();
+  handleCanvasTap(ev.touches[0].clientX);
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (ev) => {
+  if (isSettingsOpen() || ev.touches.length === 0) return;
+  ev.preventDefault();
+  movePaddleFromClientX(ev.touches[0].clientX);
+}, { passive: false });
 
 newBtn.addEventListener('click', () => {
   if (!audioUnlocked) {
