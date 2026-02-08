@@ -15,6 +15,7 @@ import {
   capsuleCountForStage,
   getStageRows,
   silverHitsForStage,
+  silverPointsForStage,
   speedValuesForDifficulty,
 } from './paddle_royale_levels.js';
 
@@ -93,8 +94,6 @@ const CapsuleType = {
 
 const BRICK_COLORS = ['#fcfcfc', '#fc7460', '#3cbcfc', '#80d010', '#d82800', '#0070ec', '#fc74b4', '#fc9838'];
 const BRICK_POINTS = [50, 60, 70, 80, 90, 100, 110, 120];
-const SILVER_BASE_POINTS = 50;
-
 const DEFAULT_SETTINGS = {
   lives: '3',
   bonus: '20_60',
@@ -254,7 +253,8 @@ function chooseCapsule(rand) {
 
 function assignStageCapsules(stageNum) {
   const rand = seededRandom(stageNum * 101 + 17);
-  const candidates = bricks.filter((b) => b.type !== BrickType.GOLD);
+  // Capsules come from breakable non-silver bricks.
+  const candidates = bricks.filter((b) => b.type === BrickType.NORMAL);
   const count = Math.min(candidates.length, capsuleCountForStage(stageNum));
 
   for (let i = candidates.length - 1; i > 0; i--) {
@@ -334,7 +334,7 @@ function initStage() {
       if (ch === 'S') {
         type = BrickType.SILVER;
         hits = silverHits;
-        points = SILVER_BASE_POINTS * silverHits;
+        points = silverPointsForStage(stage);
         colorIndex = 7;
       } else if (ch === 'G') {
         type = BrickType.GOLD;
@@ -1035,6 +1035,4 @@ settingsApply?.addEventListener('click', () => {
 startGame();
 render();
 requestAnimationFrame(gameLoop);
-
-
 

@@ -24,7 +24,11 @@ export function speedValuesForDifficulty(difficulty) {
 }
 
 export function silverHitsForStage(stageNum) {
-  return Math.max(1, Math.min(6, 1 + Math.floor((stageNum - 1) / 8)));
+  return Math.max(2, Math.min(6, 2 + Math.floor((stageNum - 1) / 8)));
+}
+
+export function silverPointsForStage(stageNum) {
+  return 50 * Math.max(1, Math.floor(stageNum));
 }
 
 export function capsuleCountForStage(stageNum) {
