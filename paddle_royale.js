@@ -8,6 +8,8 @@ import {
   drawPaddle as drawSpritePaddle,
 } from './paddle_royale_sprite.js';
 import {
+  BRICK_LAYOUT_COLS,
+  BRICK_LAYOUT_ROWS,
   TOTAL_STAGES,
   SPEED_COUNTER_TABLE,
   capsuleCountForStage,
@@ -54,10 +56,10 @@ const BULLET_W = 4;
 const BULLET_H = 10;
 const BULLET_SPEED = 10;
 
-const BRICK_ROWS = 8;
-const BRICK_COLS = 10;
+const BRICK_ROWS = BRICK_LAYOUT_ROWS;
+const BRICK_COLS = BRICK_LAYOUT_COLS;
 const BRICK_W = W / BRICK_COLS;
-const BRICK_H = 20;
+const BRICK_H = 16;
 const BRICK_OFFSET_Y = 60;
 
 const STORAGE_HIGH = 'paddle_royale.high';
@@ -89,7 +91,7 @@ const CapsuleType = {
   PLAYER: 'P',
 };
 
-const BRICK_COLORS = ['#ef4444', '#f97316', '#facc15', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#64748b'];
+const BRICK_COLORS = ['#fcfcfc', '#fc7460', '#3cbcfc', '#80d010', '#d82800', '#0070ec', '#fc74b4', '#fc9838'];
 const BRICK_POINTS = [50, 60, 70, 80, 90, 100, 110, 120];
 const SILVER_BASE_POINTS = 50;
 
@@ -319,7 +321,7 @@ function initStage() {
   const silverHits = silverHitsForStage(stage);
 
   for (let r = 0; r < BRICK_ROWS; r++) {
-    const row = rows[r] || '..........';
+    const row = rows[r] || '.'.repeat(BRICK_COLS);
     for (let c = 0; c < BRICK_COLS; c++) {
       const ch = row[c] || '.';
       if (ch === '.') continue;
@@ -1033,7 +1035,6 @@ settingsApply?.addEventListener('click', () => {
 startGame();
 render();
 requestAnimationFrame(gameLoop);
-
 
 
 
