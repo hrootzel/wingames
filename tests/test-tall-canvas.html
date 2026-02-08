@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Shell Test - Tall Canvas</title>
+  <link rel="stylesheet" href="../game-shell.css">
+  <style>
+    body { margin: 0; padding: 0; background: #1a1a2e; color: #eee; font-family: sans-serif; }
+    .test-wrap { display: flex; flex-direction: column; height: 100vh; }
+    header { padding: 1rem; background: #16213e; }
+    h1 { margin: 0; font-size: 1.5rem; }
+    .test-shell { flex: 1; min-height: 0; }
+    #test-canvas { background: #0f3460; }
+    .test-hud { display: flex; flex-direction: column; gap: 1rem; }
+    .panel-box { background: #16213e; padding: 1rem; border-radius: 8px; }
+    .preview-canvas { background: #0f3460; display: block; margin: 0 auto; }
+    .stat { display: flex; justify-content: space-between; margin: 0.5rem 0; }
+  </style>
+</head>
+<body>
+  <div class="test-wrap">
+    <header>
+      <h1>Game Shell Test - Tall Canvas (320×600)</h1>
+    </header>
+    
+    <div class="test-shell gs-shell">
+      <div class="gs-surface">
+        <canvas id="test-canvas" width="320" height="600"></canvas>
+      </div>
+      
+      <div class="test-hud gs-hud">
+        <div class="panel-box" data-gs-snap="top" data-gs-fit="required">
+          <h3>Preview</h3>
+          <canvas class="preview-canvas" width="80" height="80"></canvas>
+        </div>
+        
+        <div class="panel-box" data-gs-snap="top" data-gs-fit="required">
+          <h3>Stats</h3>
+          <div class="stat"><span>Score:</span><span id="score">0</span></div>
+          <div class="stat"><span>Level:</span><span id="level">1</span></div>
+          <div class="stat"><span>Lines:</span><span id="lines">0</span></div>
+        </div>
+        
+        <div class="panel-box" data-gs-snap="bottom" data-gs-fit="optional">
+          <h3>Controls</h3>
+          <p>Arrow keys to move</p>
+          <p>Space to drop</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script type="module">
+    import { initGameShell } from '../game-shell.js';
+    
+    const canvas = document.getElementById('test-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Draw test pattern
+    function draw() {
+      ctx.fillStyle = '#0f3460';
+      ctx.fillRect(0, 0, 320, 600);
+      
+      ctx.strokeStyle = '#16213e';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 320; i += 40) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, 600);
+        ctx.stroke();
+      }
+      for (let i = 0; i < 600; i += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(320, i);
+        ctx.stroke();
+      }
+      
+      ctx.fillStyle = '#e94560';
+      ctx.font = '24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Tall Canvas', 160, 300);
+      ctx.font = '16px sans-serif';
+      ctx.fillText('320 × 600', 160, 330);
+    }
+    
+    draw();
+    
+    initGameShell({
+      canvasEl: canvas,
+      baseWidth: 320,
+      baseHeight: 600,
+      mode: 'fractional',
+      fit: 'css'
+    });
+  </script>
+</body>
+</html>
