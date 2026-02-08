@@ -1,5 +1,6 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_SNAKE } from './sfx_bank_snake.js';
+import { initGameShell } from './game-shell.js';
 
 const canvas = document.getElementById('snake-canvas');
 const ctx = canvas.getContext('2d');
@@ -290,5 +291,16 @@ pauseBtn.addEventListener('click', () => {
 });
 
 init();
+
+initGameShell({
+  shellEl: '.snake-board',
+  surfaceEl: '#snake-surface',
+  canvasEl: canvas,
+  baseWidth: canvas.width,
+  baseHeight: canvas.height,
+  mode: 'fractional',
+  fit: 'css'
+});
+
 render();
 requestAnimationFrame(gameLoop);

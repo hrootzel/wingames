@@ -1,6 +1,7 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_PLOPPLOP } from './sfx_bank_plop_plop.js';
 import { createPlopPlopSprite } from './plop_plop_sprite.js';
+import { initGameShell } from './game-shell.js';
 
 const W = 6;
 const H = 14;
@@ -969,5 +970,16 @@ pauseBtn.addEventListener('click', () => togglePause());
 document.addEventListener('pointerdown', unlockAudio, { once: true });
 
 setupView();
+initGameShell({
+  shellEl: '.plop-wrap',
+  surfaceEl: '#plop-surface',
+  canvasEl: canvas,
+  baseWidth: canvas.width,
+  baseHeight: canvas.height,
+
+  mode: 'fractional',
+  fit: 'css',
+  onResize: setupView,
+});
 newGame();
 loop();

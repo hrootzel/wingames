@@ -1,5 +1,6 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_PRISMPULSE } from './sfx_bank_prismpulse.js';
+import { initGameShell } from './game-shell.js';
 
 const COLS = 16;
 const ROWS = 10;
@@ -121,6 +122,7 @@ const ORIGINAL_CHALLENGE_SKINS = [
 ];
 
 const canvas = document.getElementById('pulse-canvas');
+const shellEl = document.getElementById('pulse-shell');
 const ctx = canvas.getContext('2d');
 const statusEl = document.getElementById('status');
 const scoreEl = document.getElementById('score');
@@ -335,6 +337,13 @@ function updateThemeVars() {
 function applyLayoutClass() {
   document.body.classList.remove('layout-horizontal', 'layout-vertical');
   document.body.classList.add(game.layout === 'vertical' ? 'layout-vertical' : 'layout-horizontal');
+  if (shellEl) {
+    if (game.layout === 'vertical') {
+      shellEl.dataset.gsLayout = 'stack';
+    } else {
+      delete shellEl.dataset.gsLayout;
+    }
+  }
 }
 
 function syncSettingsUI() {
@@ -982,19 +991,10 @@ function renderHud() {
 }
 
 function setCanvasSize() {
-  const parent = canvas.parentElement.getBoundingClientRect();
-  const maxW = Math.max(300, Math.floor(parent.width - 20));
-  const ratio = 16 / 10;
-  let width = Math.min(maxW, 900);
-  let height = Math.floor(width / ratio);
-  if (height > 560) {
-    height = 560;
-    width = Math.floor(height * ratio);
-  }
-  canvas.width = width;
-  canvas.height = height;
+  const width = canvas.width;
+  const height = canvas.height;
 
-  const pad = Math.max(20, Math.floor(width * 0.06));
+  const pad = Math.max(12, Math.floor(width * 0.03));
   view.boardX = pad;
   view.boardY = pad;
   view.boardW = width - pad * 2;
@@ -1377,8 +1377,15 @@ function init() {
   document.addEventListener('keydown', unlockAudio, { once: true });
   document.addEventListener('pointerdown', unlockAudio, { once: true });
   document.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
-  window.addEventListener('resize', () => {
-    setCanvasSize();
+  initGameShell({
+    shellEl: '#pulse-shell',
+    surfaceEl: '#pulse-surface',
+    canvasEl: canvas,
+    baseWidth: canvas.width,
+    baseHeight: canvas.height,
+    mode: 'fractional',
+    fit: 'css',
+    onResize: () => setCanvasSize(),
   });
 
   newBtn.addEventListener('click', () => {

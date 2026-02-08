@@ -1,6 +1,7 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_SUPERBUSTER } from './sfx_bank_super_buster.js';
 import { drawBackground, drawHarpoon, drawBall, drawPlayer } from './super_buster_sprite.js';
+import { initGameShell } from './game-shell.js';
 
 const WORLD_W = 640;
 const WORLD_H = 360;
@@ -468,6 +469,16 @@ document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
 newBtn.addEventListener('click', () => newGame());
 document.addEventListener('pointerdown', unlockAudio, { once: true });
+
+initGameShell({
+  surfaceEl: '#buster-surface',
+  canvasEl: canvas,
+  baseWidth: WORLD_W,
+  baseHeight: WORLD_H,
+  canvasBias: 'wide',
+  mode: 'fractional',
+  fit: 'css',
+});
 
 newGame();
 loop();

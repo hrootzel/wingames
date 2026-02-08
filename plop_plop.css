@@ -9,10 +9,7 @@
 }
 
 .plopplop .plop-wrap {
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) 250px;
-  gap: 16px;
-  align-items: start;
+  --gs-hud-width: 250px;
 }
 
 .plopplop .plop-stage {
@@ -26,10 +23,14 @@
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 
-.plopplop #plop-canvas {
+.plopplop .plop-surface {
   width: 100%;
-  max-width: 360px;
-  height: auto;
+  max-width: 100%;
+  max-height: none;
+  margin-inline: auto;
+}
+
+.plopplop #plop-canvas {
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.6);
   box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 24px var(--plop-glow);
@@ -37,8 +38,7 @@
 }
 
 .plopplop .plop-panel {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 12px;
 }
 
@@ -93,20 +93,14 @@
 }
 
 @media (max-width: 900px) {
-  .plopplop .plop-wrap {
-    grid-template-columns: 1fr;
+  .plopplop .subtitle,
+  .plopplop .hud {
+    display: none;
   }
 
-  .plopplop .plop-panel {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .plopplop .panel-box {
-    flex: 1 1 220px;
-  }
-
-  .plopplop #plop-canvas {
+  .plopplop .plop-surface {
+    width: 100%;
     max-width: 100%;
+    max-height: none;
   }
 }

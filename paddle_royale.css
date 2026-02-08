@@ -51,11 +51,8 @@
 }
 
 .paddle-board {
-  display: grid;
-  grid-template-columns: max-content 190px;
-  gap: 10px;
-  align-items: start;
-  justify-content: center;
+  --gs-hud-width: 190px;
+  --gs-gap: 10px;
   max-width: 100%;
 }
 
@@ -68,26 +65,26 @@
   border: none;
   box-shadow: none;
   min-width: 0;
-  width: fit-content;
-  justify-self: center;
 }
 
 #paddle-canvas {
   display: block;
-  width: min(calc(100dvh * 0.75), calc(100vw - 240px), 700px);
-  height: auto;
-  aspect-ratio: 3 / 4;
-  max-height: 96dvh;
   border-radius: 10px;
   touch-action: none;
 }
 
+.paddle-surface {
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  margin-inline: auto;
+}
+
 .paddle-side {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 10px;
   min-width: 0;
-  margin-top: clamp(40px, 18dvh, 140px);
+  margin-top: 0;
 }
 
 .paddle-side .panel-box {
@@ -244,7 +241,6 @@
   }
 
   .paddle-board {
-    grid-template-columns: 1fr;
     gap: 6px;
   }
 
@@ -252,22 +248,28 @@
     padding: 0;
   }
 
-  #paddle-canvas {
-    width: min(calc((100dvh - 132px) * 0.75), 97vw, 700px);
-    max-height: calc(100dvh - 132px);
+  .paddle-surface {
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
   }
 
   .paddle-side {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     margin-top: 0;
     gap: 6px;
   }
 
-  .paddle-stats {
+  .paddle-board[data-gs-layout="stack"] .paddle-side {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .paddle-stats {
     gap: 4px 8px;
     font-size: 12px;
+  }
+
+  .paddle-board[data-gs-layout="stack"] .paddle-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .paddle-side .panel-box {
@@ -290,16 +292,19 @@
     padding-right: 6px;
   }
 
-  #paddle-canvas {
-    width: min(calc((100dvh - 126px) * 0.75), 98vw, 700px);
-    max-height: calc(100dvh - 126px);
-  }
-
   .paddle-side {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .paddle-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .paddle-board[data-gs-layout="stack"] .paddle-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .paddle-board[data-gs-layout="stack"] .paddle-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

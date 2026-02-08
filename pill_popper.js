@@ -2,6 +2,7 @@ import { SfxEngine } from './sfx_engine.js';
 import { BANK_PILLPOPPER } from './sfx_bank_pill_popper.js';
 import { roundRect } from './rendering_engine.js';
 import { drawSegment, drawVirus } from './pill_popper_sprite.js';
+import { initGameShell } from './game-shell.js';
 
 const W = 8;
 const H = 16;
@@ -103,10 +104,6 @@ const DEFAULT_SETTINGS = {
 
 const canvas = document.getElementById('pill-canvas');
 const ctx = canvas.getContext('2d');
-const stageEl = document.querySelector('.pill-stage');
-const wrapEl = document.querySelector('.pill-wrap');
-const stageAreaEl = document.querySelector('.pill-stage-area');
-const sideEl = document.querySelector('.pill-side');
 const nextCanvas = document.getElementById('next-canvas');
 const nextCtx = nextCanvas.getContext('2d');
 
@@ -924,35 +921,6 @@ function setupView() {
   view.boardTop = Math.floor((canvas.height - view.boardHeight) / 2);
 }
 
-function resizeCanvasToStage() {
-  if (!stageEl || !stageAreaEl || !wrapEl) return;
-  const wrapRect = wrapEl.getBoundingClientRect();
-  const areaStyle = window.getComputedStyle(stageAreaEl);
-  const stageStyle = window.getComputedStyle(stageEl);
-  const gapX = parseFloat(areaStyle.columnGap) || parseFloat(areaStyle.gap) || 0;
-  const sideWidth = sideEl ? sideEl.getBoundingClientRect().width : 0;
-  const padX = parseFloat(stageStyle.paddingLeft) + parseFloat(stageStyle.paddingRight);
-  const padY = parseFloat(stageStyle.paddingTop) + parseFloat(stageStyle.paddingBottom);
-  const maxW = Math.max(0, wrapRect.width - sideWidth - gapX - padX);
-  const maxH = Math.max(0, wrapRect.height - padY);
-  if (maxW <= 0 || maxH <= 0) return;
-  const ratio = W / VISIBLE_H;
-  let width = maxW;
-  let height = maxH;
-  if (width / height > ratio) {
-    width = height * ratio;
-  } else {
-    height = width / ratio;
-  }
-  const wPx = Math.max(1, Math.floor(width));
-  const hPx = Math.max(1, Math.floor(height));
-  canvas.style.width = `${wPx}px`;
-  canvas.style.height = `${hPx}px`;
-  canvas.width = wPx;
-  canvas.height = hPx;
-  setupView();
-}
-
 function cellToX(col) {
   return view.boardLeft + col * view.cellSize;
 }
@@ -1257,9 +1225,17 @@ document.addEventListener('keydown', (ev) => {
   }
 });
 document.addEventListener('pointerdown', unlockAudio, { once: true });
-window.addEventListener('resize', () => resizeCanvasToStage());
 
 syncSettingsUI(settings);
-resizeCanvasToStage();
+initGameShell({
+  shellEl: '.pill-stage-area',
+  surfaceEl: '#pill-surface',
+  canvasEl: canvas,
+  baseWidth: canvas.width,
+  baseHeight: canvas.height,
+  mode: 'fractional',
+  fit: 'css',
+  onResize: setupView,
+});
 newGame();
 loop();

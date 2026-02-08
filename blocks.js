@@ -1,12 +1,10 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_BLOCKS } from './sfx_bank_blocks.js';
+import { initGameShell } from './game-shell.js';
 
 const canvas = document.getElementById('blocks-canvas');
 const ctx = canvas.getContext('2d');
-const stageEl = document.querySelector('.blocks-stage');
-const wrapEl = document.querySelector('.blocks-wrap');
 const stageAreaEl = document.querySelector('.blocks-stage-area');
-const sideEl = document.querySelector('.blocks-side');
 const previewCanvas = document.getElementById('preview-canvas');
 const previewCtx = previewCanvas.getContext('2d');
 const previewBoxEl = document.querySelector('.preview-box');
@@ -127,6 +125,8 @@ const view = {
 
 const CATALOG = buildCatalog(BASE_PIECES);
 const CATALOG_BY_ID = Object.fromEntries(CATALOG.map((piece) => [piece.id, piece]));
+let shellController = null;
+let shellKey = '';
 
 function makeInput() {
   return {
@@ -679,33 +679,34 @@ function updateView() {
   view.boardTop = Math.floor((canvas.height - view.boardH) / 2);
 }
 
-function resizeCanvasToStage() {
-  if (!state.settings || !stageEl || !stageAreaEl || !wrapEl) return;
-  const wrapRect = wrapEl.getBoundingClientRect();
-  const areaStyle = window.getComputedStyle(stageAreaEl);
-  const stageStyle = window.getComputedStyle(stageEl);
-  const gapX = parseFloat(areaStyle.columnGap) || parseFloat(areaStyle.gap) || 0;
-  const sideWidth = sideEl ? sideEl.getBoundingClientRect().width : 0;
-  const padX = parseFloat(stageStyle.paddingLeft) + parseFloat(stageStyle.paddingRight);
-  const padY = parseFloat(stageStyle.paddingTop) + parseFloat(stageStyle.paddingBottom);
-  const maxW = Math.max(0, wrapRect.width - sideWidth - gapX - padX);
-  const maxH = Math.max(0, wrapRect.height - padY);
-  if (maxW <= 0 || maxH <= 0) return;
-  const ratio = state.settings.w / state.settings.h;
-  let width = maxW;
-  let height = maxH;
-  if (width / height > ratio) {
-    width = height * ratio;
-  } else {
-    height = width / ratio;
+function ensureGameShell() {
+  if (!state.settings || !stageAreaEl) return;
+  const key = `${state.settings.w}x${state.settings.h}`;
+  if (shellController && shellKey === key) {
+    shellController.resize();
+    return;
   }
-  const wPx = Math.max(1, Math.floor(width));
-  const hPx = Math.max(1, Math.floor(height));
-  canvas.style.width = `${wPx}px`;
-  canvas.style.height = `${hPx}px`;
-  canvas.width = wPx;
-  canvas.height = hPx;
-  updateView();
+  if (shellController) {
+    shellController.destroy();
+  }
+  const baseCell = 30;
+  const baseWidth = Math.max(240, state.settings.w * baseCell);
+  const baseHeight = Math.max(360, state.settings.h * baseCell);
+  canvas.width = baseWidth;
+  canvas.height = baseHeight;
+  stageAreaEl.style.setProperty('--blocks-ar', (state.settings.w / state.settings.h).toString());
+  stageAreaEl.style.setProperty('--game-ar', `${state.settings.w} / ${state.settings.h}`);
+  shellController = initGameShell({
+    shellEl: '.blocks-stage-area',
+    surfaceEl: '#blocks-surface',
+    canvasEl: canvas,
+    baseWidth,
+    baseHeight,
+    mode: 'fractional',
+    fit: 'css',
+    onResize: updateView,
+  });
+  shellKey = key;
 }
 
 function palette(index) {
@@ -876,7 +877,7 @@ function startNewGame(settings) {
   state.arrCounter = 0;
   pauseBtn.textContent = 'Pause';
   resetRng();
-  resizeCanvasToStage();
+  ensureGameShell();
   refillQueue();
   spawnNextPiece();
   updatePreviewStatus();
@@ -1019,7 +1020,6 @@ document.addEventListener('keydown', preventArrowScroll, { passive: false });
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
 document.addEventListener('pointerdown', unlockAudio, { once: true });
-window.addEventListener('resize', () => resizeCanvasToStage());
 settingsToggle.addEventListener('click', () => openSettings());
 settingsClose.addEventListener('click', () => closeSettings());
 settingsCancel.addEventListener('click', () => closeSettings());

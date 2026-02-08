@@ -1,7 +1,11 @@
-﻿import { SfxEngine } from './sfx_engine.js';
+import { SfxEngine } from './sfx_engine.js';
 import { BANK_PADDLEROYALE } from './sfx_bank_paddle_royale.js';
+import { initGameShell } from './game-shell.js';
 import {
   drawBalls as drawSpriteBalls,
+  drawBallTrails as drawSpriteBallTrails,
+  drawExplosions as drawSpriteExplosions,
+  drawStageBackground as drawSpriteStageBackground,
   drawBricks as drawSpriteBricks,
   drawBullets as drawSpriteBullets,
   drawCapsules as drawSpriteCapsules,
@@ -69,8 +73,6 @@ const BRICK_OFFSET_Y = 60;
 const BREAK_GATE_TOP = Math.floor(H * 0.64);
 const BREAK_GATE_BOTTOM = BREAK_GATE_TOP + 72;
 const CATCH_AUTO_RELEASE_FRAMES = 120;
-const BG_THEMES = ['blue1', 'green', 'blue2', 'red'];
-const BG_PATTERN_CACHE = new Map();
 
 const STORAGE_HIGH = 'paddle_royale.high';
 const STORAGE_SETTINGS = 'paddle_royale.settings';
@@ -165,6 +167,7 @@ let brickHitStreak = 0;
 let brickStreakTimer = 0;
 let catchReleaseTimer = 0;
 let explosions = [];
+let breakableBrickCount = 0;
 
 let effects = {
   expand: false,
@@ -178,11 +181,6 @@ syncSettingsUI(settings);
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
-}
-
-function toNumber(value, fallback) {
-  const next = Number(value);
-  return Number.isFinite(next) ? next : fallback;
 }
 
 function sanitizeSettings(next) {
@@ -235,6 +233,8 @@ function applySettingsFromUI() {
   });
   settings = next;
   sfx.setEnabled(settings.sounds === 'on');
+  if (settings.explosions !== 'on') explosions = [];
+  if (settings.trails !== 'on') balls.forEach((b) => { b.trail = []; });
   saveSettings(next);
   syncSettingsUI(next);
   startGame();
@@ -357,6 +357,7 @@ function clearTransientEffectsOnLifeLoss() {
 function initStage() {
   bricks = [];
   explosions = [];
+  breakableBrickCount = 0;
   const rows = getStageRows(stage);
   const silverHits = silverHitsForStage(stage);
 
@@ -401,6 +402,7 @@ function initStage() {
         colorIndex,
         capsule: null,
       });
+      if (type !== BrickType.GOLD) breakableBrickCount += 1;
     }
   }
 
@@ -421,11 +423,13 @@ function launchStuckBalls() {
 
   targets.forEach((b, idx) => {
     const spread = (idx - (targets.length - 1) / 2) * 0.22;
-    const angle = -Math.PI / 2 + spread;
+    const angle = b.catchAngle ?? (-Math.PI / 2 + spread);
     b.stuck = false;
     b.served = true;
     b.vx = Math.cos(angle) * speed;
     b.vy = Math.sin(angle) * speed;
+    b.catchOffsetX = null;
+    b.catchAngle = null;
   });
 
   state = State.PLAYING;
@@ -652,6 +656,13 @@ function spawnBrickExplosion(brick) {
   }
 }
 
+function removeBrickAt(index) {
+  const [removed] = bricks.splice(index, 1);
+  if (removed && removed.type !== BrickType.GOLD) {
+    breakableBrickCount = Math.max(0, breakableBrickCount - 1);
+  }
+}
+
 function damageBrick(brick, sourceIsBall) {
   if (brick.type === BrickType.GOLD) {
     sfx.play(BANK_PADDLEROYALE, 'goldHit');
@@ -718,21 +729,23 @@ function handleBallPaddleCollision(ball) {
   if (!ballHitsPaddle(ball)) return;
 
   ball.y = PADDLE_Y - BALL_R;
+  const speed = currentBallSpeed();
+  const hitPos = (ball.x - paddle.x) / paddle.width;
+  const angle = (-150 + hitPos * 120) * (Math.PI / 180);
 
   if (effects.catch && !effects.laser) {
+    // Keep the ball at the exact catch position and preserve relaunch angle.
     ball.stuck = true;
     ball.vx = 0;
     ball.vy = 0;
-    state = State.READY;
+    ball.catchOffsetX = clamp(ball.x - paddle.x, BALL_R, paddle.width - BALL_R);
+    ball.catchAngle = angle;
     catchReleaseTimer = CATCH_AUTO_RELEASE_FRAMES;
     statusEl.textContent = 'Caught. Press Space or click to relaunch.';
     sfx.play(BANK_PADDLEROYALE, 'paddleHit');
     return;
   }
 
-  const speed = currentBallSpeed();
-  const hitPos = (ball.x - paddle.x) / paddle.width;
-  const angle = (-150 + hitPos * 120) * (Math.PI / 180);
   ball.vx = Math.cos(angle) * speed;
   ball.vy = Math.sin(angle) * speed;
   bumpSpeedCounter();
@@ -764,7 +777,8 @@ function updateBalls() {
 
   for (const ball of balls) {
     if (ball.stuck) {
-      ball.x = paddle.x + paddle.width / 2;
+      const offset = ball.catchOffsetX != null ? ball.catchOffsetX : paddle.width / 2;
+      ball.x = paddle.x + offset;
       ball.y = PADDLE_Y - BALL_R - 2;
       ball.trail = [];
       keep.push(ball);
@@ -818,7 +832,7 @@ function updateBalls() {
 
       const broke = damageBrick(brick, true);
       if (broke) {
-        bricks.splice(i, 1);
+        removeBrickAt(i);
         removedBrick = true;
       }
 
@@ -867,7 +881,7 @@ function updateBullets() {
         by + BULLET_H > brick.y
       ) {
         const broke = damageBrick(brick, false);
-        if (broke) bricks.splice(i, 1);
+        if (broke) removeBrickAt(i);
         sfx.play(BANK_PADDLEROYALE, 'laserHit', { row: brick.row });
         hit = true;
         break;
@@ -905,6 +919,10 @@ function updateCapsules() {
 }
 
 function updateExplosions() {
+  if (settings.explosions !== 'on') {
+    if (explosions.length) explosions = [];
+    return;
+  }
   if (explosions.length === 0) return;
   const next = [];
   for (const p of explosions) {
@@ -916,10 +934,6 @@ function updateExplosions() {
     if (p.life > 0) next.push(p);
   }
   explosions = next;
-}
-
-function breakableBricksLeft() {
-  return bricks.filter((b) => b.type !== BrickType.GOLD).length;
 }
 
 function tick() {
@@ -939,14 +953,16 @@ function tick() {
   if (state === State.READY) {
     for (const b of balls) {
       if (b.stuck) {
-        b.x = paddle.x + paddle.width / 2;
+        const offset = b.catchOffsetX != null ? b.catchOffsetX : paddle.width / 2;
+        b.x = paddle.x + offset;
         b.y = PADDLE_Y - BALL_R - 2;
       }
     }
-    if (effects.catch && catchReleaseTimer > 0 && balls.some((b) => b.stuck)) {
-      catchReleaseTimer -= 1;
-      if (catchReleaseTimer <= 0) launchStuckBalls();
-    }
+  }
+
+  if (effects.catch && catchReleaseTimer > 0 && balls.some((b) => b.stuck)) {
+    catchReleaseTimer -= 1;
+    if (catchReleaseTimer <= 0) launchStuckBalls();
   }
 
   if (state !== State.PLAYING) return;
@@ -961,7 +977,7 @@ function tick() {
     return;
   }
 
-  if (breakableBricksLeft() === 0) {
+  if (breakableBrickCount === 0) {
     state = State.LEVEL_COMPLETE;
     levelCompleteTimer = 90;
     bullets = [];
@@ -986,112 +1002,8 @@ function drawOverlay() {
   if (state === State.WON) ctx.fillText('ALL CLEAR', W / 2, H / 2);
 }
 
-function stageTheme(stageNum) {
-  return BG_THEMES[(Math.max(1, stageNum) - 1) % BG_THEMES.length];
-}
-
-function stagePalette(theme) {
-  switch (theme) {
-    case 'green':
-      return { base: '#12471e', lineA: '#1f6a31', lineB: '#2e7c42', accent: '#3b9a56' };
-    case 'blue2':
-      return { base: '#13253f', lineA: '#1b3e68', lineB: '#28527e', accent: '#3a73a6' };
-    case 'red':
-      return { base: '#3c1820', lineA: '#632330', lineB: '#7a3342', accent: '#9a4a58' };
-    case 'blue1':
-    default:
-      return { base: '#0f2f4c', lineA: '#1a486f', lineB: '#245e89', accent: '#3d7eaf' };
-  }
-}
-
-function makePatternKey(stageNum) {
-  return `${stageTheme(stageNum)}:${(Math.max(1, stageNum) - 1) % 8}`;
-}
-
-function tileHash(x, y, seed) {
-  let n = (x * 73856093) ^ (y * 19349663) ^ (seed * 83492791);
-  n ^= n >>> 13;
-  n = Math.imul(n, 1274126177);
-  return (n ^ (n >>> 16)) >>> 0;
-}
-
-function buildStagePattern(stageNum) {
-  const key = makePatternKey(stageNum);
-  if (BG_PATTERN_CACHE.has(key)) return BG_PATTERN_CACHE.get(key);
-
-  const theme = stageTheme(stageNum);
-  const pal = stagePalette(theme);
-  const seed = (Math.max(1, stageNum) - 1) % 8;
-
-  const tile = document.createElement('canvas');
-  tile.width = 64;
-  tile.height = 64;
-  const g = tile.getContext('2d');
-
-  g.fillStyle = pal.base;
-  g.fillRect(0, 0, tile.width, tile.height);
-
-  // Muted geometric maze style using quarter arcs and short joins.
-  for (let gy = 0; gy < 8; gy++) {
-    for (let gx = 0; gx < 8; gx++) {
-      const h = tileHash(gx, gy, seed);
-      const px = gx * 8;
-      const py = gy * 8;
-      const mode = h & 3;
-
-      g.lineWidth = 1.5;
-      g.strokeStyle = (h & 0x10) ? pal.lineA : pal.lineB;
-      g.beginPath();
-      if (mode === 0) g.arc(px + 0, py + 0, 6, 0, Math.PI / 2);
-      else if (mode === 1) g.arc(px + 8, py + 0, 6, Math.PI / 2, Math.PI);
-      else if (mode === 2) g.arc(px + 8, py + 8, 6, Math.PI, Math.PI * 1.5);
-      else g.arc(px + 0, py + 8, 6, Math.PI * 1.5, Math.PI * 2);
-      g.stroke();
-
-      if (h & 0x20) {
-        g.strokeStyle = pal.accent;
-        g.beginPath();
-        g.moveTo(px + 2, py + 4);
-        g.lineTo(px + 6, py + 4);
-        g.stroke();
-      }
-    }
-  }
-
-  const pattern = ctx.createPattern(tile, 'repeat');
-  BG_PATTERN_CACHE.set(key, pattern);
-  return pattern;
-}
-
-function drawStageBackground(ctx, stageNum) {
-  const pattern = buildStagePattern(stageNum);
-  if (pattern) {
-    ctx.fillStyle = pattern;
-    ctx.fillRect(0, 0, W, H);
-  } else {
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, W, H);
-  }
-
-  const theme = stageTheme(stageNum);
-  const pal = stagePalette(theme);
-  const glow = ctx.createLinearGradient(0, 0, 0, H);
-  glow.addColorStop(0, 'rgba(255,255,255,0.03)');
-  glow.addColorStop(0.6, 'rgba(0,0,0,0)');
-  glow.addColorStop(1, 'rgba(0,0,0,0.22)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
-
-  // Soft vignette to keep foreground readability.
-  const vignette = ctx.createRadialGradient(W * 0.5, H * 0.48, H * 0.18, W * 0.5, H * 0.48, H * 0.82);
-  vignette.addColorStop(0, 'rgba(0,0,0,0)');
-  vignette.addColorStop(1, `rgba(0,0,0,${theme === 'green' ? '0.36' : '0.32'})`);
-  ctx.fillStyle = vignette;
-  ctx.fillRect(0, 0, W, H);
-}
-
 function render() {
-  drawStageBackground(ctx, stage);
+  drawSpriteStageBackground(ctx, W, H, stage);
 
   if (effects.breakGate) {
     ctx.save();
@@ -1104,49 +1016,13 @@ function render() {
   }
 
   drawSpriteBricks(ctx, bricks, BRICK_COLORS, stage);
-  if (settings.trails === 'on') drawBallTrails(ctx, balls);
-  if (settings.explosions === 'on') drawExplosions(ctx);
+  if (settings.trails === 'on') drawSpriteBallTrails(ctx, balls);
+  if (settings.explosions === 'on') drawSpriteExplosions(ctx, explosions);
   drawSpritePaddle(ctx, paddle, PADDLE_Y, effects);
   drawSpriteBalls(ctx, balls, effects);
   drawSpriteBullets(ctx, bullets, BULLET_W, BULLET_H);
   drawSpriteCapsules(ctx, capsules);
   drawOverlay();
-}
-
-function drawBallTrails(ctx, list) {
-  for (const ball of list) {
-    if (!ball.trail || ball.trail.length === 0) continue;
-    for (let i = 0; i < ball.trail.length; i++) {
-      const t = ball.trail[i];
-      const k = (i + 1) / ball.trail.length;
-      ctx.fillStyle = `rgba(255, 221, 107, ${0.05 + 0.22 * k})`;
-      ctx.beginPath();
-      ctx.arc(t.x, t.y, 1.6 + 3.1 * k, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-}
-
-function drawExplosions(ctx) {
-  if (explosions.length === 0) return;
-  ctx.save();
-  for (const p of explosions) {
-    const alpha = clamp(p.life / p.maxLife, 0, 1);
-    const glow = p.size * (1.45 - alpha * 0.35);
-
-    ctx.globalAlpha = alpha * 0.65;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, glow, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255, 245, 214, ${alpha * 0.42})`;
-    ctx.fill();
-
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
 }
 
 function togglePause() {
@@ -1181,7 +1057,7 @@ function gameLoop(ts) {
     } else {
       tick();
     }
-    if (state !== State.PAUSED && state !== State.DEAD && state !== State.WON) {
+    if (settings.explosions === 'on' && state !== State.PAUSED && state !== State.DEAD && state !== State.WON) {
       updateExplosions();
     }
   }
@@ -1231,6 +1107,10 @@ document.addEventListener('keydown', (e) => {
       launchStuckBalls();
       return;
     }
+    if (state === State.PLAYING && balls.some((b) => b.stuck)) {
+      launchStuckBalls();
+      return;
+    }
     if (state === State.PLAYING) fireLaser();
     return;
   }
@@ -1249,21 +1129,44 @@ canvas.addEventListener('pointermove', (ev) => {
   movePaddleFromClientX(ev.clientX);
 });
 
-canvas.addEventListener('pointerdown', (ev) => {
+function handleCanvasTap(clientX) {
   if (!audioUnlocked) {
     sfx.unlock();
     audioUnlocked = true;
   }
   if (isSettingsOpen()) return;
-  ev.preventDefault();
-  movePaddleFromClientX(ev.clientX);
+  movePaddleFromClientX(clientX);
   if (state === State.READY || state === State.IDLE) {
     if (state === State.IDLE) startGame();
     launchStuckBalls();
     return;
   }
+  if (state === State.PLAYING && balls.some((b) => b.stuck)) {
+    launchStuckBalls();
+    return;
+  }
   if (state === State.PLAYING) fireLaser();
+}
+
+canvas.style.touchAction = 'none';
+
+canvas.addEventListener('pointerdown', (ev) => {
+  ev.preventDefault();
+  handleCanvasTap(ev.clientX);
 });
+
+// Fallback touch listeners for browsers/devices with unreliable pointer events.
+canvas.addEventListener('touchstart', (ev) => {
+  if (ev.touches.length === 0) return;
+  ev.preventDefault();
+  handleCanvasTap(ev.touches[0].clientX);
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (ev) => {
+  if (isSettingsOpen() || ev.touches.length === 0) return;
+  ev.preventDefault();
+  movePaddleFromClientX(ev.touches[0].clientX);
+}, { passive: false });
 
 newBtn.addEventListener('click', () => {
   if (!audioUnlocked) {
@@ -1293,6 +1196,16 @@ settingsApply?.addEventListener('click', () => {
 });
 
 sfx.setEnabled(settings.sounds === 'on');
+initGameShell({
+  shellEl: '.paddle-board',
+  surfaceEl: '#paddle-surface',
+  canvasEl: canvas,
+  baseWidth: W,
+  baseHeight: H,
+  mode: 'fractional',
+  fit: 'css',
+});
 startGame();
 render();
 requestAnimationFrame(gameLoop);
+

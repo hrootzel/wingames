@@ -40,6 +40,15 @@ Local, dependency-free implementations of card, puzzle, and arcade games using J
    ```
 2. Open in a browser: `http://localhost:8000/`
 
+## Testing
+Run automated Playwright tests for game-shell layout algorithm:
+```bash
+cd tests
+cmd.exe /c "node node_modules/@playwright/test/cli.js test"
+```
+
+Tests validate responsive layout switching, HUD compression, and canvas scaling across different viewport sizes.
+
 ## Controls
 - **Card games**: Click to select a card/run, click another stack to move; drag also works. Double-click (Klondike) a top face-up card to auto-send to foundation.
 - **Puzzle/arcade games**: Use keyboard controls shown on each game screen (typically arrow keys/WASD).

@@ -1,5 +1,6 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_MYRIAPOD } from './sfx_bank_myriapod.js';
+import { initGameShell } from './game-shell.js';
 
 const canvas = document.getElementById('myriapod-canvas');
 const ctx = canvas.getContext('2d');
@@ -590,5 +591,17 @@ pauseBtn.addEventListener('click', () => {
 });
 
 init();
+
+initGameShell({
+  shellEl: '.myriapod-board',
+  surfaceEl: '#myriapod-surface',
+  canvasEl: canvas,
+  baseWidth: W,
+  baseHeight: H,
+  mode: 'fractional',
+  fit: 'css',
+  viewportPadding: 80
+});
+
 render();
 requestAnimationFrame(gameLoop);

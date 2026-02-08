@@ -1,34 +1,29 @@
-.snake-game #app { max-width: 1100px; }
+/* Example game CSS — shows the minimal per-game overrides needed with game-shell. */
 
-.snake-board {
+.example-game #app { max-width: 900px; }
+
+/* Override snap column minimum for small panels (default 200px). */
+.example-board {
   --gs-snap-col-min: 140px;
 }
 
-#snake-canvas {
+/* Canvas gets the visual styling, not the stage wrapper. */
+#example-canvas {
   display: block;
+  background: #0f172a;
   border-radius: 8px;
-  box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
 }
 
-
-.snake-side {
-  min-width: 140px;
-}
-
-.snake-board:not([data-gs-layout="stack"]) .snake-side {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.snake-board .panel-box {
+/* Panel styling — scope to .example-board so it applies in both
+   side mode (panels in gs-hud) and stack mode (panels in gs-snap-top). */
+.example-board .panel-box {
   background: rgba(0,0,0,0.2);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
 }
 
-.snake-board .panel-box h3 {
+.example-board .panel-box h3 {
   margin: 0 0 8px 0;
   font-size: 13px;
   text-transform: uppercase;
@@ -36,7 +31,8 @@
   color: rgba(255,255,255,0.7);
 }
 
-.snake-stats {
+/* Stats grid — auto columns + nowrap so text doesn't break at narrow widths. */
+.example-stats {
   display: grid;
   grid-template-columns: auto auto;
   gap: 2px 1rem;
@@ -44,24 +40,24 @@
   white-space: nowrap;
 }
 
-.snake-controls {
+.example-controls {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.snake-footer {
+.example-footer {
   margin-top: 12px;
 }
 
-.snake-footer .key-hints {
+.example-footer .key-hints {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 6px 16px;
   font-size: 13px;
 }
 
-.snake-footer .key {
+.example-footer .key {
   display: inline-block;
   background: rgba(255,255,255,0.1);
   padding: 2px 6px;
@@ -70,4 +66,3 @@
   font-size: 11px;
   margin-right: 4px;
 }
-

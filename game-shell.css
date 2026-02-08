@@ -1,0 +1,103 @@
+:root {
+  --gs-gap: 16px;
+  --gs-hud-width: clamp(220px, 28vw, 360px);
+  --gs-snap-col-min: 200px;
+  --gs-hud-col-min: 220px;
+}
+
+.gs-shell {
+  container-type: inline-size;
+  display: grid;
+  gap: var(--gs-gap);
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--gs-hud-width-live, var(--gs-hud-width)));
+  grid-template-areas:
+    "top top"
+    "stage hud"
+    "bottom bottom";
+}
+
+.gs-shell[data-gs-side="left"] {
+  grid-template-columns: minmax(0, var(--gs-hud-width-live, var(--gs-hud-width))) minmax(0, 1fr);
+  grid-template-areas:
+    "top top"
+    "hud stage"
+    "bottom bottom";
+}
+
+.gs-shell[data-gs-layout="stack"] {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "top"
+    "stage"
+    "bottom"
+    "hud";
+}
+
+.gs-stage {
+  grid-area: stage;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.gs-hud {
+  grid-area: hud;
+  display: grid;
+  gap: var(--gs-gap);
+  align-content: start;
+  grid-auto-rows: max-content;
+  min-width: 0;
+}
+
+.gs-snap-lane {
+  display: none;
+  gap: var(--gs-gap);
+  align-content: start;
+  min-width: 0;
+}
+
+.gs-snap-top { grid-area: top; }
+.gs-snap-bottom { grid-area: bottom; }
+
+.gs-shell[data-gs-mode="portrait"][data-gs-top-active="true"] .gs-snap-top,
+.gs-shell[data-gs-mode="portrait"][data-gs-bottom-active="true"] .gs-snap-bottom {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--gs-snap-col-min), 100%), 1fr));
+}
+
+.gs-shell[data-gs-layout="stack"] .gs-hud {
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--gs-hud-col-min), 100%), 1fr));
+}
+
+.gs-shell[data-gs-layout="stack"][data-gs-hud="column"] .gs-hud {
+  grid-template-columns: 1fr;
+}
+
+.gs-surface {
+  width: 100%;
+  aspect-ratio: var(--game-ar, 16 / 9);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  touch-action: none;
+  overscroll-behavior: contain;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.gs-surface[data-gs-managed="true"] {
+  aspect-ratio: auto;
+}
+
+.gs-surface > canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.gs-surface > canvas[data-gs-managed="true"] {
+  max-width: none;
+  max-height: none;
+}

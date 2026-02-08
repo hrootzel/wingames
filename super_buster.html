@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Super Buster</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="game-shell.css">
   <link rel="stylesheet" href="super_buster.css">
 </head>
 <body class="superbuster">
@@ -22,13 +24,15 @@
     </div>
 
     <div class="board buster-board">
-      <div class="buster-wrap">
-        <div class="buster-stage">
-          <canvas id="buster-canvas" width="640" height="360" aria-label="Super Buster playfield"></canvas>
+      <div class="buster-wrap gs-shell" style="--game-ar: 16 / 9;">
+        <div class="buster-stage gs-stage">
+          <div class="buster-surface gs-surface" id="buster-surface">
+            <canvas id="buster-canvas" width="640" height="360" aria-label="Super Buster playfield"></canvas>
+          </div>
         </div>
 
-        <div class="buster-panel">
-          <div class="panel-box">
+        <div class="buster-panel gs-hud">
+          <div class="panel-box" data-gs-snap="bottom" data-gs-fit="required">
             <h3>Scoreboard</h3>
             <div class="quick-stats buster-stats">
               <div>Score: <span id="score">0</span></div>
@@ -37,7 +41,7 @@
             </div>
           </div>
 
-          <div class="panel-box">
+          <div class="panel-box" data-gs-snap="bottom" data-gs-fit="optional">
             <h3>Controls</h3>
             <div class="key-hints">
               <div><span class="key">Left/Right</span> Move</div>

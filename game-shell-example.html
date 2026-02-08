@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark">
+  <title>Game Shell Example</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="game-shell.css">
+  <link rel="stylesheet" href="game-shell-example.css">
+</head>
+<body class="example-game">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>Example Game</h1>
+        <p class="subtitle">Minimal game-shell integration example.</p>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Press Space to start.</span>
+      </div>
+    </div>
+
+    <!-- gs-shell: the layout container. game-shell.css handles the grid. -->
+    <!-- gs-stage: wraps the surface. Auto-created by JS if missing. -->
+    <!-- gs-surface: wraps the canvas. Auto-detected by JS if surfaceEl omitted. -->
+    <div class="board example-board gs-shell">
+      <div class="example-stage gs-stage">
+        <div class="gs-surface" id="example-surface">
+          <canvas id="example-canvas" width="320" height="240"></canvas>
+        </div>
+      </div>
+
+      <!-- gs-hud: sidebar in wide view, below canvas in stack view. -->
+      <!-- data-gs-snap="top": panel moves to snap lane above canvas in stack mode. -->
+      <!-- data-gs-fit="required": panel is always visible. -->
+      <div class="example-side gs-hud">
+        <div class="panel-box" data-gs-snap="top" data-gs-fit="required">
+          <h3>Score</h3>
+          <div class="example-stats">
+            <div>Score: <span id="score">0</span></div>
+            <div>Level: <span id="level">1</span></div>
+          </div>
+        </div>
+
+        <div class="panel-box" data-gs-snap="top" data-gs-fit="required">
+          <div class="example-controls">
+            <button id="new-game">New Game</button>
+            <button id="pause">Pause</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="example-footer">
+      <div class="panel-box">
+        <h3>Controls</h3>
+        <div class="key-hints">
+          <div><span class="key">←→</span> Move</div>
+          <div><span class="key">Space</span> Action</div>
+          <div><span class="key">P</span> Pause</div>
+          <div><span class="key">R</span> Restart</div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module">
+    import { initGameShell } from './game-shell.js';
+
+    const canvas = document.getElementById('example-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Minimal init — surfaceEl is auto-detected, gs-stage is auto-created if missing.
+    initGameShell({
+      shellEl: '.example-board',
+      canvasEl: canvas,
+      baseWidth: canvas.width,
+      baseHeight: canvas.height,
+      mode: 'fractional',   // or 'integer' for pixel-art games
+      fit: 'css'
+    });
+
+    // Demo render
+    function render() {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#22c55e';
+      ctx.font = '20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Your game here', canvas.width / 2, canvas.height / 2);
+      requestAnimationFrame(render);
+    }
+    render();
+  </script>
+</body>
+</html>
