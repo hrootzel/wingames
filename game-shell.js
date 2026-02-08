@@ -95,8 +95,13 @@ export function initGameShell(options) {
 
   window.addEventListener('orientationchange', applyResize);
   applyResize();
-  requestAnimationFrame(() => applyResize());
+  requestAnimationFrame(() => {
+    applyResize();
+    requestAnimationFrame(() => applyResize());
+  });
   setTimeout(() => applyResize(), 0);
+  setTimeout(() => applyResize(), 60);
+  setTimeout(() => applyResize(), 180);
 
   return {
     resize: applyResize,

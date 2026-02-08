@@ -35,31 +35,18 @@
 
 .blocks-game .blocks-wrap {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
-  height: 100vh;
-  max-height: 100vh;
-  align-items: stretch;
-  justify-items: center;
-  justify-content: center;
 }
 
 .blocks-game .blocks-stage-area {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 160px);
-  grid-template-rows: minmax(0, 1fr);
-  gap: 12px;
-  justify-content: start;
-  align-items: stretch;
+  --gs-gap: 12px;
+  --gs-hud-width: 160px;
   min-width: 0;
-  min-height: 0;
-  height: 100%;
-  max-height: 100%;
 }
 
 .blocks-game .blocks-side {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 12px;
   min-width: 0;
 }
@@ -68,8 +55,8 @@
   min-height: 0;
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 8px;
+  align-items: flex-start;
+  padding: 0 8px 8px;
   background: var(--blocks-panel);
   border-radius: 12px;
   border: 1px solid var(--blocks-border);
@@ -78,14 +65,16 @@
 }
 
 .blocks-game #blocks-canvas {
-  width: 100%;
-  max-width: 100%;
-  height: auto;
-  max-height: 100%;
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.6);
   box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 24px var(--blocks-glow);
   background: #0b1020;
+}
+
+.blocks-game .blocks-surface {
+  width: min(100%, calc((100dvh - 190px) * var(--blocks-ar, 0.5625)));
+  max-height: calc(100dvh - 190px);
+  margin-inline: auto;
 }
 
 .blocks-game .panel-box {
@@ -299,6 +288,16 @@
 }
 
 @media (max-width: 900px) {
+  .blocks-game .subtitle,
+  .blocks-game .hud {
+    display: none;
+  }
+
+  .blocks-game .blocks-surface {
+    width: min(100%, calc((100dvh - 170px) * var(--blocks-ar, 0.5625)));
+    max-height: calc(100dvh - 170px);
+  }
+
   .blocks-game .footer-controls {
     grid-template-columns: 1fr;
   }

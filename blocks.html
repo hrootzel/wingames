@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Blocks</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="game-shell.css">
   <link rel="stylesheet" href="blocks.css">
 </head>
 <body class="blocks-game">
@@ -26,12 +28,14 @@
 
     <div class="board blocks-board">
       <div class="blocks-wrap">
-        <div class="blocks-stage-area">
-          <div class="blocks-stage">
-            <canvas id="blocks-canvas" width="360" height="640" aria-label="Blocks playfield"></canvas>
+        <div class="blocks-stage-area gs-shell" style="--game-ar: 9 / 16;">
+          <div class="blocks-stage gs-stage">
+            <div class="blocks-surface gs-surface" id="blocks-surface">
+              <canvas id="blocks-canvas" width="360" height="640" aria-label="Blocks playfield"></canvas>
+            </div>
           </div>
 
-          <div class="blocks-side">
+          <div class="blocks-side gs-hud">
             <div class="panel-box preview-box">
               <h3>Next</h3>
               <canvas id="preview-canvas" class="preview-canvas" width="120" height="120" aria-label="Next piece preview"></canvas>

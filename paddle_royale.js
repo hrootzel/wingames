@@ -1201,7 +1201,7 @@ initGameShell({
   canvasEl: canvas,
   baseWidth: W,
   baseHeight: H,
-  mode: 'integer',
+  mode: 'fractional',
   fit: 'css',
 });
 startGame();
