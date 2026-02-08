@@ -298,7 +298,7 @@ initGameShell({
   canvasEl: canvas,
   baseWidth: canvas.width,
   baseHeight: canvas.height,
-  mode: 'integer',
+  mode: 'fractional',
   fit: 'css'
 });
 
