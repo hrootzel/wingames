@@ -1228,6 +1228,7 @@ document.addEventListener('pointerdown', unlockAudio, { once: true });
 
 syncSettingsUI(settings);
 initGameShell({
+  shellEl: '.pill-stage-area',
   surfaceEl: '#pill-surface',
   canvasEl: canvas,
   baseWidth: canvas.width,

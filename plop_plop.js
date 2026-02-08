@@ -971,6 +971,7 @@ document.addEventListener('pointerdown', unlockAudio, { once: true });
 
 setupView();
 initGameShell({
+  shellEl: '.plop-wrap',
   surfaceEl: '#plop-surface',
   canvasEl: canvas,
   baseWidth: canvas.width,

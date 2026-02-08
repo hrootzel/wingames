@@ -1629,6 +1629,7 @@ document.addEventListener('pointerdown', unlockAudio, { once: true });
 
 setupView();
 initGameShell({
+  shellEl: '.puzzle-wrap',
   surfaceEl: '#puzzle-surface',
   canvasEl: canvas,
   baseWidth: canvas.width,

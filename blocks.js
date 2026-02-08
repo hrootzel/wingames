@@ -697,6 +697,7 @@ function ensureGameShell() {
   stageAreaEl.style.setProperty('--blocks-ar', (state.settings.w / state.settings.h).toString());
   stageAreaEl.style.setProperty('--game-ar', `${state.settings.w} / ${state.settings.h}`);
   shellController = initGameShell({
+    shellEl: '.blocks-stage-area',
     surfaceEl: '#blocks-surface',
     canvasEl: canvas,
     baseWidth,

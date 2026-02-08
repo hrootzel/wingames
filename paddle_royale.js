@@ -1197,6 +1197,7 @@ settingsApply?.addEventListener('click', () => {
 
 sfx.setEnabled(settings.sounds === 'on');
 initGameShell({
+  shellEl: '.paddle-board',
   surfaceEl: '#paddle-surface',
   canvasEl: canvas,
   baseWidth: W,
