@@ -74,8 +74,9 @@
 }
 
 .paddle-surface {
-  width: min(100%, calc((100dvh - 190px) * (3 / 4)));
-  max-height: calc(100dvh - 190px);
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
   margin-inline: auto;
 }
 
@@ -248,8 +249,9 @@
   }
 
   .paddle-surface {
-    width: min(100%, calc((100dvh - 122px) * (3 / 4)));
-    max-height: calc(100dvh - 122px);
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
   }
 
   .paddle-side {

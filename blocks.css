@@ -72,8 +72,9 @@
 }
 
 .blocks-game .blocks-surface {
-  width: min(100%, calc((100dvh - 190px) * var(--blocks-ar, 0.5625)));
-  max-height: calc(100dvh - 190px);
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
   margin-inline: auto;
 }
 
@@ -294,8 +295,9 @@
   }
 
   .blocks-game .blocks-surface {
-    width: min(100%, calc((100dvh - 170px) * var(--blocks-ar, 0.5625)));
-    max-height: calc(100dvh - 170px);
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
   }
 
   .blocks-game .footer-controls {

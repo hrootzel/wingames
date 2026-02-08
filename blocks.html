@@ -36,13 +36,13 @@
           </div>
 
           <div class="blocks-side gs-hud">
-            <div class="panel-box preview-box">
+            <div class="panel-box preview-box" data-gs-snap="top" data-gs-fit="required">
               <h3>Next</h3>
               <canvas id="preview-canvas" class="preview-canvas" width="120" height="120" aria-label="Next piece preview"></canvas>
               <p id="preview-status" class="preview-status">Preview on.</p>
             </div>
 
-            <div class="panel-box score-box">
+            <div class="panel-box score-box" data-gs-snap="bottom" data-gs-fit="required">
               <h3>Scoreboard</h3>
               <div class="quick-stats blocks-stats">
                 <div>Score: <span id="score">0</span></div>
@@ -52,7 +52,7 @@
               </div>
             </div>
 
-            <div class="panel-box controls-box">
+            <div class="panel-box controls-box" data-gs-snap="bottom" data-gs-fit="required">
               <div class="control-group blocks-controls">
                 <button id="new-game">New Game</button>
                 <button id="pause">Pause</button>

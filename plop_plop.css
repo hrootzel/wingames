@@ -24,8 +24,9 @@
 }
 
 .plopplop .plop-surface {
-  width: min(100%, calc((100dvh - 240px) * (8 / 15)));
-  max-height: calc(100dvh - 240px);
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
   margin-inline: auto;
 }
 
@@ -98,7 +99,8 @@
   }
 
   .plopplop .plop-surface {
-    width: min(100%, calc((100dvh - 164px) * (8 / 15)));
-    max-height: calc(100dvh - 164px);
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
   }
 }

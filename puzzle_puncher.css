@@ -25,8 +25,9 @@
 }
 
 .puzzle-surface {
-  width: min(100%, calc((100dvh - 240px) * (8 / 15)));
-  max-height: calc(100dvh - 240px);
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
   margin-inline: auto;
 }
 
@@ -68,6 +69,9 @@
   border-radius: 8px;
   background: rgba(3, 9, 12, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 88px;
+  max-width: 88px;
+  height: auto;
 }
 
 .preview-stack {
@@ -116,6 +120,32 @@
   justify-content: space-between;
 }
 
+.gs-snap-top .preview-stack {
+  grid-template-columns: repeat(2, minmax(88px, max-content));
+  gap: 10px;
+  justify-content: start;
+}
+
+.gs-snap-top .preview-row {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: 4px;
+}
+
+.gs-snap-top .preview-label {
+  font-size: 11px;
+}
+
+.gs-snap-top .preview-canvas {
+  width: 72px;
+  max-width: 72px;
+}
+
+.gs-snap-top .quick-stats {
+  font-size: 0.92em;
+  line-height: 1.25;
+}
+
 @keyframes boardGlow {
   0%, 100% {
     box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 20px var(--puncher-glow);
@@ -132,7 +162,8 @@
   }
 
   .puzzle-surface {
-    width: min(100%, calc((100dvh - 164px) * (8 / 15)));
-    max-height: calc(100dvh - 164px);
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
   }
 }

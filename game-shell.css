@@ -1,6 +1,7 @@
 :root {
   --gs-gap: 16px;
   --gs-hud-width: clamp(220px, 28vw, 360px);
+  --gs-required-scale: 1;
 }
 
 .gs-shell {
@@ -8,19 +9,27 @@
   display: grid;
   gap: var(--gs-gap);
   align-items: start;
-  grid-template-columns: minmax(0, 1fr) minmax(0, var(--gs-hud-width));
-  grid-template-areas: "stage hud";
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--gs-hud-width-live, var(--gs-hud-width)));
+  grid-template-areas:
+    "top top"
+    "stage hud"
+    "bottom bottom";
 }
 
 .gs-shell[data-gs-side="left"] {
-  grid-template-columns: minmax(0, var(--gs-hud-width)) minmax(0, 1fr);
-  grid-template-areas: "hud stage";
+  grid-template-columns: minmax(0, var(--gs-hud-width-live, var(--gs-hud-width))) minmax(0, 1fr);
+  grid-template-areas:
+    "top top"
+    "hud stage"
+    "bottom bottom";
 }
 
 .gs-shell[data-gs-layout="stack"] {
   grid-template-columns: 1fr;
   grid-template-areas:
+    "top"
     "stage"
+    "bottom"
     "hud";
 }
 
@@ -36,6 +45,27 @@
   align-content: start;
   grid-auto-rows: max-content;
   min-width: 0;
+}
+
+.gs-snap-lane {
+  display: none;
+  gap: var(--gs-gap);
+  align-content: start;
+  min-width: 0;
+}
+
+.gs-snap-top {
+  grid-area: top;
+}
+
+.gs-snap-bottom {
+  grid-area: bottom;
+}
+
+.gs-shell[data-gs-mode="portrait"][data-gs-top-active="true"] .gs-snap-top,
+.gs-shell[data-gs-mode="portrait"][data-gs-bottom-active="true"] .gs-snap-bottom {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
 }
 
 .gs-shell[data-gs-layout="stack"] .gs-hud {
@@ -62,6 +92,10 @@
     env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
+.gs-surface[data-gs-managed="true"] {
+  aspect-ratio: auto;
+}
+
 .gs-surface > canvas {
   display: block;
   max-width: 100%;
@@ -77,7 +111,9 @@
   .gs-shell:not([data-gs-layout="side"]) {
     grid-template-columns: 1fr;
     grid-template-areas:
+      "top"
       "stage"
+      "bottom"
       "hud";
   }
 
@@ -94,7 +130,9 @@
   .gs-shell:not([data-gs-layout="side"]) {
     grid-template-columns: 1fr;
     grid-template-areas:
+      "top"
       "stage"
+      "bottom"
       "hud";
   }
 
