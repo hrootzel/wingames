@@ -219,29 +219,60 @@
 }
 
 @media (max-width: 900px) {
+  .paddle-royale #app {
+    margin: 4px auto 6px;
+    padding: 6px 8px 8px;
+  }
+
+  .paddle-royale .app-header {
+    margin-bottom: 2px;
+  }
+
+  .paddle-royale .app-header h1 {
+    font-size: 20px;
+  }
+
+  .paddle-royale .subtitle,
+  .paddle-royale .hud,
+  .paddle-footer {
+    display: none;
+  }
+
+  .paddle-royale .board {
+    margin-top: 2px;
+    padding: 2px;
+  }
+
   .paddle-board {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 6px;
   }
 
   #paddle-canvas {
-    width: min(calc(100dvh * 0.75), 98vw, 700px);
-    max-height: 96dvh;
+    width: min(calc((100dvh - 132px) * 0.75), 97vw, 700px);
+    max-height: calc(100dvh - 132px);
   }
 
   .paddle-side {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     margin-top: 0;
+    gap: 6px;
   }
 
   .paddle-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px 10px;
+    gap: 4px 8px;
+    font-size: 12px;
   }
 
-  .paddle-footer .key-hints {
-    grid-template-columns: 1fr;
+  .paddle-side .panel-box {
+    padding: 7px 8px;
+  }
+
+  .paddle-side .panel-box h3 {
+    margin-bottom: 4px;
+    font-size: 11px;
   }
 
   .paddle-royale .settings-grid {
@@ -250,8 +281,18 @@
 }
 
 @media (max-width: 560px) {
+  .paddle-royale #app {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  #paddle-canvas {
+    width: min(calc((100dvh - 126px) * 0.75), 98vw, 700px);
+    max-height: calc(100dvh - 126px);
+  }
+
   .paddle-side {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .paddle-stats {
