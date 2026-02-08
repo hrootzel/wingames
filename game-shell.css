@@ -37,6 +37,7 @@
 .gs-stage {
   grid-area: stage;
   min-width: 0;
+  overflow: hidden;
 }
 
 .gs-hud {

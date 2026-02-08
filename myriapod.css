@@ -4,9 +4,6 @@
   --gs-snap-col-min: 140px;
 }
 
-.myriapod-stage {
-  overflow: hidden;
-}
 
 #myriapod-canvas {
   display: block;

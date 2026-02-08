@@ -1,12 +1,17 @@
 /**
  * Game Shell - Responsive layout system for arcade games
  * 
+ * See game-shell-example.html and game-shell-example.css for a minimal
+ * working integration with annotated comments.
+ * 
  * USAGE:
  * 
  * 1. HTML Structure:
  *    <div class="your-game gs-shell">
- *      <div class="gs-surface">
- *        <canvas id="canvas" width="640" height="480"></canvas>
+ *      <div class="your-stage gs-stage">
+ *        <div class="gs-surface">
+ *          <canvas id="canvas" width="640" height="480"></canvas>
+ *        </div>
  *      </div>
  *      <div class="gs-hud">
  *        <div class="panel-box" data-gs-snap="top" data-gs-fit="required">
@@ -14,6 +19,9 @@
  *        </div>
  *      </div>
  *    </div>
+ * 
+ *    Note: gs-stage wrapper is auto-created if missing.
+ *    surfaceEl is auto-detected as .gs-surface inside the shell if not provided.
  * 
  * 2. Initialize:
  *    initGameShell({
@@ -76,11 +84,32 @@ export function initGameShell(options) {
     context,
   } = options || {};
 
-  const surface = resolveElement(surfaceEl, 'surfaceEl');
   const canvas = resolveElement(canvasEl, 'canvasEl');
-  const shell = resolveOptionalElement(shellEl) || surface.closest('.gs-shell');
+  const shellRaw = resolveOptionalElement(shellEl) || canvas.closest('.gs-shell');
+  // Auto-detect surface: explicit option, or .gs-surface in shell, or canvas parent
+  const surface = resolveOptionalElement(surfaceEl)
+    || (shellRaw ? shellRaw.querySelector('.gs-surface') : null)
+    || canvas.parentElement;
+  if (!surface) throw new Error('Cannot find surface element');
+  const shell = shellRaw || surface.closest('.gs-shell');
   const hud = resolveOptionalElement(hudEl) || (shell ? shell.querySelector('.gs-hud') : null);
   const fitHost = resolveOptionalElement(fitHostEl) || shell || surface.parentElement || surface;
+
+  // Auto-wrap surface in gs-stage if missing
+  if (shell && !surface.closest('.gs-stage')) {
+    const stage = document.createElement('div');
+    stage.className = 'gs-stage';
+    surface.parentNode.insertBefore(stage, surface);
+    stage.appendChild(surface);
+  }
+
+  // Warn on conflicting shell styles
+  if (shell) {
+    const shellStyle = getComputedStyle(shell);
+    if (shellStyle.display === 'flex') {
+      console.warn('[game-shell] Shell has display:flex which conflicts with game-shell grid layout. Remove it from your game CSS.');
+    }
+  }
 
   const logicalW = Number(baseWidth) || Number(canvas.getAttribute('width')) || canvas.width || 320;
   const logicalH = Number(baseHeight) || Number(canvas.getAttribute('height')) || canvas.height || 240;
