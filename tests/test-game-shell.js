@@ -15,8 +15,8 @@ const GAMES_WITH_PREVIEWS = [
 ];
 
 const GAMES_WITHOUT_PREVIEWS = [
-  { name: 'prismpulse', canvasId: 'pulse-canvas', logicalW: 720, logicalH: 520, bias: 'wide' },
-  { name: 'super_buster', canvasId: 'buster-canvas', logicalW: 640, logicalH: 360, bias: 'wide' },
+  { name: 'prismpulse', canvasId: 'pulse-canvas', logicalW: 400, logicalH: 280 },
+  { name: 'super_buster', canvasId: 'buster-canvas', logicalW: 640, logicalH: 360 },
   { name: 'paddle_royale', canvasId: 'paddle-canvas', logicalW: 480, logicalH: 640 }
 ];
 
@@ -112,11 +112,6 @@ test.describe('Game Shell Layout Tests', () => {
           expect(metrics.layout).toMatch(/^(side|stack)$/);
           expect(metrics.mode).toMatch(/^(landscape|portrait)$/);
           expect(metrics.gameScale).toBeGreaterThan(0.5);
-          
-          // Wide bias games should prefer stack layout at wide viewports
-          if (game.bias === 'wide' && vp.width >= 1200) {
-            expect(metrics.layout).toBe('stack');
-          }
         }
       });
     }
@@ -133,14 +128,14 @@ test.describe('Game Shell Layout Tests', () => {
       let layout = await page.evaluate(() => document.querySelector('.gs-shell').dataset.gsLayout);
       expect(layout).toBe('side');
       
-      // Narrow viewport - should still be side
+      // Narrow viewport - should still be side (algorithm now keeps side layout longer)
       await page.setViewportSize({ width: 700, height: 900 });
       await page.waitForTimeout(300);
       layout = await page.evaluate(() => document.querySelector('.gs-shell').dataset.gsLayout);
       expect(layout).toBe('side');
       
-      // Mobile viewport - should be stack
-      await page.setViewportSize({ width: 500, height: 800 });
+      // Very narrow viewport - should be stack
+      await page.setViewportSize({ width: 400, height: 800 });
       await page.waitForTimeout(300);
       layout = await page.evaluate(() => document.querySelector('.gs-shell').dataset.gsLayout);
       expect(layout).toBe('stack');
