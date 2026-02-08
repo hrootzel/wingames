@@ -422,11 +422,13 @@ function launchStuckBalls() {
 
   targets.forEach((b, idx) => {
     const spread = (idx - (targets.length - 1) / 2) * 0.22;
-    const angle = -Math.PI / 2 + spread;
+    const angle = b.catchAngle ?? (-Math.PI / 2 + spread);
     b.stuck = false;
     b.served = true;
     b.vx = Math.cos(angle) * speed;
     b.vy = Math.sin(angle) * speed;
+    b.catchOffsetX = null;
+    b.catchAngle = null;
   });
 
   state = State.PLAYING;
@@ -726,21 +728,23 @@ function handleBallPaddleCollision(ball) {
   if (!ballHitsPaddle(ball)) return;
 
   ball.y = PADDLE_Y - BALL_R;
+  const speed = currentBallSpeed();
+  const hitPos = (ball.x - paddle.x) / paddle.width;
+  const angle = (-150 + hitPos * 120) * (Math.PI / 180);
 
   if (effects.catch && !effects.laser) {
+    // Keep the ball at the exact catch position and preserve relaunch angle.
     ball.stuck = true;
     ball.vx = 0;
     ball.vy = 0;
-    state = State.READY;
+    ball.catchOffsetX = clamp(ball.x - paddle.x, BALL_R, paddle.width - BALL_R);
+    ball.catchAngle = angle;
     catchReleaseTimer = CATCH_AUTO_RELEASE_FRAMES;
     statusEl.textContent = 'Caught. Press Space or click to relaunch.';
     sfx.play(BANK_PADDLEROYALE, 'paddleHit');
     return;
   }
 
-  const speed = currentBallSpeed();
-  const hitPos = (ball.x - paddle.x) / paddle.width;
-  const angle = (-150 + hitPos * 120) * (Math.PI / 180);
   ball.vx = Math.cos(angle) * speed;
   ball.vy = Math.sin(angle) * speed;
   bumpSpeedCounter();
@@ -772,7 +776,8 @@ function updateBalls() {
 
   for (const ball of balls) {
     if (ball.stuck) {
-      ball.x = paddle.x + paddle.width / 2;
+      const offset = ball.catchOffsetX != null ? ball.catchOffsetX : paddle.width / 2;
+      ball.x = paddle.x + offset;
       ball.y = PADDLE_Y - BALL_R - 2;
       ball.trail = [];
       keep.push(ball);
@@ -947,14 +952,16 @@ function tick() {
   if (state === State.READY) {
     for (const b of balls) {
       if (b.stuck) {
-        b.x = paddle.x + paddle.width / 2;
+        const offset = b.catchOffsetX != null ? b.catchOffsetX : paddle.width / 2;
+        b.x = paddle.x + offset;
         b.y = PADDLE_Y - BALL_R - 2;
       }
     }
-    if (effects.catch && catchReleaseTimer > 0 && balls.some((b) => b.stuck)) {
-      catchReleaseTimer -= 1;
-      if (catchReleaseTimer <= 0) launchStuckBalls();
-    }
+  }
+
+  if (effects.catch && catchReleaseTimer > 0 && balls.some((b) => b.stuck)) {
+    catchReleaseTimer -= 1;
+    if (catchReleaseTimer <= 0) launchStuckBalls();
   }
 
   if (state !== State.PLAYING) return;
@@ -1099,6 +1106,10 @@ document.addEventListener('keydown', (e) => {
       launchStuckBalls();
       return;
     }
+    if (state === State.PLAYING && balls.some((b) => b.stuck)) {
+      launchStuckBalls();
+      return;
+    }
     if (state === State.PLAYING) fireLaser();
     return;
   }
@@ -1127,6 +1138,10 @@ canvas.addEventListener('pointerdown', (ev) => {
   movePaddleFromClientX(ev.clientX);
   if (state === State.READY || state === State.IDLE) {
     if (state === State.IDLE) startGame();
+    launchStuckBalls();
+    return;
+  }
+  if (state === State.PLAYING && balls.some((b) => b.stuck)) {
     launchStuckBalls();
     return;
   }
