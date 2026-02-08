@@ -33,6 +33,8 @@ export function initGameShell(options) {
 
   const logicalWidth = Number(baseWidth) || Number(canvas.getAttribute('width')) || canvas.width || 320;
   const logicalHeight = Number(baseHeight) || Number(canvas.getAttribute('height')) || canvas.height || 240;
+  canvas.dataset.gsManaged = 'true';
+  canvas.style.transformOrigin = 'top left';
 
   if (pixelated) {
     canvas.style.imageRendering = 'pixelated';
@@ -86,14 +88,39 @@ export function initGameShell(options) {
   const resizeObserver = typeof ResizeObserver !== 'undefined'
     ? new ResizeObserver(applyResize)
     : null;
+  const viewport = typeof window !== 'undefined' ? window.visualViewport : null;
+  let dprMql = null;
 
   if (resizeObserver) {
     resizeObserver.observe(surface);
+    if (surface.parentElement) {
+      resizeObserver.observe(surface.parentElement);
+    }
   } else {
     window.addEventListener('resize', applyResize);
   }
 
   window.addEventListener('orientationchange', applyResize);
+  if (viewport) {
+    viewport.addEventListener('resize', applyResize);
+    viewport.addEventListener('scroll', applyResize);
+  }
+
+  function bindDprListener() {
+    if (!window.matchMedia) return;
+    if (dprMql) {
+      dprMql.removeEventListener('change', handleDprChange);
+    }
+    dprMql = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+    dprMql.addEventListener('change', handleDprChange);
+  }
+
+  function handleDprChange() {
+    bindDprListener();
+    applyResize();
+  }
+
+  bindDprListener();
   applyResize();
   requestAnimationFrame(() => {
     applyResize();
@@ -112,6 +139,13 @@ export function initGameShell(options) {
         window.removeEventListener('resize', applyResize);
       }
       window.removeEventListener('orientationchange', applyResize);
+      if (viewport) {
+        viewport.removeEventListener('resize', applyResize);
+        viewport.removeEventListener('scroll', applyResize);
+      }
+      if (dprMql) {
+        dprMql.removeEventListener('change', handleDprChange);
+      }
     },
   };
 }

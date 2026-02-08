@@ -68,6 +68,11 @@
   max-height: 100%;
 }
 
+.gs-surface > canvas[data-gs-managed="true"] {
+  max-width: none;
+  max-height: none;
+}
+
 @container (max-width: 1000px) {
   .gs-shell:not([data-gs-layout="side"]) {
     grid-template-columns: 1fr;
