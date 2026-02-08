@@ -265,6 +265,8 @@ let speedCounter = 0;
 let speedIndex = 0;
 let nextBonusLifeScore = 20000;
 let bonusClaimed = 0;
+let brickHitStreak = 0;
+let brickStreakTimer = 0;
 
 let effects = {
   expand: false,
@@ -524,6 +526,7 @@ function initStage() {
 function launchStuckBalls() {
   const targets = balls.filter((b) => b.stuck);
   if (targets.length === 0) return;
+  sfx.play(BANK_PADDLEROYALE, 'serve', { balls: targets.length });
   const speed = currentBallSpeed();
 
   targets.forEach((b, idx) => {
@@ -548,6 +551,7 @@ function startGame() {
   clearTransientEffectsOnLifeLoss();
   state = State.READY;
   initStage();
+  sfx.play(BANK_PADDLEROYALE, 'stageStart', { stage });
   statusEl.textContent = 'Press Space or click to launch.';
   render();
 }
@@ -558,12 +562,14 @@ function continueGame() {
   clearTransientEffectsOnLifeLoss();
   state = State.READY;
   initStage();
+  sfx.play(BANK_PADDLEROYALE, 'continue');
   statusEl.textContent = `Continue: Stage ${stage}. Launch when ready.`;
 }
 
 function nextStage() {
   if (stage >= TOTAL_STAGES) {
     state = State.WON;
+    sfx.play(BANK_PADDLEROYALE, 'gameWin');
     statusEl.textContent = `All ${TOTAL_STAGES} stages cleared! Press R for a new run.`;
     if (score > highScore) {
       highScore = score;
@@ -576,6 +582,7 @@ function nextStage() {
   stage += 1;
   state = State.READY;
   initStage();
+  sfx.play(BANK_PADDLEROYALE, 'stageStart', { stage });
   statusEl.textContent = `Stage ${stage}. Press Space or click to launch.`;
   render();
 }
@@ -587,12 +594,12 @@ function awardScore(amount) {
     while (score >= nextBonusLifeScore) {
       lives += 1;
       nextBonusLifeScore += 60000;
-      sfx.play(BANK_PADDLEROYALE, 'powerup');
+      sfx.play(BANK_PADDLEROYALE, 'extraLife');
     }
   } else if (settings.bonus === '20_only' && bonusClaimed === 0 && score >= 20000) {
     lives += 1;
     bonusClaimed = 1;
-    sfx.play(BANK_PADDLEROYALE, 'powerup');
+    sfx.play(BANK_PADDLEROYALE, 'extraLife');
   }
 
   updateHud();
@@ -617,7 +624,7 @@ function loseLife() {
     }
   } else {
     state = State.READY;
-    sfx.play(BANK_PADDLEROYALE, 'lose');
+    sfx.play(BANK_PADDLEROYALE, 'lifeLost', { lives });
     resetPaddle();
     resetBallsForServe();
     statusEl.textContent = `${lives} lives left. Press Space or click to launch.`;
@@ -652,11 +659,13 @@ function bumpSpeedCounter() {
 }
 
 function applyCapsule(type) {
+  sfx.play(BANK_PADDLEROYALE, 'capsuleCatch', { type });
   switch (type) {
     case CapsuleType.EXPAND:
       effects.expand = true;
       paddle.width = EXPANDED_PADDLE_W;
       paddle.x = clamp(paddle.x, 0, W - paddle.width);
+      sfx.play(BANK_PADDLEROYALE, 'capsuleExpand');
       break;
     case CapsuleType.SLOW:
       speedIndex = Math.max(0, speedIndex - 2);
@@ -664,9 +673,11 @@ function applyCapsule(type) {
       balls.forEach((b) => {
         if (!b.stuck) normalizeBallVelocity(b);
       });
+      sfx.play(BANK_PADDLEROYALE, 'capsuleSlow');
       break;
     case CapsuleType.CATCH:
       effects.catch = true;
+      sfx.play(BANK_PADDLEROYALE, 'capsuleCatchMode');
       break;
     case CapsuleType.DISRUPTION:
       createDisruptionBalls();
@@ -674,19 +685,20 @@ function applyCapsule(type) {
     case CapsuleType.LASER:
       effects.laser = true;
       effects.catch = false;
+      sfx.play(BANK_PADDLEROYALE, 'capsuleLaser');
       break;
     case CapsuleType.BREAK:
       effects.breakTimer = 60 * 10;
+      sfx.play(BANK_PADDLEROYALE, 'capsuleBreak');
       break;
     case CapsuleType.PLAYER:
       lives += 1;
       updateHud();
+      sfx.play(BANK_PADDLEROYALE, 'extraLife');
       break;
     default:
       break;
   }
-
-  sfx.play(BANK_PADDLEROYALE, 'powerup');
 }
 
 function createDisruptionBalls() {
@@ -704,6 +716,7 @@ function createDisruptionBalls() {
     b.vy = Math.sin(baseAngle + off) * speed;
     balls.push(b);
   });
+  sfx.play(BANK_PADDLEROYALE, 'multiball');
 }
 
 function spawnCapsule(brick) {
@@ -714,23 +727,40 @@ function spawnCapsule(brick) {
     vy: settings.difficulty === 'hard' ? 2.5 : 2.1,
     type: brick.capsule,
   });
+  sfx.play(BANK_PADDLEROYALE, 'capsuleDrop', { type: brick.capsule });
   brick.capsule = null;
 }
 
 function damageBrick(brick, sourceIsBall) {
   if (brick.type === BrickType.GOLD) {
-    if (!effects.breakTimer || !sourceIsBall) return false;
+    if (!effects.breakTimer || !sourceIsBall) {
+      sfx.play(BANK_PADDLEROYALE, 'goldHit');
+      return false;
+    }
     brick.hits = 0;
     awardScore(100);
+    sfx.play(BANK_PADDLEROYALE, 'brickBreak', { row: brick.row, type: brick.type, streak: brickHitStreak });
     return true;
   }
 
   brick.hits -= 1;
-  sfx.play(BANK_PADDLEROYALE, 'brickHit', { row: brick.row });
+  brickHitStreak = Math.min(16, brickHitStreak + 1);
+  brickStreakTimer = 20;
+  sfx.play(BANK_PADDLEROYALE, 'brickHit', {
+    row: brick.row,
+    streak: brickHitStreak,
+    type: brick.type,
+    hp: brick.hits,
+    maxHp: brick.maxHits,
+  });
+  if (brick.type === BrickType.SILVER && brick.hits > 0) {
+    sfx.play(BANK_PADDLEROYALE, 'silverHit', { hp: brick.hits, maxHp: brick.maxHits });
+  }
 
   if (brick.hits <= 0) {
     awardScore(brick.points);
     spawnCapsule(brick);
+    sfx.play(BANK_PADDLEROYALE, 'brickBreak', { row: brick.row, type: brick.type, streak: brickHitStreak });
     return true;
   }
 
@@ -744,7 +774,7 @@ function fireLaser() {
   bullets.push({ x: paddle.x + 10, y: PADDLE_Y - 2, vy: -BULLET_SPEED });
   bullets.push({ x: paddle.x + paddle.width - 10, y: PADDLE_Y - 2, vy: -BULLET_SPEED });
   paddle.laserCooldown = 16;
-  sfx.play(BANK_PADDLEROYALE, 'paddleHit');
+  sfx.play(BANK_PADDLEROYALE, 'laserFire');
 }
 
 function movePaddleFromClientX(clientX) {
@@ -898,6 +928,7 @@ function updateBullets() {
       ) {
         const broke = damageBrick(brick, false);
         if (broke) bricks.splice(i, 1);
+        sfx.play(BANK_PADDLEROYALE, 'laserHit', { row: brick.row });
         hit = true;
         break;
       }
@@ -939,6 +970,10 @@ function breakableBricksLeft() {
 
 function tick() {
   if (state !== State.PLAYING && state !== State.READY) return;
+  if (brickStreakTimer > 0) {
+    brickStreakTimer -= 1;
+    if (brickStreakTimer === 0) brickHitStreak = 0;
+  }
 
   if (keys.arrowleft || keys.a) paddle.vx = -PADDLE_SPEED;
   else if (keys.arrowright || keys.d) paddle.vx = PADDLE_SPEED;
@@ -1013,11 +1048,13 @@ function togglePause() {
 
   if (state === State.PLAYING || state === State.READY) {
     state = State.PAUSED;
+    sfx.play(BANK_PADDLEROYALE, 'pause');
     statusEl.textContent = 'Paused. Press P to resume.';
     pauseBtn.textContent = 'Resume';
     render();
   } else if (state === State.PAUSED) {
     state = balls.some((b) => !b.stuck) ? State.PLAYING : State.READY;
+    sfx.play(BANK_PADDLEROYALE, 'resume');
     statusEl.textContent = state === State.PLAYING ? `Stage ${stage} in progress.` : 'Ready to launch.';
     pauseBtn.textContent = 'Pause';
   }
