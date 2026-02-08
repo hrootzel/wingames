@@ -169,6 +169,7 @@ function makeState() {
     landBounce: [],
     particles: [],
   };
+}
 
 function unlockAudio() {
   if (audioUnlocked) return;
