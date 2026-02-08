@@ -68,4 +68,9 @@ export const BANK_PLOPPLOP = {
     sfx.noise({ duration: isMajor ? 0.12 : 0.06, volume: isMajor ? 0.08 : 0.05, tint: 0.4 });
     sfx.tone({ freq: isMajor ? 110 : 147, type: 'triangle', duration: 0.08, volume: 0.07 });
   },
+  // Danger warning (board getting high)
+  danger: (sfx) => {
+    sfx.tone({ freq: 220, type: 'square', duration: 0.06, volume: 0.07 });
+    sfx.tone({ freq: 196, type: 'square', duration: 0.06, volume: 0.06, delay: 0.08 });
+  },
 };
