@@ -62,6 +62,9 @@ const BRICK_COLS = BRICK_LAYOUT_COLS;
 const BRICK_W = W / BRICK_COLS;
 const BRICK_H = 16;
 const BRICK_OFFSET_Y = 60;
+const BREAK_GATE_TOP = Math.floor(H * 0.64);
+const BREAK_GATE_BOTTOM = BREAK_GATE_TOP + 72;
+const CATCH_AUTO_RELEASE_FRAMES = 120;
 
 const STORAGE_HIGH = 'paddle_royale.high';
 const STORAGE_SETTINGS = 'paddle_royale.settings';
@@ -150,12 +153,13 @@ let nextBonusLifeScore = 20000;
 let bonusClaimed = 0;
 let brickHitStreak = 0;
 let brickStreakTimer = 0;
+let catchReleaseTimer = 0;
 
 let effects = {
   expand: false,
   catch: false,
   laser: false,
-  breakTimer: 0,
+  breakGate: false,
 };
 
 highEl.textContent = highScore;
@@ -291,6 +295,14 @@ function resetPaddle() {
   paddle.laserCooldown = 0;
 }
 
+function clearPersistentCapsuleEffects() {
+  effects.expand = false;
+  effects.catch = false;
+  effects.laser = false;
+  effects.breakGate = false;
+  catchReleaseTimer = 0;
+}
+
 function clearRoundObjects() {
   balls = [];
   bullets = [];
@@ -306,12 +318,7 @@ function resetBallsForServe() {
 }
 
 function clearTransientEffectsOnLifeLoss() {
-  effects = {
-    expand: false,
-    catch: false,
-    laser: false,
-    breakTimer: 0,
-  };
+  clearPersistentCapsuleEffects();
   paddle.width = BASE_PADDLE_W;
 }
 
@@ -375,6 +382,7 @@ function initStage() {
 function launchStuckBalls() {
   const targets = balls.filter((b) => b.stuck);
   if (targets.length === 0) return;
+  catchReleaseTimer = 0;
   sfx.play(BANK_PADDLEROYALE, 'serve', { balls: targets.length });
   const speed = currentBallSpeed();
 
@@ -511,6 +519,7 @@ function applyCapsule(type) {
   sfx.play(BANK_PADDLEROYALE, 'capsuleCatch', { type });
   switch (type) {
     case CapsuleType.EXPAND:
+      clearPersistentCapsuleEffects();
       effects.expand = true;
       paddle.width = EXPANDED_PADDLE_W;
       paddle.x = clamp(paddle.x, 0, W - paddle.width);
@@ -525,6 +534,7 @@ function applyCapsule(type) {
       sfx.play(BANK_PADDLEROYALE, 'capsuleSlow');
       break;
     case CapsuleType.CATCH:
+      clearPersistentCapsuleEffects();
       effects.catch = true;
       sfx.play(BANK_PADDLEROYALE, 'capsuleCatchMode');
       break;
@@ -532,12 +542,13 @@ function applyCapsule(type) {
       createDisruptionBalls();
       break;
     case CapsuleType.LASER:
+      clearPersistentCapsuleEffects();
       effects.laser = true;
-      effects.catch = false;
       sfx.play(BANK_PADDLEROYALE, 'capsuleLaser');
       break;
     case CapsuleType.BREAK:
-      effects.breakTimer = 60 * 10;
+      clearPersistentCapsuleEffects();
+      effects.breakGate = true;
       sfx.play(BANK_PADDLEROYALE, 'capsuleBreak');
       break;
     case CapsuleType.PLAYER:
@@ -570,6 +581,11 @@ function createDisruptionBalls() {
 
 function spawnCapsule(brick) {
   if (!brick.capsule) return;
+  // Arcade behavior: only normal bricks can drop capsules, only one falling at a time,
+  // and no new capsule spawns during disruption (multi-ball).
+  if (brick.type !== BrickType.NORMAL) return;
+  if (capsules.length > 0) return;
+  if (balls.length > 1) return;
   capsules.push({
     x: brick.x + brick.w / 2,
     y: brick.y + brick.h / 2,
@@ -582,14 +598,8 @@ function spawnCapsule(brick) {
 
 function damageBrick(brick, sourceIsBall) {
   if (brick.type === BrickType.GOLD) {
-    if (!effects.breakTimer || !sourceIsBall) {
-      sfx.play(BANK_PADDLEROYALE, 'goldHit');
-      return false;
-    }
-    brick.hits = 0;
-    awardScore(100);
-    sfx.play(BANK_PADDLEROYALE, 'brickBreak', { row: brick.row, type: brick.type, streak: brickHitStreak });
-    return true;
+    sfx.play(BANK_PADDLEROYALE, 'goldHit');
+    return false;
   }
 
   brick.hits -= 1;
@@ -653,6 +663,7 @@ function handleBallPaddleCollision(ball) {
     ball.vx = 0;
     ball.vy = 0;
     state = State.READY;
+    catchReleaseTimer = CATCH_AUTO_RELEASE_FRAMES;
     statusEl.textContent = 'Caught. Press Space or click to relaunch.';
     sfx.play(BANK_PADDLEROYALE, 'paddleHit');
     return;
@@ -701,6 +712,19 @@ function updateBalls() {
     ball.x += ball.vx;
     ball.y += ball.vy;
 
+    if (effects.breakGate && ball.vx > 0 && ball.x + BALL_R >= W && ball.y >= BREAK_GATE_TOP && ball.y <= BREAK_GATE_BOTTOM) {
+      awardScore(10000);
+      state = State.LEVEL_COMPLETE;
+      levelCompleteTimer = 36;
+      bullets = [];
+      capsules = [];
+      clearPersistentCapsuleEffects();
+      sfx.play(BANK_PADDLEROYALE, 'levelComplete');
+      statusEl.textContent = `Break warp! +10000`;
+      balls = keep;
+      return;
+    }
+
     if (ball.x - BALL_R <= 0 || ball.x + BALL_R >= W) {
       ball.vx *= -1;
       ball.x = clamp(ball.x, BALL_R, W - BALL_R);
@@ -729,10 +753,8 @@ function updateBalls() {
         removedBrick = true;
       }
 
-      if (!effects.breakTimer || brick.type === BrickType.GOLD && !broke) {
-        if (axis === 'x') ball.vx *= -1;
-        else ball.vy *= -1;
-      }
+      if (axis === 'x') ball.vx *= -1;
+      else ball.vy *= -1;
 
       normalizeBallVelocity(ball);
       bumpSpeedCounter();
@@ -838,17 +860,18 @@ function tick() {
         b.y = PADDLE_Y - BALL_R - 2;
       }
     }
+    if (effects.catch && catchReleaseTimer > 0 && balls.some((b) => b.stuck)) {
+      catchReleaseTimer -= 1;
+      if (catchReleaseTimer <= 0) launchStuckBalls();
+    }
   }
 
   if (state !== State.PLAYING) return;
 
   updateBalls();
+  if (state !== State.PLAYING) return;
   updateBullets();
   updateCapsules();
-
-  if (effects.breakTimer > 0) {
-    effects.breakTimer -= 1;
-  }
 
   if (balls.length === 0) {
     loseLife();
@@ -883,6 +906,16 @@ function drawOverlay() {
 function render() {
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, W, H);
+
+  if (effects.breakGate) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(244, 114, 182, 0.18)';
+    ctx.fillRect(W - 8, BREAK_GATE_TOP, 8, BREAK_GATE_BOTTOM - BREAK_GATE_TOP);
+    ctx.strokeStyle = 'rgba(251, 207, 232, 0.72)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(W - 7, BREAK_GATE_TOP + 1, 6, BREAK_GATE_BOTTOM - BREAK_GATE_TOP - 2);
+    ctx.restore();
+  }
 
   drawSpriteBricks(ctx, bricks, BRICK_COLORS, stage);
   drawSpritePaddle(ctx, paddle, PADDLE_Y, effects);
@@ -1035,4 +1068,3 @@ settingsApply?.addEventListener('click', () => {
 startGame();
 render();
 requestAnimationFrame(gameLoop);
-

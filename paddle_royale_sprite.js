@@ -225,7 +225,7 @@ export function drawPaddle(ctx, paddle, y, effects) {
 export function drawBalls(ctx, balls, effects) {
   for (const ball of balls) {
     const r = 6;
-    const base = effects.breakTimer > 0 ? '#f97316' : '#fbbf24';
+    const base = effects.breakGate ? '#f97316' : '#fbbf24';
 
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.26)';
