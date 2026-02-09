@@ -36,7 +36,7 @@ export function createPlopPlopSprite(palette, pinch, steps) {
     }
   }
 
-  function drawPuyo(ctx, x, y, s, colorKey, opts = {}) {
+  function drawPlop(ctx, x, y, s, colorKey, opts = {}) {
     const colors = palette[colorKey];
     const cx = x + s / 2;
     const cy = y + s / 2;
@@ -189,5 +189,5 @@ export function createPlopPlopSprite(palette, pinch, steps) {
     ctx.stroke(path);
   }
 
-  return { drawPuyo, drawBridge };
+  return { drawPlop: drawPlop, drawBridge };
 }

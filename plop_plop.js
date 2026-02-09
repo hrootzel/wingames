@@ -93,7 +93,7 @@ const DEFAULT_SETTINGS = {
 const EMPTY_CELL = Object.freeze({ kind: Kind.EMPTY, color: null });
 
 const game = makeGame();
-const { drawPuyo, drawBridge } = createPlopPlopSprite(PALETTE, BRIDGE_PINCH, BRIDGE_STEPS);
+const { drawPlop: drawPlop, drawBridge } = createPlopPlopSprite(PALETTE, BRIDGE_PINCH, BRIDGE_STEPS);
 let settings = loadSettings();
 
 function makeRng(seed) {
@@ -970,7 +970,7 @@ function drawEffects() {
     }
     if (scale > 0) {
       ctx.globalAlpha = scale;
-      drawPuyo(ctx, x, y, view.cellSize, pc.color, {
+      drawPlop(ctx, x, y, view.cellSize, pc.color, {
         phase: game.fx.phase,
         seed: pc.row * W + pc.col,
         popScale: scale,
@@ -1151,7 +1151,7 @@ function drawBoard(alpha) {
       }
       ctx.save();
       if (r >= VISIBLE_H) ctx.globalAlpha = 0.6;
-      drawPuyo(ctx, x, y, view.cellSize, cell.color, {
+      drawPlop(ctx, x, y, view.cellSize, cell.color, {
         phase: game.fx.phase,
         seed: r * W + c,
         squash,
@@ -1179,11 +1179,11 @@ function drawBoard(alpha) {
           { phase: game.fx.phase, seed: a.row * W + a.col }
         );
       }
-      drawPuyo(ctx, cellToX(a.col), cellToY(a.row), view.cellSize, a.puyo.color, {
+      drawPlop(ctx, cellToX(a.col), cellToY(a.row), view.cellSize, a.puyo.color, {
         phase: game.fx.phase,
         seed: a.row * W + a.col + 0.4,
       });
-      drawPuyo(ctx, cellToX(b.col), cellToY(b.row), view.cellSize, b.puyo.color, {
+      drawPlop(ctx, cellToX(b.col), cellToY(b.row), view.cellSize, b.puyo.color, {
         phase: game.fx.phase,
         seed: b.row * W + b.col + 0.4,
       });
@@ -1204,11 +1204,11 @@ function drawBoard(alpha) {
         seed: game.pieceIndex * 0.31,
       });
     }
-    drawPuyo(ctx, cellToX(axis.col), cellToY(axis.row) + offset, view.cellSize, axis.puyo.color, {
+    drawPlop(ctx, cellToX(axis.col), cellToY(axis.row) + offset, view.cellSize, axis.puyo.color, {
       phase: game.fx.phase,
       seed: game.pieceIndex + 0.9,
     });
-    drawPuyo(ctx, cellToX(child.col), cellToY(child.row) + offset, view.cellSize, child.puyo.color, {
+    drawPlop(ctx, cellToX(child.col), cellToY(child.row) + offset, view.cellSize, child.puyo.color, {
       phase: game.fx.phase,
       seed: game.pieceIndex + 1.8,
     });
@@ -1238,7 +1238,7 @@ function drawBoard(alpha) {
         const x = cellToX(c);
         const y = cellToY(r);
         ctx.globalAlpha = 0.85;
-        drawPuyo(ctx, x, y, view.cellSize, 'X', {
+        drawPlop(ctx, x, y, view.cellSize, 'X', {
           phase: game.fx.phase,
           seed: r * W + c + 100,
         });
@@ -1272,8 +1272,8 @@ function drawNextPair() {
     drawBridge(nextCtx, x1 + size / 2, y1 - size / 2, x1 + size / 2, y1 + size / 2,
       game.nextSpec.axisColor, size, { phase: game.fx.phase, seed: game.pieceIndex * 0.27 + 0.2 });
   }
-  drawPuyo(nextCtx, x1, y1 - size, size, game.nextSpec.childColor, { phase: game.fx.phase, seed: game.pieceIndex + 2.2 });
-  drawPuyo(nextCtx, x1, y1, size, game.nextSpec.axisColor, { phase: game.fx.phase, seed: game.pieceIndex + 3.1 });
+  drawPlop(nextCtx, x1, y1 - size, size, game.nextSpec.childColor, { phase: game.fx.phase, seed: game.pieceIndex + 2.2 });
+  drawPlop(nextCtx, x1, y1, size, game.nextSpec.axisColor, { phase: game.fx.phase, seed: game.pieceIndex + 3.1 });
   nextCtx.restore();
 
   // Draw next-2 (smaller, below)
@@ -1287,8 +1287,8 @@ function drawNextPair() {
       drawBridge(nextCtx, x2 + s2 / 2, y2 - s2 / 2, x2 + s2 / 2, y2 + s2 / 2,
         game.nextSpec2.axisColor, s2, { phase: game.fx.phase, seed: game.pieceIndex * 0.31 + 0.5 });
     }
-    drawPuyo(nextCtx, x2, y2 - s2, s2, game.nextSpec2.childColor, { phase: game.fx.phase, seed: game.pieceIndex + 4.2 });
-    drawPuyo(nextCtx, x2, y2, s2, game.nextSpec2.axisColor, { phase: game.fx.phase, seed: game.pieceIndex + 5.1 });
+    drawPlop(nextCtx, x2, y2 - s2, s2, game.nextSpec2.childColor, { phase: game.fx.phase, seed: game.pieceIndex + 4.2 });
+    drawPlop(nextCtx, x2, y2, s2, game.nextSpec2.axisColor, { phase: game.fx.phase, seed: game.pieceIndex + 5.1 });
     nextCtx.restore();
   }
 }
