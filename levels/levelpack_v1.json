@@ -511,6 +511,30 @@
           "x": 546,
           "y": 56,
           "dir": -1
+        },
+        {
+          "size": 0,
+          "x": 170,
+          "y": 60,
+          "dir": 1
+        },
+        {
+          "size": 0,
+          "x": 250,
+          "y": 60,
+          "dir": -1
+        },
+        {
+          "size": 0,
+          "x": 390,
+          "y": 60,
+          "dir": 1
+        },
+        {
+          "size": 0,
+          "x": 470,
+          "y": 60,
+          "dir": -1
         }
       ]
     },
@@ -998,6 +1022,30 @@
           "x": 436,
           "y": 56,
           "dir": -1
+        },
+        {
+          "size": 0,
+          "x": 260,
+          "y": 64,
+          "dir": 1
+        },
+        {
+          "size": 0,
+          "x": 300,
+          "y": 64,
+          "dir": -1
+        },
+        {
+          "size": 0,
+          "x": 420,
+          "y": 64,
+          "dir": 1
+        },
+        {
+          "size": 0,
+          "x": 500,
+          "y": 64,
+          "dir": -1
         }
       ]
     },
@@ -1199,19 +1247,10 @@
             "y": 228,
             "w": 88,
             "h": 10,
-            "kind": "platform",
-            "destructible": true,
-            "drop": "blue goo"
+            "kind": "platform"
           }
         ],
-        "ladders": [
-          {
-            "x": 313,
-            "y": 112,
-            "w": 14,
-            "h": 224
-          }
-        ]
+        "ladders": []
       },
       "balls": [
         {
@@ -1334,14 +1373,7 @@
             "destructible": true
           }
         ],
-        "ladders": [
-          {
-            "x": 313,
-            "y": 104,
-            "w": 14,
-            "h": 232
-          }
-        ]
+        "ladders": []
       },
       "balls": [
         {
@@ -1481,17 +1513,10 @@
             "h": 10,
             "kind": "platform",
             "destructible": true,
-            "drop": "blue goo"
+            "drop": "shield"
           }
         ],
-        "ladders": [
-          {
-            "x": 312,
-            "y": 210,
-            "w": 14,
-            "h": 126
-          }
-        ]
+        "ladders": []
       },
       "balls": [
         {
@@ -2023,7 +2048,7 @@
             "h": 10,
             "kind": "platform",
             "destructible": true,
-            "drop": "blue goo"
+            "drop": "shield"
           },
           {
             "x": 320,
@@ -2149,14 +2174,7 @@
             "destructible": true
           }
         ],
-        "ladders": [
-          {
-            "x": 313,
-            "y": 98,
-            "w": 14,
-            "h": 238
-          }
-        ]
+        "ladders": []
       },
       "balls": [
         {
@@ -2465,14 +2483,7 @@
             "destructible": true
           }
         ],
-        "ladders": [
-          {
-            "x": 313,
-            "y": 184,
-            "w": 14,
-            "h": 152
-          }
-        ]
+        "ladders": []
       },
       "balls": [
         {
@@ -3500,14 +3511,7 @@
             "kind": "platform"
           }
         ],
-        "ladders": [
-          {
-            "x": 313,
-            "y": 92,
-            "w": 14,
-            "h": 244
-          }
-        ]
+        "ladders": []
       },
       "balls": [
         {
@@ -4280,14 +4284,7 @@
             "kind": "platform"
           }
         ],
-        "ladders": [
-          {
-            "x": 313,
-            "y": 44,
-            "w": 14,
-            "h": 292
-          }
-        ]
+        "ladders": []
       },
       "balls": [
         {
@@ -4359,7 +4356,7 @@
             "h": 10,
             "kind": "platform",
             "destructible": true,
-            "drop": "clock"
+            "drop": "metal rope"
           },
           {
             "x": 554,
@@ -4368,7 +4365,7 @@
             "h": 10,
             "kind": "platform",
             "destructible": true,
-            "drop": "blue goo"
+            "drop": "none"
           },
           {
             "x": 238,
