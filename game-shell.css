@@ -90,6 +90,7 @@
 
 .gs-surface[data-gs-managed="true"] {
   aspect-ratio: auto;
+  padding: 0;
 }
 
 .gs-surface > canvas {

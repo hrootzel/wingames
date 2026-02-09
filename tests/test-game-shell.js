@@ -43,7 +43,7 @@ test.describe('Game Shell Layout Tests', () => {
             const mode = shell.dataset.gsMode;
             const gameRect = gameCanvas.getBoundingClientRect();
             const gameScale = gameRect.width / config.logicalW;
-            const hudZoom = parseFloat(window.getComputedStyle(hud).zoom || '1');
+            const hudZoom = (() => { const t = window.getComputedStyle(hud).transform; if (!t || t === 'none') return 1; const m = t.match(/matrix\(([^,]+)/); return m ? parseFloat(m[1]) : 1; })();
             
             const previews = config.previewIds.map(id => {
               const canvas = document.getElementById(id);
@@ -154,7 +154,7 @@ test.describe('Game Shell Layout Tests', () => {
         const rect = canvas.getBoundingClientRect();
         return {
           scale: rect.width / 320,
-          hudZoom: parseFloat(window.getComputedStyle(hud).zoom || '1')
+          hudZoom: (() => { const t = window.getComputedStyle(hud).transform; if (!t || t === 'none') return 1; const m = t.match(/matrix\(([^,]+)/); return m ? parseFloat(m[1]) : 1; })()
         };
       });
       
@@ -167,7 +167,7 @@ test.describe('Game Shell Layout Tests', () => {
         const rect = canvas.getBoundingClientRect();
         return {
           scale: rect.width / 320,
-          hudZoom: parseFloat(window.getComputedStyle(hud).zoom || '1')
+          hudZoom: (() => { const t = window.getComputedStyle(hud).transform; if (!t || t === 'none') return 1; const m = t.match(/matrix\(([^,]+)/); return m ? parseFloat(m[1]) : 1; })()
         };
       });
       

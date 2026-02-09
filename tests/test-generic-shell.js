@@ -28,7 +28,7 @@ test.describe('Generic Game Shell Tests', () => {
         const mode = shell.dataset.gsMode || 'undefined';
         const canvasRect = canvas.getBoundingClientRect();
         const gameScale = canvasRect.width / 320;
-        const hudZoom = parseFloat(window.getComputedStyle(hud).zoom || '1');
+        const hudZoom = (() => { const t = window.getComputedStyle(hud).transform; if (!t || t === 'none') return 1; const m = t.match(/matrix\(([^,]+)/); return m ? parseFloat(m[1]) : 1; })();
         
         return {
           viewport: { width: window.innerWidth, height: window.innerHeight },
@@ -85,7 +85,7 @@ test.describe('Generic Game Shell Tests', () => {
         const mode = shell.dataset.gsMode || 'undefined';
         const canvasRect = canvas.getBoundingClientRect();
         const gameScale = canvasRect.width / 720;
-        const hudZoom = parseFloat(window.getComputedStyle(hud).zoom || '1');
+        const hudZoom = (() => { const t = window.getComputedStyle(hud).transform; if (!t || t === 'none') return 1; const m = t.match(/matrix\(([^,]+)/); return m ? parseFloat(m[1]) : 1; })();
         
         return {
           viewport: { width: window.innerWidth, height: window.innerHeight },
@@ -139,7 +139,7 @@ test.describe('Generic Game Shell Tests', () => {
       const shell = document.querySelector('.gs-shell');
       return {
         scale: canvas.getBoundingClientRect().width / 320,
-        hudZoom: parseFloat(window.getComputedStyle(hud).zoom || '1'),
+        hudZoom: (() => { const t = window.getComputedStyle(hud).transform; if (!t || t === 'none') return 1; const m = t.match(/matrix\(([^,]+)/); return m ? parseFloat(m[1]) : 1; })(),
         layout: shell.dataset.gsLayout
       };
     });
@@ -182,7 +182,7 @@ test.describe('Generic Game Shell Tests', () => {
       
       const hudZoom = await page.evaluate(() => {
         const hud = document.querySelector('.gs-hud');
-        return parseFloat(window.getComputedStyle(hud).zoom || '1');
+        return (() => { const t = window.getComputedStyle(hud).transform; if (!t || t === 'none') return 1; const m = t.match(/matrix\(([^,]+)/); return m ? parseFloat(m[1]) : 1; })();
       });
       
       expect(hudZoom).toBeGreaterThanOrEqual(0.5);
