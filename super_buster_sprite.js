@@ -50,11 +50,11 @@ export function drawBall(ctx, ball, radii, palettes) {
 }
 
 export function drawPlayer(ctx, player, floorY) {
+  const baseY = Number.isFinite(player.y) ? player.y : floorY;
   const apexX = player.x;
-  const apexY = floorY - player.h;
+  const apexY = baseY - player.h;
   const leftX = player.x - player.w / 2;
   const rightX = player.x + player.w / 2;
-  const baseY = floorY;
 
   ctx.fillStyle = '#f97316';
   ctx.beginPath();

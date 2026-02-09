@@ -2,6 +2,16 @@ import { SfxEngine } from './sfx_engine.js';
 import { BANK_SUPERBUSTER } from './sfx_bank_super_buster.js';
 import { drawBackground, drawHarpoon, drawBall, drawPlayer } from './super_buster_sprite.js';
 import { initGameShell } from './game-shell.js';
+import {
+  clamp,
+  normalizeLevelPack,
+  makeBall,
+  advanceHarpoon,
+  updateBall,
+  collideBallWithSolid,
+  harpoonHitsBall,
+  updatePlayerMovement,
+} from './super_buster_engine.mjs';
 
 const WORLD_W = 640;
 const WORLD_H = 360;
@@ -23,29 +33,41 @@ const GameState = {
   GAME_OVER: 'GAME_OVER',
 };
 
-const LEVELS = [
+const DEFAULT_LEVELS = [
   {
+    id: 'L1',
     name: 'Level 1',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
     balls: [
       { size: 3, x: 160, y: 120, dir: 1 },
     ],
   },
   {
+    id: 'L2',
     name: 'Level 2',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
     balls: [
       { size: 3, x: 140, y: 140, dir: 1 },
       { size: 2, x: 420, y: 110, dir: -1 },
     ],
   },
   {
+    id: 'L3',
     name: 'Level 3',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
     balls: [
       { size: 3, x: 200, y: 90, dir: 1 },
       { size: 3, x: 440, y: 90, dir: -1 },
     ],
   },
   {
+    id: 'L4',
     name: 'Level 4',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
     balls: [
       { size: 2, x: 140, y: 80, dir: 1 },
       { size: 2, x: 320, y: 120, dir: -1 },
@@ -53,6 +75,7 @@ const LEVELS = [
     ],
   },
 ];
+let LEVELS = DEFAULT_LEVELS;
 
 const BALL_COLORS = [
   { base: '#7dd3fc', highlight: '#e0f2fe', shadow: '#0284c7' },
@@ -70,6 +93,7 @@ const scoreEl = document.getElementById('score');
 const levelEl = document.getElementById('level');
 const livesEl = document.getElementById('lives');
 const statusEl = document.getElementById('status');
+const timeEl = document.getElementById('time');
 const newBtn = document.getElementById('new-game');
 
 const sfx = new SfxEngine({ master: 0.6 });
@@ -78,16 +102,22 @@ let audioUnlocked = false;
 const input = {
   left: false,
   right: false,
+  up: false,
+  down: false,
   firePressed: false,
 };
 
 const game = {
   player: {
     x: WORLD_W * 0.5,
+    y: FLOOR_Y,
     w: 22,
     h: 28,
     speed: 220,
+    climbSpeed: 170,
     hitR: 12,
+    onLadder: false,
+    ladderIndex: -1,
   },
   harpoon: {
     active: false,
@@ -100,7 +130,9 @@ const game = {
     timer: 0,
   },
   balls: [],
+  geometry: { solids: [], ladders: [] },
   levelIndex: 0,
+  levelTimeLeft: 0,
   score: 0,
   lives: STARTING_LIVES,
   moveSfxTimer: MOVE_SFX_INTERVAL,
@@ -109,30 +141,37 @@ const game = {
   status: 'Ready.',
 };
 
-function clamp(value, lo, hi) {
-  return Math.max(lo, Math.min(hi, value));
-}
-
-function makeBall(spec) {
-  const size = spec.size;
-  const r = RADIUS[size];
-  const x = clamp(spec.x, r, WORLD_W - r);
-  const y = clamp(spec.y, r, FLOOR_Y - r);
-  const dir = spec.dir >= 0 ? 1 : -1;
-  return {
-    size,
-    x,
-    y,
-    vx: VX_MAG[size] * dir,
-    vy: -JUMP_SPEED[size] * 0.8,
-  };
+async function tryLoadExternalLevelPack() {
+  try {
+    const response = await fetch('./levels/levelpack_v1.json', { cache: 'no-store' });
+    if (!response.ok) {
+      return false;
+    }
+    const pack = await response.json();
+    LEVELS = normalizeLevelPack(pack, { maxSize: RADIUS.length - 1, timeDefault: 60 });
+    return true;
+  } catch (err) {
+    console.warn('Failed to load external level pack, using defaults.', err);
+    return false;
+  }
 }
 
 function loadLevel() {
   const level = LEVELS[game.levelIndex];
-  game.balls = level.balls.map((spec) => makeBall(spec));
+  game.balls = level.balls.map((spec) => makeBall(spec, {
+    radius: RADIUS,
+    vxMag: VX_MAG,
+    jumpSpeed: JUMP_SPEED,
+    worldW: WORLD_W,
+    floorY: FLOOR_Y,
+  }));
+  game.geometry = level.geometry || { solids: [], ladders: [] };
+  game.levelTimeLeft = Math.max(1, Number(level.timeLimitSec) || 60);
   game.harpoon.active = false;
   game.player.x = WORLD_W * 0.5;
+  game.player.y = FLOOR_Y;
+  game.player.onLadder = false;
+  game.player.ladderIndex = -1;
   game.state = GameState.PLAYING;
   game.stateTimer = 0;
   game.status = level.name;
@@ -143,7 +182,12 @@ function newGame() {
   game.score = 0;
   game.lives = STARTING_LIVES;
   game.balls = [];
+  game.geometry = { solids: [], ladders: [] };
+  game.levelTimeLeft = 0;
   game.harpoon.active = false;
+  game.player.y = FLOOR_Y;
+  game.player.onLadder = false;
+  game.player.ladderIndex = -1;
   game.moveSfxTimer = MOVE_SFX_INTERVAL;
   game.state = GameState.LEVEL_START;
   game.stateTimer = 0;
@@ -154,7 +198,7 @@ function fireHarpoon() {
   const h = game.harpoon;
   h.active = true;
   h.x = game.player.x;
-  h.yBottom = FLOOR_Y - game.player.h;
+  h.yBottom = game.player.y - game.player.h;
   h.yTop = h.yBottom;
   h.state = 'extend';
   h.timer = 0;
@@ -162,56 +206,10 @@ function fireHarpoon() {
 }
 
 function updateHarpoon(dt) {
-  const h = game.harpoon;
-  if (!h.active) return;
-  if (h.state === 'extend') {
-    h.yTop -= h.extendSpeed * dt;
-    if (h.yTop <= 0) {
-      h.yTop = 0;
-      h.state = 'stick';
-      h.timer = h.stickTime;
-      sfx.play(BANK_SUPERBUSTER, 'harpoonTop');
-    }
-  } else if (h.state === 'stick') {
-    h.timer -= dt;
-    if (h.timer <= 0) {
-      h.active = false;
-    }
+  const result = advanceHarpoon(game.harpoon, dt, game.geometry.solids, 0);
+  if (result.stuck) {
+    sfx.play(BANK_SUPERBUSTER, 'harpoonTop');
   }
-}
-
-function updateBall(ball, dt) {
-  ball.vy += GRAVITY * dt;
-  ball.x += ball.vx * dt;
-  ball.y += ball.vy * dt;
-
-  const r = RADIUS[ball.size];
-  if (ball.y + r > FLOOR_Y) {
-    ball.y = FLOOR_Y - r;
-    ball.vy = -JUMP_SPEED[ball.size];
-  }
-  if (ball.y - r < 0) {
-    ball.y = r;
-    ball.vy = Math.abs(ball.vy);
-  }
-  if (ball.x - r < 0) {
-    ball.x = r;
-    ball.vx = Math.abs(ball.vx);
-  }
-  if (ball.x + r > WORLD_W) {
-    ball.x = WORLD_W - r;
-    ball.vx = -Math.abs(ball.vx);
-  }
-}
-
-function harpoonHitsBall(harpoon, ball) {
-  if (!harpoon.active) return false;
-  const r = RADIUS[ball.size];
-  const dx = Math.abs(ball.x - harpoon.x);
-  if (dx > r) return false;
-  const yTop = Math.min(harpoon.yTop, harpoon.yBottom);
-  const yBottom = Math.max(harpoon.yTop, harpoon.yBottom);
-  return ball.y + r >= yTop && ball.y - r <= yBottom;
 }
 
 function splitBall(index) {
@@ -250,7 +248,7 @@ function splitBall(index) {
 
 function playerHitBall(ball) {
   const px = game.player.x;
-  const py = FLOOR_Y - game.player.h * 0.55;
+  const py = game.player.y - game.player.h * 0.55;
   const pr = game.player.hitR;
   const dx = ball.x - px;
   const dy = ball.y - py;
@@ -294,10 +292,21 @@ function handlePlayerHit() {
 }
 
 function updatePlaying(dt) {
-  const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-  if (dir !== 0) {
-    game.player.x += dir * game.player.speed * dt;
-    game.player.x = clamp(game.player.x, game.player.w / 2, WORLD_W - game.player.w / 2);
+  game.levelTimeLeft = Math.max(0, game.levelTimeLeft - dt);
+  if (game.levelTimeLeft <= 0) {
+    game.status = 'Time up!';
+    handlePlayerHit();
+    return;
+  }
+
+  const moveState = updatePlayerMovement(game.player, input, dt, {
+    floorY: FLOOR_Y,
+    worldW: WORLD_W,
+    moveSpeed: game.player.speed,
+    climbSpeed: game.player.climbSpeed,
+    ladders: game.geometry.ladders,
+  });
+  if (moveState.movedHorizontally) {
     game.moveSfxTimer += dt;
     while (game.moveSfxTimer >= MOVE_SFX_INTERVAL) {
       sfx.play(BANK_SUPERBUSTER, 'move');
@@ -315,12 +324,21 @@ function updatePlaying(dt) {
   updateHarpoon(dt);
 
   for (const ball of game.balls) {
-    updateBall(ball, dt);
+    updateBall(ball, dt, {
+      gravity: GRAVITY,
+      radius: RADIUS,
+      jumpSpeed: JUMP_SPEED,
+      worldW: WORLD_W,
+      floorY: FLOOR_Y,
+    });
+    for (const rect of game.geometry.solids) {
+      collideBallWithSolid(ball, rect, RADIUS);
+    }
   }
 
   if (game.harpoon.active) {
     for (let i = 0; i < game.balls.length; i++) {
-      if (harpoonHitsBall(game.harpoon, game.balls[i])) {
+      if (harpoonHitsBall(game.harpoon, game.balls[i], RADIUS)) {
         splitBall(i);
         game.harpoon.active = false;
         break;
@@ -374,8 +392,38 @@ function update(dt) {
   updatePlaying(dt);
 }
 
+function drawGeometry(ctx2d, geometry) {
+  const solids = geometry?.solids || [];
+  if (solids.length) {
+    ctx2d.fillStyle = 'rgba(15, 23, 42, 0.78)';
+    ctx2d.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+    ctx2d.lineWidth = 1;
+    for (const rect of solids) {
+      ctx2d.fillRect(rect.x, rect.y, rect.w, rect.h);
+      ctx2d.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+    }
+  }
+
+  const ladders = geometry?.ladders || [];
+  if (ladders.length) {
+    ctx2d.strokeStyle = 'rgba(249, 115, 22, 0.55)';
+    ctx2d.lineWidth = 1.5;
+    for (const ladder of ladders) {
+      ctx2d.strokeRect(ladder.x, ladder.y, ladder.w, ladder.h);
+      const rungGap = 10;
+      for (let y = ladder.y + 6; y < ladder.y + ladder.h; y += rungGap) {
+        ctx2d.beginPath();
+        ctx2d.moveTo(ladder.x + 3, y);
+        ctx2d.lineTo(ladder.x + ladder.w - 3, y);
+        ctx2d.stroke();
+      }
+    }
+  }
+}
+
 function render() {
   drawBackground(ctx, WORLD_W, WORLD_H, FLOOR_Y);
+  drawGeometry(ctx, game.geometry);
   drawHarpoon(ctx, game.harpoon);
   for (const ball of game.balls) {
     drawBall(ctx, ball, RADIUS, BALL_COLORS);
@@ -387,6 +435,9 @@ function updateHud() {
   scoreEl.textContent = game.score.toString();
   levelEl.textContent = (game.levelIndex + 1).toString();
   livesEl.textContent = game.lives.toString();
+  if (timeEl) {
+    timeEl.textContent = game.levelTimeLeft.toFixed(1);
+  }
   statusEl.textContent = game.status;
 }
 
@@ -423,6 +474,14 @@ function handleKeyDown(ev) {
     input.right = true;
     ev.preventDefault();
   }
+  if (key === 'arrowup' || key === 'w') {
+    input.up = true;
+    ev.preventDefault();
+  }
+  if (key === 'arrowdown' || key === 's') {
+    input.down = true;
+    ev.preventDefault();
+  }
   if (isFireKey(ev)) {
     if (!ev.repeat) {
       input.firePressed = true;
@@ -445,6 +504,14 @@ function handleKeyUp(ev) {
     input.right = false;
     ev.preventDefault();
   }
+  if (key === 'arrowup' || key === 'w') {
+    input.up = false;
+    ev.preventDefault();
+  }
+  if (key === 'arrowdown' || key === 's') {
+    input.down = false;
+    ev.preventDefault();
+  }
 }
 
 function loop() {
@@ -464,6 +531,35 @@ function loop() {
   requestAnimationFrame(frame);
 }
 
+function clonePlain(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function installDebugApi() {
+  window.__superBusterDebug = {
+    getState() {
+      return {
+        state: game.state,
+        status: game.status,
+        levelIndex: game.levelIndex,
+        levelTimeLeft: game.levelTimeLeft,
+        player: clonePlain(game.player),
+        harpoon: clonePlain(game.harpoon),
+        balls: clonePlain(game.balls),
+        geometry: clonePlain(game.geometry),
+      };
+    },
+    setBall(index, patch) {
+      if (!game.balls[index]) return false;
+      Object.assign(game.balls[index], patch);
+      return true;
+    },
+    setPlayerX(x) {
+      game.player.x = clamp(Number(x), game.player.w / 2, WORLD_W - game.player.w / 2);
+    },
+  };
+}
+
 document.addEventListener('keydown', preventArrowScroll, { passive: false });
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
@@ -480,5 +576,12 @@ initGameShell({
   fit: 'css',
 });
 
-newGame();
-loop();
+installDebugApi();
+
+async function start() {
+  await tryLoadExternalLevelPack();
+  newGame();
+  loop();
+}
+
+start();
