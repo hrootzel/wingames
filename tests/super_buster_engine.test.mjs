@@ -405,3 +405,27 @@ test('updatePlayerMovement falls gradually after leaving platform edge', () => {
   assert.ok(player.y > 214);
   assert.ok(player.y < FLOOR_Y);
 });
+
+test('updatePlayerMovement enters ladder when pressing down from platform above ladder top', () => {
+  const ladders = [{ x: 312, y: 226, w: 16, h: 110 }];
+  const solids = [{ x: 238, y: 214, w: 164, h: 12 }];
+  const player = {
+    x: 320,
+    y: 214,
+    vy: 0,
+    w: 22,
+    h: 28,
+    onLadder: false,
+    ladderIndex: -1,
+  };
+  const result = updatePlayerMovement(
+    player,
+    { left: false, right: false, up: false, down: true },
+    1 / 30,
+    { floorY: FLOOR_Y, worldW: WORLD_W, moveSpeed: 220, climbSpeed: 180, ladders, solids },
+  );
+  assert.equal(result.onLadder, true);
+  assert.equal(player.onLadder, true);
+  assert.equal(player.x, 320);
+  assert.ok(player.y > 214);
+});

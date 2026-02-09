@@ -687,3 +687,45 @@ test('super buster: dropped powerup lands on platform top', async ({ page }) => 
   expect(Math.abs(p.y - 205)).toBeLessThanOrEqual(1.0);
   expect(Math.abs(p.vy)).toBeLessThanOrEqual(0.01);
 });
+
+test('super buster: endless mode spawns new wave instead of level clear', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB19',
+    name: 'Endless Lab',
+    timeLimitSec: 60,
+    geometry: {
+      solids: [{ x: 220, y: 214, w: 200, h: 12 }],
+      ladders: [{ x: 313, y: 214, w: 14, h: 122 }],
+    },
+    balls: [{ size: 0, x: 320, y: 170, dir: 1 }],
+  });
+
+  await page.addInitScript(() => {
+    localStorage.setItem('super_buster:v1:settings', JSON.stringify({
+      mode: 'endless',
+      difficulty: 'normal',
+      showGeometry: true,
+      volume: 0.0,
+    }));
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Endless wave');
+
+  const waveBefore = await page.evaluate(() => window.__superBusterDebug.getState().levelIndex);
+  await page.evaluate(() => window.__superBusterDebug.clearBalls());
+
+  await expect.poll(async () => {
+    const s = await page.evaluate(() => window.__superBusterDebug.getState());
+    return s.state === 'PLAYING' && s.balls.length > 0 && s.levelIndex > waveBefore;
+  }).toBe(true);
+
+  const after = await page.evaluate(() => window.__superBusterDebug.getState());
+  expect(after.balls.length).toBeGreaterThan(0);
+  expect(after.state).toBe('PLAYING');
+  expect(after.levelIndex).toBeGreaterThan(waveBefore);
+});

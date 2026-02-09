@@ -448,14 +448,15 @@ export function updatePlayerMovement(player, input, dt, options = {}) {
 
   const oldX = player.x;
   if (player.onLadder) {
+    const ladderHoldMarginY = Math.max(10, player.h + 2);
     let candidate = null;
     if (player.ladderIndex >= 0 && player.ladderIndex < ladders.length) {
       const ladder = ladders[player.ladderIndex];
-      candidate = findLadderAtPosition(player.x, player.y, [ladder], 14, 10);
+      candidate = findLadderAtPosition(player.x, player.y, [ladder], 14, ladderHoldMarginY);
       if (candidate) candidate.index = player.ladderIndex;
     }
     if (!candidate) {
-      candidate = findLadderAtPosition(player.x, player.y, ladders, 14, 10);
+      candidate = findLadderAtPosition(player.x, player.y, ladders, 14, ladderHoldMarginY);
     }
     if (!candidate) {
       player.onLadder = false;

@@ -38,13 +38,13 @@ function buildMountainPath(rng, worldW, baseY, amp, step, drift) {
 function buildScene(worldW, worldH, floorY, levelIndex) {
   const seed = hash32(`bg:${levelIndex}:${worldW}:${worldH}:${floorY}`);
   const rng = makeRng(seed);
-  const paletteMode = Math.floor(rng() * 3);
   const palettes = [
     {
       skyTop: '#050b17',
       skyMid: '#0d1f3d',
       skyBot: '#08182d',
       bandA: 'rgba(110, 170, 255, 0)',
+      bandMid: 'rgba(160, 200, 255, 0.06)',
       bandB: 'rgba(110, 170, 255, 0.15)',
       mountainBack: 'rgba(25, 39, 62, 0.7)',
       mountainFront: 'rgba(14, 27, 45, 0.92)',
@@ -56,12 +56,15 @@ function buildScene(worldW, worldH, floorY, levelIndex) {
       craterRim: 'rgba(248, 180, 130, 0.24)',
       starA: '#dbeafe',
       starB: '#bfdbfe',
+      auroraA: 'rgba(110, 255, 228, 0)',
+      auroraB: 'rgba(118, 230, 255, 0.18)',
     },
     {
       skyTop: '#060813',
       skyMid: '#1b1538',
       skyBot: '#12182f',
       bandA: 'rgba(186, 146, 255, 0)',
+      bandMid: 'rgba(210, 188, 255, 0.07)',
       bandB: 'rgba(186, 146, 255, 0.16)',
       mountainBack: 'rgba(44, 33, 73, 0.72)',
       mountainFront: 'rgba(24, 20, 54, 0.9)',
@@ -73,12 +76,15 @@ function buildScene(worldW, worldH, floorY, levelIndex) {
       craterRim: 'rgba(255, 192, 170, 0.2)',
       starA: '#ede9fe',
       starB: '#ddd6fe',
+      auroraA: 'rgba(150, 170, 255, 0)',
+      auroraB: 'rgba(173, 145, 255, 0.18)',
     },
     {
       skyTop: '#031016',
       skyMid: '#0a2b32',
       skyBot: '#0d1d25',
       bandA: 'rgba(117, 255, 201, 0)',
+      bandMid: 'rgba(176, 255, 230, 0.07)',
       bandB: 'rgba(117, 255, 201, 0.14)',
       mountainBack: 'rgba(20, 57, 63, 0.68)',
       mountainFront: 'rgba(12, 35, 42, 0.9)',
@@ -90,8 +96,51 @@ function buildScene(worldW, worldH, floorY, levelIndex) {
       craterRim: 'rgba(175, 255, 228, 0.2)',
       starA: '#ccfbf1',
       starB: '#a7f3d0',
+      auroraA: 'rgba(120, 255, 214, 0)',
+      auroraB: 'rgba(118, 230, 255, 0.18)',
+    },
+    {
+      skyTop: '#18070a',
+      skyMid: '#3a1119',
+      skyBot: '#2b0f12',
+      bandA: 'rgba(255, 130, 150, 0)',
+      bandMid: 'rgba(255, 190, 200, 0.07)',
+      bandB: 'rgba(255, 130, 150, 0.17)',
+      mountainBack: 'rgba(81, 28, 36, 0.72)',
+      mountainFront: 'rgba(58, 20, 28, 0.92)',
+      soilTop: '#6d3a2d',
+      soilMid: '#4f2a21',
+      soilBot: '#331b16',
+      soilRidge: 'rgba(255, 211, 173, 0.34)',
+      craterFill: 'rgba(33, 14, 12, 0.46)',
+      craterRim: 'rgba(255, 162, 130, 0.25)',
+      starA: '#ffe4e6',
+      starB: '#fecdd3',
+      auroraA: 'rgba(255, 168, 180, 0)',
+      auroraB: 'rgba(255, 145, 176, 0.17)',
+    },
+    {
+      skyTop: '#120d03',
+      skyMid: '#34250a',
+      skyBot: '#2a1d08',
+      bandA: 'rgba(255, 216, 120, 0)',
+      bandMid: 'rgba(255, 234, 170, 0.08)',
+      bandB: 'rgba(255, 216, 120, 0.18)',
+      mountainBack: 'rgba(93, 71, 26, 0.7)',
+      mountainFront: 'rgba(61, 46, 18, 0.9)',
+      soilTop: '#71562a',
+      soilMid: '#55401f',
+      soilBot: '#3a2c16',
+      soilRidge: 'rgba(255, 239, 173, 0.34)',
+      craterFill: 'rgba(37, 30, 12, 0.45)',
+      craterRim: 'rgba(255, 221, 130, 0.24)',
+      starA: '#fef9c3',
+      starB: '#fde68a',
+      auroraA: 'rgba(255, 231, 158, 0)',
+      auroraB: 'rgba(255, 214, 105, 0.16)',
     },
   ];
+  const paletteMode = Math.floor(rng() * palettes.length);
   const palette = palettes[paletteMode];
   const galaxy = {
     centerX: worldW * (0.38 + rng() * 0.24),
@@ -158,8 +207,8 @@ function buildScene(worldW, worldH, floorY, levelIndex) {
       speed: 0.12 + rng() * 0.24,
       drift: rng() * Math.PI * 2,
       alpha: 0.06 + rng() * 0.1,
-      colorA: paletteMode === 2 ? 'rgba(120, 255, 214, 0)' : 'rgba(110, 255, 228, 0)',
-      colorB: paletteMode === 1 ? 'rgba(173, 145, 255, 0.18)' : 'rgba(118, 230, 255, 0.18)',
+      colorA: palette.auroraA,
+      colorB: palette.auroraB,
     });
   }
 
@@ -239,9 +288,9 @@ export function drawBackground(ctx, worldW, worldH, floorY, levelIndex = 0) {
   const bandH = scene.galaxy.thickness * (2.7 + scene.galaxy.feather);
   const galaxyGrad = ctx.createLinearGradient(0, -bandH * 0.5, 0, bandH * 0.5);
   galaxyGrad.addColorStop(0, pal.bandA);
-  galaxyGrad.addColorStop(0.24, 'rgba(160, 200, 255, 0.06)');
+  galaxyGrad.addColorStop(0.24, pal.bandMid);
   galaxyGrad.addColorStop(0.5, pal.bandB);
-  galaxyGrad.addColorStop(0.76, 'rgba(160, 200, 255, 0.06)');
+  galaxyGrad.addColorStop(0.76, pal.bandMid);
   galaxyGrad.addColorStop(1, pal.bandA);
   ctx.fillStyle = galaxyGrad;
   ctx.fillRect(-bandW * 0.5, -bandH * 0.5, bandW, bandH);

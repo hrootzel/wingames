@@ -50,12 +50,14 @@ const WEAPON_TYPES = {
   gun: 'gun',
 };
 const POWERUP_TYPES = ['shield', 'sticky', 'double', 'gun', 'slow', 'freeze', 'dynamite', 'life', 'single', 'fruit'];
+const MODE_TYPES = ['campaign', 'endless'];
 
 const STORAGE = {
   settings: 'super_buster:v1:settings',
 };
 
 const DEFAULT_SETTINGS = {
+  mode: 'campaign',
   difficulty: 'normal',
   showGeometry: true,
   volume: 0.6,
@@ -144,6 +146,7 @@ const settingsClose = document.getElementById('settings-close');
 const settingsApply = document.getElementById('settings-apply');
 const settingsCancel = document.getElementById('settings-cancel');
 const optDifficulty = document.getElementById('opt-difficulty');
+const optMode = document.getElementById('opt-mode');
 const optGeometry = document.getElementById('opt-geometry');
 const optVolume = document.getElementById('opt-volume');
 
@@ -197,6 +200,7 @@ const game = {
   levelStartLives: STARTING_LIVES,
   slowTimer: 0,
   freezeTimer: 0,
+  endlessSpawnTimer: 0,
 };
 
 let settings = loadSettings();
@@ -224,13 +228,14 @@ function loadSettings() {
     const raw = localStorage.getItem(STORAGE.settings);
     if (!raw) return { ...DEFAULT_SETTINGS };
     const parsed = JSON.parse(raw);
+    const mode = MODE_TYPES.includes(parsed.mode) ? parsed.mode : DEFAULT_SETTINGS.mode;
     const difficulty = Object.prototype.hasOwnProperty.call(DIFFICULTY_PRESETS, parsed.difficulty)
       ? parsed.difficulty
       : DEFAULT_SETTINGS.difficulty;
     const showGeometry = parsed.showGeometry !== false;
     const volumeNum = Number(parsed.volume);
     const volume = Number.isFinite(volumeNum) ? clamp(volumeNum, 0, 1) : DEFAULT_SETTINGS.volume;
-    return { difficulty, showGeometry, volume };
+    return { mode, difficulty, showGeometry, volume };
   } catch (err) {
     return { ...DEFAULT_SETTINGS };
   }
@@ -269,6 +274,7 @@ function applySettingsToRuntime(previousSettings = null) {
 
 function openSettings() {
   if (!settingsModal) return;
+  optMode.value = settings.mode;
   optDifficulty.value = settings.difficulty;
   optGeometry.checked = settings.showGeometry;
   optVolume.value = String(settings.volume);
@@ -285,6 +291,7 @@ function closeSettings() {
 function applySettingsFromModal() {
   const prev = { ...settings };
   settings = {
+    mode: MODE_TYPES.includes(optMode.value) ? optMode.value : DEFAULT_SETTINGS.mode,
     difficulty: Object.prototype.hasOwnProperty.call(DIFFICULTY_PRESETS, optDifficulty.value)
       ? optDifficulty.value
       : DEFAULT_SETTINGS.difficulty,
@@ -293,8 +300,71 @@ function applySettingsFromModal() {
   };
   saveSettings(settings);
   applySettingsToRuntime(prev);
-  game.status = `Settings applied (${getPreset(settings.difficulty).name}).`;
+  const modeChanged = prev.mode !== settings.mode;
+  game.status = `Settings applied (${settings.mode}, ${getPreset(settings.difficulty).name}).`;
+  if (modeChanged) {
+    newGame();
+  }
   closeSettings();
+}
+
+function isEndlessMode() {
+  return settings.mode === 'endless';
+}
+
+function randomEndlessType(wave) {
+  const r = Math.random();
+  if (wave >= 8 && r < 0.18) return 'seeker';
+  if (wave >= 5 && r < 0.34) return 'bouncy';
+  if (wave >= 3 && r < 0.48) return 'hexa';
+  return 'normal';
+}
+
+function randomEndlessSize(wave) {
+  if (wave < 2) return 3;
+  if (wave < 5) return Math.random() < 0.6 ? 3 : 2;
+  if (wave < 10) return Math.random() < 0.5 ? 2 : 1;
+  const r = Math.random();
+  if (r < 0.25) return 3;
+  if (r < 0.65) return 2;
+  return 1;
+}
+
+function buildEndlessSpecs(wave, count) {
+  const specs = [];
+  for (let i = 0; i < count; i += 1) {
+    specs.push({
+      type: randomEndlessType(wave),
+      size: randomEndlessSize(wave),
+      x: 44 + Math.random() * (WORLD_W - 88),
+      y: 62 + Math.random() * 76,
+      dir: Math.random() < 0.5 ? -1 : 1,
+    });
+  }
+  return specs;
+}
+
+function pickEndlessGeometry(wave) {
+  const source = LEVELS[wave % LEVELS.length] || LEVELS[0];
+  return source?.geometry || { solids: [], ladders: [] };
+}
+
+function spawnEndlessWave() {
+  const wave = game.levelIndex + 1;
+  const tuning = game.tuning || buildTuning(settings);
+  const waveCount = 1 + Math.min(6, Math.floor((wave + 1) / 2));
+  const specs = buildEndlessSpecs(wave, waveCount);
+  for (const spec of specs) {
+    game.balls.push(makeBall(spec, {
+      radius: RADIUS,
+      vxMag: tuning.vxMag,
+      jumpSpeed: tuning.jumpSpeed,
+      worldW: WORLD_W,
+      floorY: FLOOR_Y,
+    }));
+  }
+  game.endlessSpawnTimer = Math.max(1.6, 4.4 - wave * 0.12);
+  game.status = `Endless wave ${wave}`;
 }
 
 async function tryLoadExternalLevelPack() {
@@ -313,18 +383,25 @@ async function tryLoadExternalLevelPack() {
 }
 
 function loadLevel() {
+  const endless = isEndlessMode();
   const level = LEVELS[game.levelIndex];
   const tuning = game.tuning || buildTuning(settings);
   const timeMul = tuning.preset.timeMul || 1;
-  game.balls = level.balls.map((spec) => makeBall(spec, {
-    radius: RADIUS,
-    vxMag: tuning.vxMag,
-    jumpSpeed: tuning.jumpSpeed,
-    worldW: WORLD_W,
-    floorY: FLOOR_Y,
-  }));
-  game.geometry = level.geometry || { solids: [], ladders: [] };
-  game.levelTimeLeft = Math.max(1, (Number(level.timeLimitSec) || 60) * timeMul);
+  if (endless) {
+    game.balls = [];
+    game.geometry = pickEndlessGeometry(game.levelIndex);
+    game.levelTimeLeft = Number.POSITIVE_INFINITY;
+  } else {
+    game.balls = level.balls.map((spec) => makeBall(spec, {
+      radius: RADIUS,
+      vxMag: tuning.vxMag,
+      jumpSpeed: tuning.jumpSpeed,
+      worldW: WORLD_W,
+      floorY: FLOOR_Y,
+    }));
+    game.geometry = level.geometry || { solids: [], ladders: [] };
+    game.levelTimeLeft = Math.max(1, (Number(level.timeLimitSec) || 60) * timeMul);
+  }
   game.harpoons = [];
   game.bullets = [];
   game.powerups = [];
@@ -346,7 +423,12 @@ function loadLevel() {
   game.levelStartLives = game.lives;
   game.slowTimer = 0;
   game.freezeTimer = 0;
-  game.status = level.name;
+  game.endlessSpawnTimer = 0;
+  if (endless) {
+    spawnEndlessWave();
+  } else {
+    game.status = level.name;
+  }
 }
 
 function newGame() {
@@ -377,6 +459,7 @@ function newGame() {
   game.levelStartLives = STARTING_LIVES;
   game.slowTimer = 0;
   game.freezeTimer = 0;
+  game.endlessSpawnTimer = 0;
   game.status = 'Ready.';
 }
 
@@ -691,7 +774,7 @@ function updatePlaying(dt) {
     }
   }
   game.levelTimeLeft = Math.max(0, game.levelTimeLeft - dt);
-  if (game.levelTimeLeft <= 0) {
+  if (!isEndlessMode() && game.levelTimeLeft <= 0) {
     game.status = 'Time up!';
     handlePlayerHit();
     return;
@@ -732,6 +815,22 @@ function updatePlaying(dt) {
   updateHarpoons(dt);
   updateBullets(dt);
   updatePowerups(dt);
+  if (isEndlessMode()) {
+    game.endlessSpawnTimer -= dt;
+    const cap = 4 + Math.min(8, Math.floor((game.levelIndex + 1) * 0.7));
+    if (game.endlessSpawnTimer <= 0 && game.balls.length < cap) {
+      const tuningNow = game.tuning || buildTuning(settings);
+      const spec = buildEndlessSpecs(game.levelIndex + 1, 1)[0];
+      game.balls.push(makeBall(spec, {
+        radius: RADIUS,
+        vxMag: tuningNow.vxMag,
+        jumpSpeed: tuningNow.jumpSpeed,
+        worldW: WORLD_W,
+        floorY: FLOOR_Y,
+      }));
+      game.endlessSpawnTimer = Math.max(1.4, 3.6 - (game.levelIndex + 1) * 0.08);
+    }
+  }
 
   for (const ball of game.balls) {
     updateBall(ball, ballDt, {
@@ -797,7 +896,13 @@ function updatePlaying(dt) {
   }
 
   if (game.state === GameState.PLAYING && game.balls.length === 0) {
-    setLevelClear();
+    if (isEndlessMode()) {
+      game.levelIndex += 1;
+      game.geometry = pickEndlessGeometry(game.levelIndex);
+      spawnEndlessWave();
+    } else {
+      setLevelClear();
+    }
   }
 }
 
@@ -940,7 +1045,8 @@ function updateHud() {
   levelEl.textContent = (game.levelIndex + 1).toString();
   livesEl.textContent = game.lives.toString();
   if (timeEl) {
-    timeEl.textContent = game.levelTimeLeft.toFixed(1);
+    if (isEndlessMode()) timeEl.textContent = '∞';
+    else timeEl.textContent = game.levelTimeLeft.toFixed(1);
   }
   const weaponLabel = game.player.weaponType === WEAPON_TYPES.single ? 'harpoon' : game.player.weaponType;
   const timerLabel = game.player.weaponTimer > 0 ? ` ${game.player.weaponTimer.toFixed(1)}s` : '';
@@ -1074,7 +1180,7 @@ function installDebugApi() {
         powerups: clonePlain(game.powerups),
         balls: clonePlain(game.balls),
         geometry: clonePlain(game.geometry),
-        settings: clonePlain(settings),
+      settings: clonePlain(settings),
         tuning: clonePlain(game.tuning),
       };
     },
@@ -1102,6 +1208,9 @@ function installDebugApi() {
     },
     forcePlayerHit() {
       handlePlayerHit();
+    },
+    clearBalls() {
+      game.balls = [];
     },
   };
 }
