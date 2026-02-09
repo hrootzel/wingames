@@ -142,7 +142,7 @@ const settingsApply = document.getElementById('settings-apply');
 const settingsCancel = document.getElementById('settings-cancel');
 const modeSelect = document.getElementById('mode-select');
 const timeLimitSelect = document.getElementById('time-limit-select');
-const layoutSelect = document.getElementById('layout-select');
+const layoutSelect = null;
 const skinSelect = document.getElementById('skin-select');
 
 const view = {
@@ -345,22 +345,12 @@ function updateThemeVars() {
   document.body.style.setProperty('--pulse-glow', `${skin.line}66`);
 }
 
-function applyLayoutClass() {
-  document.body.classList.remove('layout-horizontal', 'layout-vertical');
-  document.body.classList.add(game.layout === 'vertical' ? 'layout-vertical' : 'layout-horizontal');
-  if (shellEl) {
-    if (game.layout === 'vertical') {
-      shellEl.dataset.gsLayout = 'stack';
-    } else {
-      delete shellEl.dataset.gsLayout;
-    }
-  }
-}
+function applyLayoutClass() {}
 
 function syncSettingsUI() {
   modeSelect.value = game.mode;
   timeLimitSelect.value = String(game.timeLimitSec);
-  layoutSelect.value = game.layout;
+  layoutSelect && (layoutSelect.value = game.layout);
   if (skinSelect) skinSelect.value = String(game.singleSkinIndex);
   refreshSettingsFieldAvailability();
 }
@@ -1468,7 +1458,7 @@ function applySettingsFromUI() {
   game.mode = nextMode;
   game.timeLimitSec = TIME_LIMITS.includes(nextLimit) ? nextLimit : 180;
   game.singleSkinIndex = clamp(Number.isFinite(nextSkin) ? Math.floor(nextSkin) : 0, 0, SKINS.length - 1);
-  game.layout = layoutSelect.value === 'vertical' ? 'vertical' : 'horizontal';
+  game.layout = 'horizontal';
   refreshSettingsFieldAvailability();
   applyLayoutClass();
   saveSettings();

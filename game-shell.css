@@ -3,6 +3,7 @@
   --gs-hud-width: clamp(220px, 28vw, 360px);
   --gs-snap-col-min: 200px;
   --gs-hud-col-min: 220px;
+  --gs-hud-min-pct: 20;
 }
 
 .gs-shell {

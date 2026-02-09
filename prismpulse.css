@@ -15,72 +15,14 @@
 .prismpulse .pulse-board {
   padding: 16px;
 }
+@media (max-width: 400px) {
+  .prismpulse .pulse-board { padding: 6px; }
+}
 
 .prismpulse .pulse-wrap {
   --gs-gap: 14px;
   --gs-hud-width: clamp(220px, 24vw, 260px);
-}
-
-.prismpulse.layout-vertical .pulse-wrap {
-  grid-template-columns: 1fr;
-  grid-template-areas:
-    "preview"
-    "stage"
-    "score"
-    "controls";
-}
-
-.prismpulse.layout-vertical .pulse-stage {
-  grid-area: stage;
-}
-
-.prismpulse.layout-vertical .pulse-side {
-  display: contents;
-}
-
-.prismpulse.layout-vertical .preview-panel {
-  grid-area: preview;
-}
-
-.prismpulse.layout-vertical .score-panel {
-  grid-area: score;
-}
-
-.prismpulse.layout-vertical .controls-panel {
-  grid-area: controls;
-}
-
-.prismpulse.layout-vertical .queue-preview {
-  grid-template-columns: repeat(3, minmax(48px, 56px));
-  justify-content: center;
-  gap: 6px;
-}
-
-.prismpulse.layout-vertical .preview-piece {
-  padding: 4px;
-  gap: 2px;
-}
-
-.prismpulse.layout-vertical .score-panel .quick-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px 10px;
-  font-size: 13px;
-}
-
-.prismpulse.layout-vertical .controls-panel .key-hints {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
- }
-
-.prismpulse.layout-vertical .controls-panel .pulse-controls {
-  margin-top: 10px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.prismpulse.layout-vertical .controls-panel .pulse-controls button {
-  width: 100%;
+  --gs-snap-col-min: 120px;
 }
 
 .prismpulse .pulse-stage {
@@ -109,15 +51,7 @@
   gap: 12px;
 }
 
-@media (orientation: portrait) {
-  .prismpulse .pulse-side {
-    grid-template-columns: 1fr;
-  }
-
-  .prismpulse .preview-panel {
-    order: -1;
-  }
-}
+/* portrait layout handled by game-shell snap lanes */
 
 .prismpulse .panel-box {
   background: var(--pulse-panel);

@@ -140,6 +140,20 @@ export function initGameShell(options) {
       .sort((a, b) => Number(a.dataset.gsHudOrder || 0) - Number(b.dataset.gsHudOrder || 0));
   }
 
+  function getRequiredHudHeight() {
+    if (!shell) return 120;
+    let h = 0;
+    const topLane = shell.querySelector('.gs-snap-top');
+    if (topLane && topLane.children.length) {
+      h += topLane.getBoundingClientRect().height;
+    } else {
+      const panels = shell.querySelectorAll('[data-gs-fit="required"]');
+      for (const p of panels) h += p.getBoundingClientRect().height;
+    }
+    const gap = parseFloat(getComputedStyle(shell).getPropertyValue('--gs-gap')) || 12;
+    return h + gap * 2;
+  }
+
   function applySnapLayout(isPortrait) {
     if (!shell || !hud) return;
     const topLane = shell.querySelector('.gs-snap-top');
@@ -196,8 +210,8 @@ export function initGameShell(options) {
     const sideCanvasWMin = Math.max(0, availW - hudMinWidth - gap);
     const sideScaleMax = computeScale(Math.min(sideCanvasWMin / logicalW, availH / logicalH), mode);
 
-    // Stack layout: canvas gets full availW, but reserve space for HUD below
-    const hudReserve = Math.max(250, availH * 0.4);
+    // Stack layout: canvas gets full availW, reserve ~25% for HUD (refined after snap layout)
+    const hudReserve = Math.max(120, availH * 0.25);
     const stackAvailH = Math.max(1, availH - hudReserve);
     const stackScale = computeScale(Math.min(availW / logicalW, stackAvailH / logicalH), mode);
 
@@ -218,7 +232,12 @@ export function initGameShell(options) {
       hudScale = Math.max(0.5, Math.min(1, remaining / hudW));
     }
 
-    return { useSide, sideScale: bestSideScale, stackScale, hudScale, hudW };
+    // If HUD would be squeezed below --gs-hud-min-pct of shell width, bail to stack
+    const hudMinPct = shell ? (parseFloat(getComputedStyle(shell).getPropertyValue('--gs-hud-min-pct')) || 20) : 20;
+    const effectiveHudW = hudW * hudScale;
+    const forceStack = useSide && hudScale < 1 && effectiveHudW < availW * (hudMinPct / 100);
+
+    return { useSide: useSide && !forceStack, sideScale: bestSideScale, stackScale, hudScale, hudW };
   }
 
   let lastCssW = -1;
@@ -275,11 +294,10 @@ export function initGameShell(options) {
       cssW = Math.max(1, logicalW * scale);
       cssH = Math.max(1, logicalH * scale);
     } else {
-      // Stack: canvas takes full width, but reserve space for HUD below
+      // Stack: canvas takes full width, reserve space only for required HUD panels
       if (shell) shell.style.removeProperty('--gs-hud-width-live');
       
-      // Reserve approximately 40% of height for HUD in stack mode, or minimum 250px
-      const hudReserve = Math.max(250, availH * 0.4);
+      const hudReserve = Math.max(120, getRequiredHudHeight());
       const canvasAvailH = Math.max(1, availH - hudReserve);
       
       const rawScale = Math.min(availW / logicalW, canvasAvailH / logicalH);
