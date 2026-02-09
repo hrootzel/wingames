@@ -142,3 +142,40 @@ test('super buster: ArrowUp is captured for ladder climb', async ({ page }) => {
   expect(after.onLadder).toBe(true);
   expect(after.y).toBeLessThan(before - 2);
 });
+
+test('super buster: climbing reaches platform top and dismounts', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB4',
+    name: 'Ladder Exit Lab',
+    timeLimitSec: 60,
+    geometry: {
+      solids: [{ x: 238, y: 214, w: 164, h: 12 }],
+      ladders: [{ x: 300, y: 226, w: 20, h: 110 }],
+    },
+    balls: [{ size: 0, x: 40, y: 40, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(pack),
+    });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Ladder Exit Lab');
+
+  await page.evaluate(() => {
+    window.__superBusterDebug.setPlayerX(310);
+    window.__superBusterDebug.setBall(0, { x: 40, y: 40, vx: 0, vy: 0 });
+  });
+
+  await page.keyboard.down('ArrowUp');
+  await page.waitForTimeout(1200);
+  await page.keyboard.up('ArrowUp');
+
+  const player = await page.evaluate(() => window.__superBusterDebug.getState().player);
+  expect(player.onLadder).toBe(false);
+  expect(Math.abs(player.y - 214)).toBeLessThanOrEqual(0.5);
+});

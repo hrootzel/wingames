@@ -305,6 +305,7 @@ function updatePlaying(dt) {
     moveSpeed: game.player.speed,
     climbSpeed: game.player.climbSpeed,
     ladders: game.geometry.ladders,
+    solids: game.geometry.solids,
   });
   if (moveState.movedHorizontally) {
     game.moveSfxTimer += dt;

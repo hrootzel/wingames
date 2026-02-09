@@ -244,12 +244,44 @@ export function findLadderAtPosition(x, y, ladders = [], marginX = 8, marginY = 
   return null;
 }
 
+export function findPlayerSupportY(x, currentY, solids = [], floorY = 336, halfW = 11, snapDistance = 20) {
+  let supportY = floorY;
+  for (const solid of solids) {
+    if (!solid) continue;
+    const left = solid.x + halfW - 2;
+    const right = solid.x + solid.w - halfW + 2;
+    if (x < left || x > right) continue;
+    const top = solid.y;
+    if (top < supportY && currentY <= top + snapDistance) {
+      supportY = top;
+    }
+  }
+  return supportY;
+}
+
+export function findLadderExitPlatformY(x, ladder, solids = [], halfW = 11, joinTolerance = 5) {
+  if (!ladder) return null;
+  let bestY = Number.POSITIVE_INFINITY;
+  for (const solid of solids) {
+    if (!solid) continue;
+    const left = solid.x + halfW - 2;
+    const right = solid.x + solid.w - halfW + 2;
+    if (x < left || x > right) continue;
+    const bottom = solid.y + solid.h;
+    if (Math.abs(bottom - ladder.y) <= joinTolerance && solid.y < bestY) {
+      bestY = solid.y;
+    }
+  }
+  return Number.isFinite(bestY) ? bestY : null;
+}
+
 export function updatePlayerMovement(player, input, dt, options = {}) {
   const floorY = Number.isFinite(Number(options.floorY)) ? Number(options.floorY) : 336;
   const worldW = Number.isFinite(Number(options.worldW)) ? Number(options.worldW) : 640;
   const moveSpeed = Number.isFinite(Number(options.moveSpeed)) ? Number(options.moveSpeed) : 220;
   const climbSpeed = Number.isFinite(Number(options.climbSpeed)) ? Number(options.climbSpeed) : 170;
   const ladders = options.ladders || [];
+  const solids = options.solids || [];
 
   const up = !!input.up;
   const down = !!input.down;
@@ -270,12 +302,17 @@ export function updatePlayerMovement(player, input, dt, options = {}) {
 
   const tryEnter = up || down;
   if (!player.onLadder && tryEnter) {
-    const candidate = findLadderAtPosition(player.x, player.y, ladders, 10, 10);
+    const candidate = findLadderAtPosition(player.x, player.y, ladders, 10, player.h);
     if (candidate) {
-      player.onLadder = true;
-      player.ladderIndex = candidate.index;
-      player.x = candidate.ladder.x + candidate.ladder.w * 0.5;
-      player.y = Math.min(player.y, floorY);
+      const ladderTopY = candidate.ladder.y;
+      const canEnterFromUp = up && player.y >= ladderTopY - 1;
+      const canEnterFromDown = down && player.y <= ladderTopY + player.h + 2;
+      if (canEnterFromUp || canEnterFromDown) {
+        player.onLadder = true;
+        player.ladderIndex = candidate.index;
+        player.x = candidate.ladder.x + candidate.ladder.w * 0.5;
+        player.y = Math.min(player.y, floorY);
+      }
     }
   }
 
@@ -300,6 +337,19 @@ export function updatePlayerMovement(player, input, dt, options = {}) {
       const climbDir = (down ? 1 : 0) - (up ? 1 : 0);
       const climbMinY = ladder.y + player.h;
       const climbMaxY = Math.min(floorY, ladder.y + ladder.h);
+      const exitPlatformY = findLadderExitPlatformY(player.x, ladder, solids, halfW);
+      if (climbDir < 0 && player.y <= climbMinY + 0.6 && exitPlatformY != null) {
+        player.onLadder = false;
+        player.ladderIndex = -1;
+        player.y = exitPlatformY;
+        if (horizontal !== 0) {
+          player.x = clamp(player.x + horizontal * moveSpeed * dt, minX, maxX);
+        }
+        return {
+          movedHorizontally: Math.abs(player.x - oldX) > 1e-6,
+          onLadder: player.onLadder,
+        };
+      }
 
       if (climbDir !== 0) {
         player.x = ladder.x + ladder.w * 0.5;
@@ -320,7 +370,7 @@ export function updatePlayerMovement(player, input, dt, options = {}) {
     if (horizontal !== 0) {
       player.x = clamp(player.x + horizontal * moveSpeed * dt, minX, maxX);
     }
-    player.y = floorY;
+    player.y = findPlayerSupportY(player.x, player.y, solids, floorY, halfW, 24);
   }
 
   return {
