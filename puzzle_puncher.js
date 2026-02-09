@@ -95,6 +95,12 @@ const view = {
   boardTop: 0,
   boardWidth: 0,
   boardHeight: 0,
+  colX: [],
+  rowY: [],
+  staticLayer: null,
+  staticCtx: null,
+  staticDirty: true,
+  boardBgGrad: null,
 };
 
 const game = makeGame();
@@ -152,6 +158,7 @@ function makeGame() {
     pendingDiamond: null,
     resolve: null,
     powerRects: new Map(),
+    powerRectsDirty: true,
     pieceIndex: 0,
     level: 1,
     score: 0,
@@ -165,7 +172,6 @@ function makeGame() {
     },
     rngState: {
       crashDrought: 0,
-      diamondDrought: 0,
     },
     fx: {
       phase: 0,
@@ -209,6 +215,7 @@ function resetBoard() {
     }
   }
   game.powerRects.clear();
+  game.powerRectsDirty = false;
 }
 
 function fillQueue() {
@@ -244,7 +251,6 @@ function newGame() {
   game.pressure.waveTimer = 0;
   game.pressure.pendingRows = 0;
   game.rngState.crashDrought = 0;
-  game.rngState.diamondDrought = 0;
   game.fx.phase = 0;
   game.fx.hitstop = 0;
   game.fx.shake = 0;
@@ -270,19 +276,14 @@ function rollGem(rng) {
 }
 
 function rollPiece(rng, pieceIndex) {
-  const diamondChance = pieceIndex < 8
-    ? 0
-    : Math.min(0.16, 0.015 + game.rngState.diamondDrought * 0.009);
-  const isDiamond = rng.next() < diamondChance;
+  const isDiamond = pieceIndex % 25 === 0;
   if (isDiamond) {
-    game.rngState.diamondDrought = 0;
     const gem = rollGem(rng);
     if (rng.int(2) === 0) {
       return { a: { kind: Kind.DIAMOND, color: null }, b: gem };
     }
     return { a: gem, b: { kind: Kind.DIAMOND, color: null } };
   }
-  game.rngState.diamondDrought += 1;
   return { a: rollGem(rng), b: rollGem(rng) };
 }
 
@@ -429,6 +430,7 @@ function lockPiece() {
   }
 
   tickGarbageCounters();
+  invalidatePowerRects();
 
   game.pendingDiamond = null;
   if (diamondCell) {
@@ -537,27 +539,6 @@ function stepFalling(dt) {
   }
 }
 
-function applyGravity() {
-  let moved = false;
-  for (let c = 0; c < W; c++) {
-    const column = [];
-    for (let r = 0; r < H; r++) {
-      const cell = game.board.cells[r][c];
-      if (cell.kind !== Kind.EMPTY) {
-        column.push(cell);
-      }
-    }
-    for (let r = 0; r < H; r++) {
-      const next = column[r] ? column[r] : makeEmptyCell();
-      if (next.kind !== game.board.cells[r][c].kind || next.color !== game.board.cells[r][c].color) {
-        moved = true;
-      }
-      game.board.cells[r][c] = next;
-    }
-  }
-  return moved;
-}
-
 function settleOnce() {
   let moved = false;
   for (let r = 1; r < H; r++) {
@@ -571,25 +552,21 @@ function settleOnce() {
       moved = true;
     }
   }
-  if (moved) {
-    // Keep power-gem identity stable while the board is settling.
-    // This avoids brief visual reversion to individual blocks.
-    markPowerRects();
-  }
   return moved;
 }
 
-function clearPowerRects() {
+function clearPowerRects(markDirty = true) {
   game.powerRects.clear();
   for (let r = 0; r < H; r++) {
     for (let c = 0; c < W; c++) {
       game.board.cells[r][c].powerRectId = 0;
     }
   }
+  game.powerRectsDirty = markDirty;
 }
 
 function markPowerRects() {
-  clearPowerRects();
+  clearPowerRects(false);
   const used = Array.from({ length: H }, () => Array(W).fill(false));
   const candidates = [];
 
@@ -655,6 +632,16 @@ function markPowerRects() {
     game.powerRects.set(rectId, rect);
     rectId += 1;
   }
+  game.powerRectsDirty = false;
+}
+
+function invalidatePowerRects() {
+  game.powerRectsDirty = true;
+}
+
+function ensurePowerRects() {
+  if (!game.powerRectsDirty) return;
+  markPowerRects();
 }
 
 function findCrashTriggers() {
@@ -794,6 +781,7 @@ function clearCells(toClear) {
     const [r, c] = key.split(',').map(Number);
     game.board.cells[r][c] = makeEmptyCell();
   }
+  invalidatePowerRects();
 }
 
 function chainBonusFor(chainIndex) {
@@ -915,6 +903,9 @@ function tickGarbageCounters() {
   if (converted >= 4) {
     addBanner('COUNTER BREAK', 560);
   }
+  if (converted > 0) {
+    invalidatePowerRects();
+  }
 }
 
 function setGameOver(msg) {
@@ -951,16 +942,16 @@ function applyGarbageRows(rows) {
     const g = makeEmptyCell();
     g.kind = Kind.GARBAGE;
     g.color = COLORS[game.rng.int(COLORS.length)];
-    g.counter = 3 + game.rng.int(2);
+    // SPF-style counter gems are timed from 5 and tick down once per lock.
+    g.counter = 5;
     g.face = game.rng.int(4);
     g.shine = game.rng.next();
     g.bounce = 1;
     game.board.cells[row][col] = g;
   }
 
-  // Recompute immediately so existing power-gems remain merged visually unless
-  // their shape was actually broken by movement.
-  markPowerRects();
+  invalidatePowerRects();
+  ensurePowerRects();
   game.fx.shake = Math.min(16, game.fx.shake + 3 + rows * 1.2);
   addBanner(`+${gemsToDrop} COUNTER`, 560);
   game.status = `Pressure drop: ${gemsToDrop} counter gems`;
@@ -1006,19 +997,25 @@ function resolveBoard(dt) {
 
   if (resolve.settling) {
     resolve.settleTimer += dt;
+    let movedAny = false;
     while (resolve.settleTimer >= RESOLVE_DROP_INTERVAL) {
       const moved = settleOnce();
       resolve.settleTimer -= RESOLVE_DROP_INTERVAL;
+      if (moved) movedAny = true;
       if (!moved) {
         resolve.settling = false;
         break;
       }
     }
+    if (movedAny) {
+      invalidatePowerRects();
+      ensurePowerRects();
+    }
     game.resolve = resolve;
     if (resolve.settling) return;
   }
 
-  markPowerRects();
+  ensurePowerRects();
 
   if (game.pendingDiamond && game.pendingDiamond.type === 'TRIGGER') {
     const toClear = collectColorClear(game.pendingDiamond.color, game.pendingDiamond);
@@ -1202,6 +1199,24 @@ function setupView() {
   view.boardHeight = H * view.cellSize;
   view.boardLeft = Math.floor((canvas.width - view.boardWidth) / 2);
   view.boardTop = Math.floor((canvas.height - view.boardHeight) / 2);
+  view.colX = Array.from({ length: W }, (_, c) => view.boardLeft + c * view.cellSize);
+  view.rowY = Array.from({ length: H }, (_, r) => view.boardTop + (H - 1 - r) * view.cellSize);
+  view.boardBgGrad = ctx.createLinearGradient(
+    view.boardLeft,
+    view.boardTop,
+    view.boardLeft,
+    view.boardTop + view.boardHeight
+  );
+  view.boardBgGrad.addColorStop(0, '#0b2b1f');
+  view.boardBgGrad.addColorStop(1, '#071b13');
+  if (!view.staticLayer) {
+    view.staticLayer = document.createElement('canvas');
+    view.staticCtx = view.staticLayer.getContext('2d');
+  }
+  view.staticLayer.width = canvas.width;
+  view.staticLayer.height = canvas.height;
+  view.staticDirty = true;
+  rebuildStaticBoardLayer();
 }
 
 function cellToX(col) {
@@ -1210,6 +1225,57 @@ function cellToX(col) {
 
 function cellToY(row) {
   return view.boardTop + (H - 1 - row) * view.cellSize;
+}
+
+function rebuildStaticBoardLayer() {
+  if (!view.staticCtx) return;
+  const sctx = view.staticCtx;
+  sctx.clearRect(0, 0, view.staticLayer.width, view.staticLayer.height);
+
+  sctx.fillStyle = view.boardBgGrad;
+  roundRect(sctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
+  sctx.fill();
+
+  sctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  sctx.lineWidth = 2;
+  roundRect(sctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
+  sctx.stroke();
+
+  sctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+  sctx.lineWidth = 1;
+  for (let c = 1; c < W; c++) {
+    const x = view.boardLeft + c * view.cellSize;
+    sctx.beginPath();
+    sctx.moveTo(x, view.boardTop);
+    sctx.lineTo(x, view.boardTop + view.boardHeight);
+    sctx.stroke();
+  }
+  for (let r = 1; r < H; r++) {
+    const y = view.boardTop + r * view.cellSize;
+    sctx.beginPath();
+    sctx.moveTo(view.boardLeft, y);
+    sctx.lineTo(view.boardLeft + view.boardWidth, y);
+    sctx.stroke();
+  }
+
+  sctx.save();
+  sctx.globalAlpha = 0.35;
+  sctx.fillStyle = '#000000';
+  sctx.fillRect(view.boardLeft, view.boardTop, view.boardWidth, view.cellSize);
+  sctx.restore();
+
+  sctx.save();
+  sctx.globalAlpha = 0.12;
+  sctx.fillStyle = '#ffffff';
+  sctx.fillRect(
+    view.boardLeft + SPAWN_COL * view.cellSize,
+    view.boardTop,
+    view.cellSize,
+    view.cellSize
+  );
+  sctx.restore();
+
+  view.staticDirty = false;
 }
 
 function drawCell(ctxRef, cell, col, row) {
@@ -1342,60 +1408,65 @@ function drawBoard(alpha) {
   const shakeY = (game.rng.next() * 2 - 1) * game.fx.shake * 0.7;
   ctx.save();
   ctx.translate(shakeX, shakeY);
-
-  const bg = ctx.createLinearGradient(view.boardLeft, view.boardTop, view.boardLeft, view.boardTop + view.boardHeight);
-  bg.addColorStop(0, '#0b2b1f');
-  bg.addColorStop(1, '#071b13');
-  ctx.fillStyle = bg;
-  roundRect(ctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
-  ctx.fill();
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-  ctx.lineWidth = 2;
-  roundRect(ctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
-  ctx.stroke();
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-  ctx.lineWidth = 1;
-  for (let c = 1; c < W; c++) {
-    const x = view.boardLeft + c * view.cellSize;
-    ctx.beginPath();
-    ctx.moveTo(x, view.boardTop);
-    ctx.lineTo(x, view.boardTop + view.boardHeight);
-    ctx.stroke();
-  }
-  for (let r = 1; r < H; r++) {
-    const y = view.boardTop + r * view.cellSize;
-    ctx.beginPath();
-    ctx.moveTo(view.boardLeft, y);
-    ctx.lineTo(view.boardLeft + view.boardWidth, y);
-    ctx.stroke();
-  }
-
-  ctx.save();
-  ctx.globalAlpha = 0.35;
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(view.boardLeft, view.boardTop, view.boardWidth, view.cellSize);
-  ctx.restore();
-
-  ctx.save();
-  ctx.globalAlpha = 0.12;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(
-    view.boardLeft + SPAWN_COL * view.cellSize,
-    view.boardTop,
-    view.cellSize,
-    view.cellSize
-  );
-  ctx.restore();
+  if (view.staticDirty) rebuildStaticBoardLayer();
+  if (view.staticLayer) ctx.drawImage(view.staticLayer, 0, 0);
 
   for (let r = 0; r < H; r++) {
+    const y = view.rowY[r];
     for (let c = 0; c < W; c++) {
       const cell = game.board.cells[r][c];
       if (cell.kind === Kind.EMPTY) continue;
       const overflow = r >= VISIBLE_H;
       if (overflow) ctx.globalAlpha = 0.6;
-      drawCell(ctx, cell, c, r);
+      const x = view.colX[c];
+      const s = view.cellSize;
+      const bounceOffset = Math.sin((1 - cell.bounce) * Math.PI) * cell.bounce * 5;
+      const yCell = y - bounceOffset;
+      if (cell.kind === Kind.DIAMOND) {
+        drawDiamond(ctx, x, yCell, s);
+      } else if (cell.kind === Kind.GARBAGE) {
+        const tintPalette = PALETTE[cell.color] || PALETTE.X;
+        drawGemFill(ctx, x, yCell, s, tintPalette, {
+          face: true,
+          faceVariant: cell.face,
+          shinePhase: cell.shine + game.fx.phase,
+        });
+        ctx.save();
+        ctx.globalAlpha = 0.48;
+        ctx.fillStyle = '#6b7280';
+        roundRect(ctx, x + 1, yCell + 1, s - 2, s - 2, s * 0.2);
+        ctx.fill();
+        ctx.restore();
+        drawGemBorder(ctx, x, yCell, s, PALETTE.X.stroke);
+        drawGarbageOverlay(ctx, x, yCell, s);
+        drawCounterNumber(ctx, x, yCell, s, cell.counter ?? 0);
+      } else if (cell.color) {
+        const palette = PALETTE[cell.color];
+        if (cell.powerRectId > 0) {
+          const powerPalette = {
+            base: palette.light,
+            light: '#ffffff',
+            dark: palette.base,
+            stroke: palette.stroke,
+          };
+          drawGemFill(ctx, x, yCell, s, powerPalette, { highlight: false });
+          const edges = {
+            top: !(r < H - 1 && game.board.cells[r + 1][c].powerRectId === cell.powerRectId),
+            bottom: !(r > 0 && game.board.cells[r - 1][c].powerRectId === cell.powerRectId),
+            left: !(c > 0 && game.board.cells[r][c - 1].powerRectId === cell.powerRectId),
+            right: !(c < W - 1 && game.board.cells[r][c + 1].powerRectId === cell.powerRectId),
+          };
+          drawPowerEdges(ctx, x, yCell, s, edges, palette.stroke);
+        } else {
+          drawGemFill(ctx, x, yCell, s, palette, {
+            face: true,
+            faceVariant: cell.face,
+            shinePhase: cell.shine + game.fx.phase,
+          });
+          drawGemBorder(ctx, x, yCell, s, palette.stroke);
+        }
+        if (cell.kind === Kind.CRASH) drawCrashOverlay(ctx, x, yCell, s);
+      }
       if (overflow) ctx.globalAlpha = 1;
     }
   }
