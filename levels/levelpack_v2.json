@@ -1,8 +1,8 @@
 {
   "version": 1,
   "meta": {
-    "id": "dotemu_selected_best40",
-    "name": "DotEmu Selected Best 40",
+    "id": "selected_best40",
+    "name": "Selected Best 40",
     "author": "selection_tool"
   },
   "defaults": {
@@ -11,7 +11,7 @@
   "levels": [
     {
       "id": "L1",
-      "name": "W1_BoraBora / bb_03.xml",
+      "name": "Level 1",
       "timeLimitSec": 25,
       "geometry": {
         "solids": [
@@ -157,7 +157,7 @@
     },
     {
       "id": "L2",
-      "name": "W1_BoraBora / bb_04.xml",
+      "name": "Level 2",
       "timeLimitSec": 30,
       "geometry": {
         "solids": [
@@ -409,7 +409,7 @@
     },
     {
       "id": "L3",
-      "name": "W1_BoraBora / bb_14.xml",
+      "name": "Level 3",
       "timeLimitSec": 35,
       "geometry": {
         "solids": [
@@ -728,7 +728,7 @@
     },
     {
       "id": "L4",
-      "name": "W1_BoraBora / bb_15.xml",
+      "name": "Level 4",
       "timeLimitSec": 40,
       "geometry": {
         "solids": [],
@@ -768,7 +768,7 @@
     },
     {
       "id": "L5",
-      "name": "W2_DeathValley / dv_02.xml",
+      "name": "Level 5",
       "timeLimitSec": 30,
       "geometry": {
         "solids": [
@@ -1198,7 +1198,7 @@
     },
     {
       "id": "L6",
-      "name": "W2_DeathValley / dv_04.xml",
+      "name": "Level 6",
       "timeLimitSec": 40,
       "geometry": {
         "solids": [],
@@ -1266,7 +1266,7 @@
     },
     {
       "id": "L7",
-      "name": "W2_DeathValley / dv_05.xml",
+      "name": "Level 7",
       "timeLimitSec": 25,
       "geometry": {
         "solids": [],
@@ -1677,7 +1677,7 @@
     },
     {
       "id": "L8",
-      "name": "W2_DeathValley / dv_07.xml",
+      "name": "Level 8",
       "timeLimitSec": 25,
       "geometry": {
         "solids": [],
@@ -1724,7 +1724,7 @@
     },
     {
       "id": "L9",
-      "name": "W2_DeathValley / dv_08.xml",
+      "name": "Level 9",
       "timeLimitSec": 40,
       "geometry": {
         "solids": [
@@ -1864,7 +1864,7 @@
     },
     {
       "id": "L10",
-      "name": "W2_DeathValley / dv_09.xml",
+      "name": "Level 10",
       "timeLimitSec": 70,
       "geometry": {
         "solids": [
@@ -2098,7 +2098,7 @@
     },
     {
       "id": "L11",
-      "name": "W2_DeathValley / dv_11.xml",
+      "name": "Level 11",
       "timeLimitSec": 50,
       "geometry": {
         "solids": [],
@@ -2124,7 +2124,7 @@
     },
     {
       "id": "L12",
-      "name": "W2_DeathValley / dv_13.xml",
+      "name": "Level 12",
       "timeLimitSec": 30,
       "geometry": {
         "solids": [
@@ -2221,7 +2221,7 @@
     },
     {
       "id": "L13",
-      "name": "W2_DeathValley / dv_14.xml",
+      "name": "Level 13",
       "timeLimitSec": 50,
       "geometry": {
         "solids": [],
@@ -2296,7 +2296,7 @@
     },
     {
       "id": "L14",
-      "name": "W2_DeathValley / dv_15.xml",
+      "name": "Level 14",
       "timeLimitSec": 35,
       "geometry": {
         "solids": [
@@ -2337,7 +2337,7 @@
     },
     {
       "id": "L15",
-      "name": "W3_Scotland / sc_01.xml",
+      "name": "Level 15",
       "timeLimitSec": 30,
       "geometry": {
         "solids": [],
@@ -2356,7 +2356,7 @@
     },
     {
       "id": "L16",
-      "name": "W3_Scotland / sc_02.xml",
+      "name": "Level 16",
       "timeLimitSec": 45,
       "geometry": {
         "solids": [
@@ -2596,7 +2596,7 @@
     },
     {
       "id": "L17",
-      "name": "W3_Scotland / sc_04.xml",
+      "name": "Level 17",
       "timeLimitSec": 25,
       "geometry": {
         "solids": [],
@@ -2622,7 +2622,7 @@
     },
     {
       "id": "L18",
-      "name": "W3_Scotland / sc_06.xml",
+      "name": "Level 18",
       "timeLimitSec": 40,
       "geometry": {
         "solids": [],
@@ -2809,7 +2809,7 @@
     },
     {
       "id": "L19",
-      "name": "W3_Scotland / sc_15.xml",
+      "name": "Level 19",
       "timeLimitSec": 45,
       "geometry": {
         "solids": [
@@ -3072,7 +3072,7 @@
     },
     {
       "id": "L20",
-      "name": "W4_Antartica / an_01.xml",
+      "name": "Level 20",
       "timeLimitSec": 40,
       "geometry": {
         "solids": [
@@ -3249,7 +3249,7 @@
     },
     {
       "id": "L21",
-      "name": "W4_Antartica / an_03.xml",
+      "name": "Level 21",
       "timeLimitSec": 35,
       "geometry": {
         "solids": [
@@ -3397,7 +3397,7 @@
     },
     {
       "id": "L22",
-      "name": "W4_Antartica / an_07.xml",
+      "name": "Level 22",
       "timeLimitSec": 25,
       "geometry": {
         "solids": [],
@@ -3500,7 +3500,7 @@
     },
     {
       "id": "L23",
-      "name": "W4_Antartica / an_08.xml",
+      "name": "Level 23",
       "timeLimitSec": 30,
       "geometry": {
         "solids": [],
@@ -3603,7 +3603,7 @@
     },
     {
       "id": "L24",
-      "name": "W4_Antartica / an_09.xml",
+      "name": "Level 24",
       "timeLimitSec": 35,
       "geometry": {
         "solids": [
@@ -3679,7 +3679,7 @@
     },
     {
       "id": "L25",
-      "name": "W4_Antartica / an_11.xml",
+      "name": "Level 25",
       "timeLimitSec": 25,
       "geometry": {
         "solids": [
@@ -3782,7 +3782,7 @@
     },
     {
       "id": "L26",
-      "name": "W4_Antartica / an_15.xml",
+      "name": "Level 26",
       "timeLimitSec": 30,
       "geometry": {
         "solids": [
@@ -3946,7 +3946,7 @@
     },
     {
       "id": "L27",
-      "name": "W5_HongKong / hk_01.xml",
+      "name": "Level 27",
       "timeLimitSec": 25,
       "geometry": {
         "solids": [
@@ -4047,7 +4047,7 @@
     },
     {
       "id": "L28",
-      "name": "W5_HongKong / hk_03.xml",
+      "name": "Level 28",
       "timeLimitSec": 30,
       "geometry": {
         "solids": [
@@ -4173,7 +4173,7 @@
     },
     {
       "id": "L29",
-      "name": "W5_HongKong / hk_04.xml",
+      "name": "Level 29",
       "timeLimitSec": 40,
       "geometry": {
         "solids": [
@@ -4389,7 +4389,7 @@
     },
     {
       "id": "L30",
-      "name": "W5_HongKong / hk_05.xml",
+      "name": "Level 30",
       "timeLimitSec": 45,
       "geometry": {
         "solids": [
@@ -4465,7 +4465,7 @@
     },
     {
       "id": "L31",
-      "name": "W5_HongKong / hk_06.xml",
+      "name": "Level 31",
       "timeLimitSec": 30,
       "geometry": {
         "solids": [],
@@ -4491,7 +4491,7 @@
     },
     {
       "id": "L32",
-      "name": "W5_HongKong / hk_07.xml",
+      "name": "Level 32",
       "timeLimitSec": 35,
       "geometry": {
         "solids": [
@@ -4610,7 +4610,7 @@
     },
     {
       "id": "L33",
-      "name": "W5_HongKong / hk_09.xml",
+      "name": "Level 33",
       "timeLimitSec": 35,
       "geometry": {
         "solids": [],
@@ -4734,7 +4734,7 @@
     },
     {
       "id": "L34",
-      "name": "W5_HongKong / hk_10.xml",
+      "name": "Level 34",
       "timeLimitSec": 50,
       "geometry": {
         "solids": [
@@ -4809,7 +4809,7 @@
     },
     {
       "id": "L35",
-      "name": "W5_HongKong / hk_11.xml",
+      "name": "Level 35",
       "timeLimitSec": 70,
       "geometry": {
         "solids": [
@@ -5047,7 +5047,7 @@
     },
     {
       "id": "L36",
-      "name": "W5_HongKong / hk_13.xml",
+      "name": "Level 36",
       "timeLimitSec": 50,
       "geometry": {
         "solids": [
@@ -5339,7 +5339,7 @@
     },
     {
       "id": "L37",
-      "name": "W5_HongKong / hk_14.xml",
+      "name": "Level 37",
       "timeLimitSec": 65,
       "geometry": {
         "solids": [
@@ -5898,7 +5898,7 @@
     },
     {
       "id": "L38",
-      "name": "W5_HongKong / hk_15.xml",
+      "name": "Level 38",
       "timeLimitSec": 45,
       "geometry": {
         "solids": [
@@ -6050,7 +6050,7 @@
     },
     {
       "id": "L39",
-      "name": "W6_Asteroid / as_04.xml",
+      "name": "Level 39",
       "timeLimitSec": 30,
       "geometry": {
         "solids": [
@@ -6154,7 +6154,7 @@
     },
     {
       "id": "L40",
-      "name": "W6_Asteroid / as_11.xml",
+      "name": "Level 40",
       "timeLimitSec": 55,
       "geometry": {
         "solids": [
