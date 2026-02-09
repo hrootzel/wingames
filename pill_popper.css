@@ -11,6 +11,7 @@
 .pill-popper .pill-wrap {
   display: grid;
   gap: 16px;
+  --gs-snap-col-min: 120px;
 }
 
 .pill-popper .pill-stage-area {

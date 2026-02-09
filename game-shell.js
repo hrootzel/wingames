@@ -30,16 +30,19 @@
  *      baseWidth: 640,              // Required: logical canvas width
  *      baseHeight: 480,             // Required: logical canvas height
  *      mode: 'fractional',          // Optional: 'fractional' or 'integer' scaling
- *      fit: 'css',                  // Optional: 'css' or 'logical'
+ *      fit: 'css',                  // Optional: 'css' (CSS-only sizing) or 'backing' (resize backing store)
  *      onResize: callback           // Optional: called after resize
  *    });
  * 
  * 3. Layout Behavior:
- *    - Automatically switches between side (HUD beside canvas) and stack (HUD below)
+ *    - Automatically switches between side (HUD beside canvas) and stack (HUD above/below)
  *    - Wide canvases (aspect > 1.05) prefer stack layout
- *    - Tall canvases (aspect < 1.05) prefer side layout
- *    - HUD compresses (zoom 0.5-1.0) in side layout when needed
- *    - Stack layout reserves 40% height (min 250px) for HUD
+ *    - Tall canvases (aspect < 0.95) prefer side layout
+ *    - Square canvases (0.95-1.05) have no layout preference
+ *    - HUD compresses via transform scale (0.5-1.0) in side layout when needed
+ *    - Elements with data-gs-no-zoom are exempt from HUD compression
+ *    - Stack layout reserves space based on required panel heights
+ *    - Auto-scrolls shell into view on init (opt out with autoScroll: false)
  */
 
 function resolveElement(value, name) {
@@ -80,6 +83,7 @@ export function initGameShell(options) {
     hudMinWidth = 140,
     canvasBias = 'auto',
     ignoreHeaderInFit = false,
+    autoScroll = true,
     onResize,
     context,
   } = options || {};
@@ -140,6 +144,20 @@ export function initGameShell(options) {
       .sort((a, b) => Number(a.dataset.gsHudOrder || 0) - Number(b.dataset.gsHudOrder || 0));
   }
 
+  function getRequiredHudHeight() {
+    if (!shell) return 120;
+    let h = 0;
+    const topLane = shell.querySelector('.gs-snap-top');
+    if (topLane && topLane.children.length) {
+      h += topLane.getBoundingClientRect().height;
+    } else {
+      const panels = shell.querySelectorAll('[data-gs-fit="required"]');
+      for (const p of panels) h += p.getBoundingClientRect().height;
+    }
+    const gap = parseFloat(getComputedStyle(shell).getPropertyValue('--gs-gap')) || 12;
+    return h + gap * 2;
+  }
+
   function applySnapLayout(isPortrait) {
     if (!shell || !hud) return;
     const topLane = shell.querySelector('.gs-snap-top');
@@ -172,13 +190,30 @@ export function initGameShell(options) {
     const style = getComputedStyle(shell);
     const val = style.getPropertyValue('--gs-hud-width').trim();
     if (!val) return 200;
-    // Temporarily create an element to resolve clamp/calc values
     const probe = document.createElement('div');
     probe.style.cssText = `position:absolute;visibility:hidden;width:${val}`;
     shell.appendChild(probe);
     const w = probe.getBoundingClientRect().width;
     probe.remove();
     return w || 200;
+  }
+
+  // Apply HUD scaling via transform (cross-browser, unlike zoom).
+  // Scales each child individually so data-gs-no-zoom panels keep natural layout.
+  function applyHudScale(s) {
+    if (!hud) return;
+    for (const child of hud.children) {
+      child.style.removeProperty('transform');
+      child.style.removeProperty('transform-origin');
+      child.style.removeProperty('width');
+    }
+    if (Math.abs(s - 1) < 0.001) return;
+    for (const child of hud.children) {
+      if (child.hasAttribute('data-gs-no-zoom')) continue;
+      child.style.transformOrigin = 'top left';
+      child.style.transform = `scale(${s.toFixed(3)})`;
+      child.style.width = `${(100 / s).toFixed(2)}%`;
+    }
   }
 
   // Pure geometry: compute canvas scale for side layout vs stack layout
@@ -196,8 +231,8 @@ export function initGameShell(options) {
     const sideCanvasWMin = Math.max(0, availW - hudMinWidth - gap);
     const sideScaleMax = computeScale(Math.min(sideCanvasWMin / logicalW, availH / logicalH), mode);
 
-    // Stack layout: canvas gets full availW, but reserve space for HUD below
-    const hudReserve = Math.max(250, availH * 0.4);
+    // Stack layout: canvas gets full availW, reserve ~25% for HUD (refined after snap layout)
+    const hudReserve = Math.max(120, availH * 0.25);
     const stackAvailH = Math.max(1, availH - hudReserve);
     const stackScale = computeScale(Math.min(availW / logicalW, stackAvailH / logicalH), mode);
 
@@ -205,8 +240,6 @@ export function initGameShell(options) {
     const bestSideScale = Math.max(sideScale, sideScaleMax);
 
     // Pick whichever gives a bigger canvas, with a small bias toward the "natural" layout
-    // For tall canvases, prefer side (sidebar). For wide canvases, prefer stack (top/bottom).
-    // Square canvases use neutral threshold — no layout preference.
     const biasThreshold = bias === 'tall' ? 0.92 : bias === 'wide' ? 1.05 : 1.0;
     const useSide = bestSideScale >= stackScale * biasThreshold && sideCanvasW >= logicalW * 0.2;
 
@@ -218,7 +251,12 @@ export function initGameShell(options) {
       hudScale = Math.max(0.5, Math.min(1, remaining / hudW));
     }
 
-    return { useSide, sideScale: bestSideScale, stackScale, hudScale, hudW };
+    // If HUD would be squeezed below --gs-hud-min-pct of shell width, bail to stack
+    const hudMinPct = shell ? (parseFloat(getComputedStyle(shell).getPropertyValue('--gs-hud-min-pct')) || 20) : 20;
+    const effectiveHudW = hudW * hudScale;
+    const forceStack = useSide && hudScale < 1 && effectiveHudW < availW * (hudMinPct / 100);
+
+    return { useSide: useSide && !forceStack, sideScale: bestSideScale, stackScale, hudScale, hudW };
   }
 
   let lastCssW = -1;
@@ -232,9 +270,7 @@ export function initGameShell(options) {
     const viewport = window.visualViewport;
     const viewportH = viewport?.height || window.innerHeight || hostRect.height;
     const shellTop = shell ? Math.max(0, shell.getBoundingClientRect().top) : Math.max(0, hostRect.top);
-    // Use the lesser of visual position and a small cap so the header/status bar
-    // above the shell doesn't over-shrink the canvas. Content above the shell
-    // scrolls away during play, so we only reserve minimal space for it.
+    // Cap topInset so header doesn't over-shrink the canvas.
     const topInset = ignoreHeaderInFit ? 0 : Math.min(shellTop, viewportH * 0.08);
     const availW = hostRect.width;
     const availH = Math.max(1, viewportH - topInset - viewportPadding);
@@ -251,21 +287,19 @@ export function initGameShell(options) {
     }
     applySnapLayout(isStack);
 
-    // Reset lane/hud scaling
+    // Reset scaling
     const topLane = shell ? shell.querySelector('.gs-snap-top') : null;
     const bottomLane = shell ? shell.querySelector('.gs-snap-bottom') : null;
-    if (topLane) topLane.style.removeProperty('zoom');
-    if (bottomLane) bottomLane.style.removeProperty('zoom');
-    if (hud) { hud.style.removeProperty('zoom'); hud.style.removeProperty('transform'); }
+    if (topLane) topLane.style.removeProperty('transform');
+    if (bottomLane) bottomLane.style.removeProperty('transform');
+    applyHudScale(1); // reset
     if (shell) shell.style.removeProperty('--gs-hud-width-live');
 
     let scale, cssW, cssH;
 
     if (useSide) {
-      // Apply HUD scaling
-      if (hud && Math.abs(hudScale - 1) > 0.001) {
-        hud.style.zoom = hudScale.toFixed(3);
-      }
+      // Apply HUD scaling via transform
+      applyHudScale(hudScale);
       if (shell && hudW > 0) {
         shell.style.setProperty('--gs-hud-width-live', `${Math.max(hudMinWidth, hudW * hudScale)}px`);
       }
@@ -275,11 +309,10 @@ export function initGameShell(options) {
       cssW = Math.max(1, logicalW * scale);
       cssH = Math.max(1, logicalH * scale);
     } else {
-      // Stack: canvas takes full width, but reserve space for HUD below
+      // Stack: canvas takes full width, reserve space only for required HUD panels
       if (shell) shell.style.removeProperty('--gs-hud-width-live');
       
-      // Reserve approximately 40% of height for HUD in stack mode, or minimum 250px
-      const hudReserve = Math.max(250, availH * 0.4);
+      const hudReserve = Math.max(120, getRequiredHudHeight());
       const canvasAvailH = Math.max(1, availH - hudReserve);
       
       const rawScale = Math.min(availW / logicalW, canvasAvailH / logicalH);
@@ -328,7 +361,7 @@ export function initGameShell(options) {
     }
   }
 
-  // Debounced resize to avoid oscillation
+  // Debounced resize
   function scheduleResize() {
     if (rafId) return;
     rafId = requestAnimationFrame(() => {
@@ -337,6 +370,7 @@ export function initGameShell(options) {
     });
   }
 
+  // Fix #6: Observe fitHost/shell only, not surface (we mutate surface size directly)
   const resizeObserver = typeof ResizeObserver !== 'undefined'
     ? new ResizeObserver(scheduleResize)
     : null;
@@ -344,9 +378,8 @@ export function initGameShell(options) {
   let dprMql = null;
 
   if (resizeObserver) {
-    resizeObserver.observe(surface);
     resizeObserver.observe(fitHost);
-    if (shell) resizeObserver.observe(shell);
+    if (shell && shell !== fitHost) resizeObserver.observe(shell);
   } else {
     window.addEventListener('resize', scheduleResize);
   }
@@ -372,10 +405,10 @@ export function initGameShell(options) {
   applyResize();
   requestAnimationFrame(() => {
     applyResize();
-    // Auto-scroll the shell into view so the header scrolls away,
-    // giving the canvas maximum space from the start.
-    if (shell && shell.getBoundingClientRect().top > 0) {
-      shell.scrollIntoView({ block: 'start', behavior: 'instant' });
+    // Fix #4: Auto-scroll shell into view (opt out with autoScroll: false).
+    // Uses behavior:'auto' (standard) instead of 'instant' (non-standard).
+    if (autoScroll && shell && shell.getBoundingClientRect().top > 0) {
+      shell.scrollIntoView({ block: 'start', behavior: 'auto' });
       applyResize();
     }
   });
@@ -396,10 +429,10 @@ export function initGameShell(options) {
         shell.style.removeProperty('--gs-hud-width-live');
         const tl = shell.querySelector('.gs-snap-top');
         const bl = shell.querySelector('.gs-snap-bottom');
-        if (tl) tl.style.removeProperty('zoom');
-        if (bl) bl.style.removeProperty('zoom');
+        if (tl) tl.style.removeProperty('transform');
+        if (bl) bl.style.removeProperty('transform');
       }
-      if (hud) { hud.style.removeProperty('zoom'); hud.style.removeProperty('transform'); }
+      applyHudScale(1);
       if (surface) { surface.style.removeProperty('width'); surface.style.removeProperty('height'); }
     },
   };
