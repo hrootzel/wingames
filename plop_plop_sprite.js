@@ -4,38 +4,6 @@ export function createPlopPlopSprite(palette, pinch, steps) {
     ctx.arc(0, 0, r, 0, Math.PI * 2);
   }
 
-  function drawEyes(ctx, r, phase, seed, colorKey) {
-    const blinkCycle = ((phase * 1.1 + seed * 3.7) % (Math.PI * 2));
-    const blink = blinkCycle > 5.9 ? Math.max(0, 1 - (blinkCycle - 5.9) * 8) : 1;
-    const lookX = Math.sin(phase * 0.7 + seed * 1.3) * r * 0.06;
-    const lookY = Math.cos(phase * 0.5 + seed * 1.9) * r * 0.04;
-    const eyeSpacing = r * 0.32;
-    const eyeY = -r * 0.1;
-    const eyeR = r * 0.16;
-    const pupilR = r * 0.09;
-    for (let side = -1; side <= 1; side += 2) {
-      const ex = side * eyeSpacing + lookX;
-      const ey = eyeY + lookY;
-      // White
-      ctx.fillStyle = colorKey === 'X' ? 'rgba(200,200,200,0.85)' : '#fff';
-      ctx.beginPath();
-      ctx.ellipse(ex, ey, eyeR, eyeR * blink, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // Pupil
-      if (blink > 0.3) {
-        ctx.fillStyle = '#1a1a2e';
-        ctx.beginPath();
-        ctx.arc(ex + lookX * 0.5, ey + lookY * 0.3, pupilR * blink, 0, Math.PI * 2);
-        ctx.fill();
-        // Pupil highlight
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.beginPath();
-        ctx.arc(ex + lookX * 0.5 - pupilR * 0.3, ey + lookY * 0.3 - pupilR * 0.3, pupilR * 0.35, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-  }
-
   function drawPlop(ctx, x, y, s, colorKey, opts = {}) {
     const colors = palette[colorKey];
     const cx = x + s / 2;
@@ -99,9 +67,45 @@ export function createPlopPlopSprite(palette, pinch, steps) {
     ctx.arc(-r * 0.06, -r * 0.47, r * 0.1, 0, Math.PI * 2);
     ctx.fill();
 
-    // Eyes
     if (popScale > 0.3) {
-      drawEyes(ctx, r, phase, seed, colorKey);
+      const pulse = 0.5 + 0.5 * Math.sin(phase * 2.9 + seed * 1.4);
+      const ember = 0.5 + 0.5 * Math.cos(phase * 4.2 + seed * 2.1);
+      const coreRadius = r * (0.2 + pulse * 0.08);
+      const coreX = Math.sin(phase * 1.7 + seed * 2.8) * r * 0.12;
+      const coreY = Math.cos(phase * 1.4 + seed * 1.6) * r * 0.1;
+      const innerGlow = ctx.createRadialGradient(
+        coreX,
+        coreY,
+        coreRadius * 0.2,
+        coreX,
+        coreY,
+        r * (0.62 + pulse * 0.08)
+      );
+      innerGlow.addColorStop(0, `rgba(255, 244, 160, ${0.42 + pulse * 0.26})`);
+      innerGlow.addColorStop(0.45, `rgba(255, 176, 90, ${0.24 + pulse * 0.2})`);
+      innerGlow.addColorStop(1, 'rgba(255, 132, 48, 0)');
+      ctx.fillStyle = innerGlow;
+      drawBlobCore(ctx, r * 0.96);
+      ctx.fill();
+
+      ctx.fillStyle = `rgba(255, 250, 200, ${0.48 + ember * 0.28})`;
+      ctx.beginPath();
+      ctx.arc(coreX * 0.75, coreY * 0.75, r * (0.06 + ember * 0.03), 0, Math.PI * 2);
+      ctx.fill();
+
+      const spark1X = Math.sin(phase * 2.6 + seed * 1.1) * r * 0.2;
+      const spark1Y = Math.cos(phase * 2.2 + seed * 2.4) * r * 0.18;
+      ctx.fillStyle = `rgba(255, 236, 170, ${0.22 + pulse * 0.2})`;
+      ctx.beginPath();
+      ctx.arc(spark1X, spark1Y, r * 0.04, 0, Math.PI * 2);
+      ctx.fill();
+
+      const spark2X = Math.cos(phase * 3.1 + seed * 1.9) * r * 0.22;
+      const spark2Y = Math.sin(phase * 2.4 + seed * 2.7) * r * 0.15;
+      ctx.fillStyle = `rgba(255, 206, 120, ${0.18 + ember * 0.16})`;
+      ctx.beginPath();
+      ctx.arc(spark2X, spark2Y, r * 0.03, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     ctx.restore();
