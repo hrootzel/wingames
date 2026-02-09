@@ -158,6 +158,7 @@ function makeGame() {
     pendingDiamond: null,
     resolve: null,
     powerRects: new Map(),
+    powerRectsDirty: true,
     pieceIndex: 0,
     level: 1,
     score: 0,
@@ -214,6 +215,7 @@ function resetBoard() {
     }
   }
   game.powerRects.clear();
+  game.powerRectsDirty = false;
 }
 
 function fillQueue() {
@@ -428,6 +430,7 @@ function lockPiece() {
   }
 
   tickGarbageCounters();
+  invalidatePowerRects();
 
   game.pendingDiamond = null;
   if (diamondCell) {
@@ -536,27 +539,6 @@ function stepFalling(dt) {
   }
 }
 
-function applyGravity() {
-  let moved = false;
-  for (let c = 0; c < W; c++) {
-    const column = [];
-    for (let r = 0; r < H; r++) {
-      const cell = game.board.cells[r][c];
-      if (cell.kind !== Kind.EMPTY) {
-        column.push(cell);
-      }
-    }
-    for (let r = 0; r < H; r++) {
-      const next = column[r] ? column[r] : makeEmptyCell();
-      if (next.kind !== game.board.cells[r][c].kind || next.color !== game.board.cells[r][c].color) {
-        moved = true;
-      }
-      game.board.cells[r][c] = next;
-    }
-  }
-  return moved;
-}
-
 function settleOnce() {
   let moved = false;
   for (let r = 1; r < H; r++) {
@@ -570,25 +552,21 @@ function settleOnce() {
       moved = true;
     }
   }
-  if (moved) {
-    // Keep power-gem identity stable while the board is settling.
-    // This avoids brief visual reversion to individual blocks.
-    markPowerRects();
-  }
   return moved;
 }
 
-function clearPowerRects() {
+function clearPowerRects(markDirty = true) {
   game.powerRects.clear();
   for (let r = 0; r < H; r++) {
     for (let c = 0; c < W; c++) {
       game.board.cells[r][c].powerRectId = 0;
     }
   }
+  game.powerRectsDirty = markDirty;
 }
 
 function markPowerRects() {
-  clearPowerRects();
+  clearPowerRects(false);
   const used = Array.from({ length: H }, () => Array(W).fill(false));
   const candidates = [];
 
@@ -654,6 +632,16 @@ function markPowerRects() {
     game.powerRects.set(rectId, rect);
     rectId += 1;
   }
+  game.powerRectsDirty = false;
+}
+
+function invalidatePowerRects() {
+  game.powerRectsDirty = true;
+}
+
+function ensurePowerRects() {
+  if (!game.powerRectsDirty) return;
+  markPowerRects();
 }
 
 function findCrashTriggers() {
@@ -793,6 +781,7 @@ function clearCells(toClear) {
     const [r, c] = key.split(',').map(Number);
     game.board.cells[r][c] = makeEmptyCell();
   }
+  invalidatePowerRects();
 }
 
 function chainBonusFor(chainIndex) {
@@ -914,6 +903,9 @@ function tickGarbageCounters() {
   if (converted >= 4) {
     addBanner('COUNTER BREAK', 560);
   }
+  if (converted > 0) {
+    invalidatePowerRects();
+  }
 }
 
 function setGameOver(msg) {
@@ -958,9 +950,8 @@ function applyGarbageRows(rows) {
     game.board.cells[row][col] = g;
   }
 
-  // Recompute immediately so existing power-gems remain merged visually unless
-  // their shape was actually broken by movement.
-  markPowerRects();
+  invalidatePowerRects();
+  ensurePowerRects();
   game.fx.shake = Math.min(16, game.fx.shake + 3 + rows * 1.2);
   addBanner(`+${gemsToDrop} COUNTER`, 560);
   game.status = `Pressure drop: ${gemsToDrop} counter gems`;
@@ -1006,19 +997,25 @@ function resolveBoard(dt) {
 
   if (resolve.settling) {
     resolve.settleTimer += dt;
+    let movedAny = false;
     while (resolve.settleTimer >= RESOLVE_DROP_INTERVAL) {
       const moved = settleOnce();
       resolve.settleTimer -= RESOLVE_DROP_INTERVAL;
+      if (moved) movedAny = true;
       if (!moved) {
         resolve.settling = false;
         break;
       }
     }
+    if (movedAny) {
+      invalidatePowerRects();
+      ensurePowerRects();
+    }
     game.resolve = resolve;
     if (resolve.settling) return;
   }
 
-  markPowerRects();
+  ensurePowerRects();
 
   if (game.pendingDiamond && game.pendingDiamond.type === 'TRIGGER') {
     const toClear = collectColorClear(game.pendingDiamond.color, game.pendingDiamond);
