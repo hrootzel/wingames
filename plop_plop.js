@@ -79,6 +79,13 @@ const view = {
   boardTop: 0,
   boardWidth: 0,
   boardHeight: 0,
+  colX: [],
+  colCenterX: [],
+  rowY: [],
+  rowCenterY: [],
+  staticLayer: null,
+  staticCtx: null,
+  staticDirty: true,
 };
 
 const BRIDGE_PINCH = 0.62;
@@ -91,6 +98,13 @@ const DEFAULT_SETTINGS = {
 };
 
 const EMPTY_CELL = Object.freeze({ kind: Kind.EMPTY, color: null });
+const hudCache = {
+  score: '',
+  chain: '',
+  level: '',
+  pieces: '',
+  status: '',
+};
 
 const game = makeGame();
 const { drawPlop: drawPlop, drawBridge } = createPlopPlopSprite(PALETTE, BRIDGE_PINCH, BRIDGE_STEPS);
@@ -897,6 +911,20 @@ function setupView() {
   sheen.addColorStop(0.5, 'rgba(255,255,255,0)');
   sheen.addColorStop(1, 'rgba(255,255,255,0.04)');
   view.sheenGrad = sheen;
+
+  view.colX = Array.from({ length: W }, (_, c) => view.boardLeft + c * view.cellSize);
+  view.colCenterX = Array.from({ length: W }, (_, c) => view.colX[c] + view.cellSize / 2);
+  view.rowY = Array.from({ length: H }, (_, r) => view.boardTop + (H - 1 - r) * view.cellSize);
+  view.rowCenterY = Array.from({ length: H }, (_, r) => view.rowY[r] + view.cellSize / 2);
+
+  if (!view.staticLayer) {
+    view.staticLayer = document.createElement('canvas');
+    view.staticCtx = view.staticLayer.getContext('2d');
+  }
+  view.staticLayer.width = canvas.width;
+  view.staticLayer.height = canvas.height;
+  view.staticDirty = true;
+  rebuildStaticBoardLayer();
 }
 
 function cellToX(col) {
@@ -916,6 +944,51 @@ function roundRect(ctxRef, x, y, w, h, r) {
   ctxRef.arcTo(x, y + h, x, y, rr);
   ctxRef.arcTo(x, y, x + w, y, rr);
   ctxRef.closePath();
+}
+
+function rebuildStaticBoardLayer() {
+  if (!view.staticCtx) return;
+  const sctx = view.staticCtx;
+  sctx.clearRect(0, 0, view.staticLayer.width, view.staticLayer.height);
+
+  roundRect(sctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
+  sctx.fillStyle = view.bgGrad;
+  sctx.fill();
+
+  roundRect(sctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
+  sctx.fillStyle = view.sheenGrad;
+  sctx.fill();
+
+  sctx.strokeStyle = 'rgba(255, 255, 255, 0.11)';
+  sctx.lineWidth = 2;
+  roundRect(sctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
+  sctx.stroke();
+
+  sctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+  sctx.lineWidth = 1;
+  for (let c = 1; c < W; c++) {
+    const x = view.boardLeft + c * view.cellSize;
+    sctx.beginPath();
+    sctx.moveTo(x, view.boardTop);
+    sctx.lineTo(x, view.boardTop + view.boardHeight);
+    sctx.stroke();
+  }
+  for (let r = 1; r < H; r++) {
+    const y = view.boardTop + r * view.cellSize;
+    sctx.beginPath();
+    sctx.moveTo(view.boardLeft, y);
+    sctx.lineTo(view.boardLeft + view.boardWidth, y);
+    sctx.stroke();
+  }
+
+  sctx.save();
+  sctx.globalAlpha = 0.25;
+  sctx.fillStyle = '#070d14';
+  const hiddenHeight = (H - VISIBLE_H) * view.cellSize;
+  sctx.fillRect(view.boardLeft, view.boardTop, view.boardWidth, hiddenHeight);
+  sctx.restore();
+
+  view.staticDirty = false;
 }
 
 function getGhostDropRows(pair) {
@@ -1033,20 +1106,10 @@ function drawBoard(alpha) {
   ctx.save();
   ctx.translate(shakeX, shakeY);
 
-  const bg = view.bgGrad;
-  roundRect(ctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
-  ctx.fillStyle = bg;
-  ctx.fill();
-
-  const sheen = view.sheenGrad;
-  roundRect(ctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
-  ctx.fillStyle = sheen;
-  ctx.fill();
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.11)';
-  ctx.lineWidth = 2;
-  roundRect(ctx, view.boardLeft, view.boardTop, view.boardWidth, view.boardHeight, 16);
-  ctx.stroke();
+  if (view.staticDirty) rebuildStaticBoardLayer();
+  if (view.staticLayer) {
+    ctx.drawImage(view.staticLayer, 0, 0);
+  }
 
   const spawnPulse = 0.11 + 0.08 * Math.sin(game.fx.phase * 2.2);
   ctx.save();
@@ -1074,44 +1137,23 @@ function drawBoard(alpha) {
   ctx.lineTo(killX - km, killY + km);
   ctx.stroke();
   ctx.restore();
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-  ctx.lineWidth = 1;
-  for (let c = 1; c < W; c++) {
-    const x = view.boardLeft + c * view.cellSize;
-    ctx.beginPath();
-    ctx.moveTo(x, view.boardTop);
-    ctx.lineTo(x, view.boardTop + view.boardHeight);
-    ctx.stroke();
-  }
-  for (let r = 1; r < H; r++) {
-    const y = view.boardTop + r * view.cellSize;
-    ctx.beginPath();
-    ctx.moveTo(view.boardLeft, y);
-    ctx.lineTo(view.boardLeft + view.boardWidth, y);
-    ctx.stroke();
-  }
-
-  ctx.save();
-  ctx.globalAlpha = 0.25;
-  ctx.fillStyle = '#070d14';
-  const hiddenHeight = (H - VISIBLE_H) * view.cellSize;
-  ctx.fillRect(view.boardLeft, view.boardTop, view.boardWidth, hiddenHeight);
-  ctx.restore();
+  const colX = view.colX;
+  const colCenterX = view.colCenterX;
+  const rowY = view.rowY;
+  const rowCenterY = view.rowCenterY;
 
   for (let r = 0; r < H; r++) {
+    const ay = rowCenterY[r];
     for (let c = 0; c < W; c++) {
       const cell = game.board.cells[r][c];
       if (cell.kind !== Kind.COLOR) continue;
       const right = c + 1 < W ? game.board.cells[r][c + 1] : null;
       if (right && right.kind === Kind.COLOR && right.color === cell.color) {
-        const ax = cellToX(c) + view.cellSize / 2;
-        const ay = cellToY(r) + view.cellSize / 2;
-        const bx = cellToX(c + 1) + view.cellSize / 2;
-        const by = ay;
+        const ax = colCenterX[c];
+        const bx = colCenterX[c + 1];
         ctx.save();
         if (r >= VISIBLE_H) ctx.globalAlpha = 0.6;
-        drawBridge(ctx, ax, ay, bx, by, cell.color, view.cellSize, {
+        drawBridge(ctx, ax, ay, bx, ay, cell.color, view.cellSize, {
           phase: game.fx.phase,
           seed: (r * W + c) * 0.19,
         });
@@ -1119,13 +1161,11 @@ function drawBoard(alpha) {
       }
       const up = r + 1 < H ? game.board.cells[r + 1][c] : null;
       if (up && up.kind === Kind.COLOR && up.color === cell.color) {
-        const ax = cellToX(c) + view.cellSize / 2;
-        const ay = cellToY(r) + view.cellSize / 2;
-        const bx = ax;
-        const by = cellToY(r + 1) + view.cellSize / 2;
+        const ax = colCenterX[c];
+        const by = rowCenterY[r + 1];
         ctx.save();
         if (r >= VISIBLE_H || r + 1 >= VISIBLE_H) ctx.globalAlpha = 0.6;
-        drawBridge(ctx, ax, ay, bx, by, cell.color, view.cellSize, {
+        drawBridge(ctx, ax, ay, ax, by, cell.color, view.cellSize, {
           phase: game.fx.phase,
           seed: (r * W + c) * 0.23,
         });
@@ -1134,21 +1174,19 @@ function drawBoard(alpha) {
     }
   }
 
+  const bounceByCell = new Map();
+  for (const b of game.bounces) {
+    const bt = b.timer / b.ttl;
+    bounceByCell.set((b.row * W) + b.col, Math.sin(bt * Math.PI * 2.5) * (1 - bt) * 0.6);
+  }
+
   for (let r = 0; r < H; r++) {
+    const y = rowY[r];
     for (let c = 0; c < W; c++) {
       const cell = game.board.cells[r][c];
       if (cell.kind !== Kind.COLOR) continue;
-      const x = cellToX(c);
-      const y = cellToY(r);
-      // Bounce squash
-      let squash = 0;
-      for (const b of game.bounces) {
-        if (b.col === c && b.row === r) {
-          const bt = b.timer / b.ttl;
-          squash = Math.sin(bt * Math.PI * 2.5) * (1 - bt) * 0.6;
-          break;
-        }
-      }
+      const x = colX[c];
+      const squash = bounceByCell.get((r * W) + c) || 0;
       ctx.save();
       if (r >= VISIBLE_H) ctx.globalAlpha = 0.6;
       drawPlop(ctx, x, y, view.cellSize, cell.color, {
@@ -1314,18 +1352,40 @@ function getFallOffset(alpha) {
 }
 
 function updateHud() {
-  scoreEl.textContent = game.score.toString();
-  // Show current chain or max chain achieved
-  if (game.lastChain >= 2) {
-    chainEl.textContent = `${game.lastChain}x`;
-  } else if (game.maxChain >= 2) {
-    chainEl.textContent = `(${game.maxChain}x)`;
-  } else {
-    chainEl.textContent = '-';
+  const scoreText = game.score.toString();
+  if (hudCache.score !== scoreText) {
+    hudCache.score = scoreText;
+    scoreEl.textContent = scoreText;
   }
-  levelEl.textContent = game.level.toString();
-  piecesEl.textContent = game.pieceIndex.toString();
-  statusEl.textContent = game.paused ? 'Paused' : game.status;
+  // Show current chain or max chain achieved
+  let chainText = '-';
+  if (game.lastChain >= 2) {
+    chainText = `${game.lastChain}x`;
+  } else if (game.maxChain >= 2) {
+    chainText = `(${game.maxChain}x)`;
+  }
+  if (hudCache.chain !== chainText) {
+    hudCache.chain = chainText;
+    chainEl.textContent = chainText;
+  }
+
+  const levelText = game.level.toString();
+  if (hudCache.level !== levelText) {
+    hudCache.level = levelText;
+    levelEl.textContent = levelText;
+  }
+
+  const piecesText = game.pieceIndex.toString();
+  if (hudCache.pieces !== piecesText) {
+    hudCache.pieces = piecesText;
+    piecesEl.textContent = piecesText;
+  }
+
+  const statusText = game.paused ? 'Paused' : game.status;
+  if (hudCache.status !== statusText) {
+    hudCache.status = statusText;
+    statusEl.textContent = statusText;
+  }
 }
 
 function draw(alpha) {
