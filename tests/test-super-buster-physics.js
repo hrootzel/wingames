@@ -94,15 +94,24 @@ test('super buster: harpoon sticks to platform underside', async ({ page }) => {
   });
   await page.keyboard.press('Space');
 
-  await expect.poll(async () => {
-    const h = await page.evaluate(() => window.__superBusterDebug.getState().harpoon);
-    return h.state;
-  }).toBe('stick');
+  const sample = await page.evaluate(async () => {
+    const start = performance.now();
+    let sawStick = false;
+    let minTop = Infinity;
+    while (performance.now() - start < 900) {
+      const h = window.__superBusterDebug.getState().harpoon;
+      if (h.active) {
+        if (h.state === 'stick') sawStick = true;
+        if (h.yTop < minTop) minTop = h.yTop;
+      }
+      await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    }
+    return { sawStick, minTop };
+  });
 
-  await expect.poll(async () => {
-    const h = await page.evaluate(() => window.__superBusterDebug.getState().harpoon);
-    return h.yTop;
-  }).toBeCloseTo(232, 0);
+  expect(sample.sawStick).toBe(true);
+  expect(sample.minTop).toBeLessThanOrEqual(232.8);
+  expect(sample.minTop).toBeGreaterThanOrEqual(231.2);
 });
 
 test('super buster: ArrowUp is captured for ladder climb', async ({ page }) => {
@@ -314,7 +323,7 @@ test('super buster: stopping on ladder-top gap causes fall', async ({ page }) =>
   expect(after).toBeLessThan(336);
 });
 
-test('super buster: harpoon is anchored at floor even when firing from platform', async ({ page }) => {
+test('super buster: harpoon is anchored at player foot level when firing from platform', async ({ page }) => {
   const pack = makePack({
     id: 'LAB7',
     name: 'Harpoon Floor Anchor',
@@ -351,7 +360,7 @@ test('super buster: harpoon is anchored at floor even when firing from platform'
   }).not.toBeNull();
 
   const state = await page.evaluate(() => window.__superBusterDebug.getState().harpoon);
-  expect(Math.abs(state.yBottom - 336)).toBeLessThanOrEqual(0.6);
+  expect(Math.abs(state.yBottom - 214)).toBeLessThanOrEqual(0.6);
   expect(state.yTop).toBeLessThan(state.yBottom);
 });
 

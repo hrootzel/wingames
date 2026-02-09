@@ -363,12 +363,13 @@ function newGame() {
   game.status = 'Ready.';
 }
 
-function makeHarpoon(x) {
+function makeHarpoon(x, yBottom) {
+  const bottom = clamp(Number(yBottom), 0, FLOOR_Y);
   return {
     active: true,
     x,
-    yBottom: FLOOR_Y,
-    yTop: FLOOR_Y,
+    yBottom: bottom,
+    yTop: bottom,
     extendSpeed: 900,
     stickTime: game.player.weaponType === WEAPON_TYPES.sticky ? 2.2 : 0.25,
     state: 'extend',
@@ -379,7 +380,8 @@ function makeHarpoon(x) {
 function fireHarpoon() {
   if (game.player.weaponType === WEAPON_TYPES.double && game.harpoons.length >= 2) return;
   if (game.player.weaponType !== WEAPON_TYPES.double && game.harpoons.length >= 1) return;
-  game.harpoons.push(makeHarpoon(game.player.x));
+  // Match Pang behavior: rope starts from the hunter's current foot level.
+  game.harpoons.push(makeHarpoon(game.player.x, game.player.y));
   game.player.shootTimer = 0.13;
   sfx.play(BANK_SUPERBUSTER, 'shoot');
 }

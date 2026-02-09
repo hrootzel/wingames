@@ -93,26 +93,53 @@ function buildScene(worldW, worldH, floorY, levelIndex) {
     },
   ];
   const palette = palettes[paletteMode];
-  const starCount = 72 + Math.floor(rng() * 34);
+  const galaxy = {
+    centerX: worldW * (0.38 + rng() * 0.24),
+    centerY: worldH * (0.18 + rng() * 0.2),
+    angle: -0.42 + rng() * 0.84,
+    thickness: 26 + rng() * 34,
+    feather: 1.1 + rng() * 0.65,
+    density: 0.32 + rng() * 0.52,
+    drift: rng() * Math.PI * 2,
+  };
+  galaxy.nx = -Math.sin(galaxy.angle);
+  galaxy.ny = Math.cos(galaxy.angle);
+  galaxy.tx = Math.cos(galaxy.angle);
+  galaxy.ty = Math.sin(galaxy.angle);
+
+  const zoneH = floorY - 56;
+  const baseStars = 58 + Math.floor(rng() * 28);
+  const bandStars = 32 + Math.floor(galaxy.density * 78);
   const stars = [];
-  for (let i = 0; i < starCount; i += 1) {
-    const zoneH = floorY - 56;
+  for (let i = 0; i < baseStars; i += 1) {
     stars.push({
       x: rng() * worldW,
       y: 8 + rng() * Math.max(18, zoneH),
-      s: 0.7 + rng() * 1.8,
-      a: 0.24 + rng() * 0.62,
+      s: 0.7 + rng() * 1.6,
+      a: 0.2 + rng() * 0.45,
       tw: rng() * Math.PI * 2,
-      ts: 0.45 + rng() * 1.3,
+      ts: 0.4 + rng() * 1.1,
       c: rng() < 0.35 ? palette.starB : palette.starA,
+      bandBoost: 0,
     });
   }
-
-  const galaxy = {
-    y: worldH * (0.17 + rng() * 0.14),
-    thickness: 28 + rng() * 22,
-    drift: rng() * Math.PI * 2,
-  };
+  for (let i = 0; i < bandStars; i += 1) {
+    const along = (rng() - 0.5) * (worldW + worldH * 0.95);
+    const spread = (rng() - 0.5) * galaxy.thickness * 2.2;
+    const x = galaxy.centerX + galaxy.tx * along + galaxy.nx * spread;
+    const y = galaxy.centerY + galaxy.ty * along + galaxy.ny * spread;
+    if (x < -6 || x > worldW + 6 || y < 2 || y > zoneH + 10) continue;
+    stars.push({
+      x,
+      y,
+      s: 0.8 + rng() * 1.9,
+      a: 0.36 + rng() * 0.52,
+      tw: rng() * Math.PI * 2,
+      ts: 0.55 + rng() * 1.35,
+      c: rng() < 0.45 ? palette.starB : palette.starA,
+      bandBoost: 0.18 + rng() * 0.38,
+    });
+  }
 
   const planet = {
     x: worldW * (0.15 + rng() * 0.7),
@@ -202,13 +229,23 @@ export function drawBackground(ctx, worldW, worldH, floorY, levelIndex = 0) {
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, worldW, worldH);
 
-  const bandY = scene.galaxy.y + Math.sin(t * 0.06 + scene.galaxy.drift) * 2.5;
-  const galaxyGrad = ctx.createLinearGradient(0, bandY - scene.galaxy.thickness, 0, bandY + scene.galaxy.thickness);
+  const sway = Math.sin(t * 0.06 + scene.galaxy.drift) * 3.5;
+  const swayX = scene.galaxy.nx * sway;
+  const swayY = scene.galaxy.ny * sway;
+  ctx.save();
+  ctx.translate(scene.galaxy.centerX + swayX, scene.galaxy.centerY + swayY);
+  ctx.rotate(scene.galaxy.angle);
+  const bandW = worldW + worldH * 2;
+  const bandH = scene.galaxy.thickness * (2.7 + scene.galaxy.feather);
+  const galaxyGrad = ctx.createLinearGradient(0, -bandH * 0.5, 0, bandH * 0.5);
   galaxyGrad.addColorStop(0, pal.bandA);
+  galaxyGrad.addColorStop(0.24, 'rgba(160, 200, 255, 0.06)');
   galaxyGrad.addColorStop(0.5, pal.bandB);
+  galaxyGrad.addColorStop(0.76, 'rgba(160, 200, 255, 0.06)');
   galaxyGrad.addColorStop(1, pal.bandA);
   ctx.fillStyle = galaxyGrad;
-  ctx.fillRect(0, bandY - scene.galaxy.thickness, worldW, scene.galaxy.thickness * 2);
+  ctx.fillRect(-bandW * 0.5, -bandH * 0.5, bandW, bandH);
+  ctx.restore();
 
   for (const aurora of scene.auroras) {
     const y = aurora.y + Math.sin(t * aurora.speed + aurora.drift) * 4;
@@ -242,7 +279,7 @@ export function drawBackground(ctx, worldW, worldH, floorY, levelIndex = 0) {
 
   for (const star of scene.stars) {
     const flicker = 0.74 + 0.26 * Math.sin(t * star.ts + star.tw);
-    ctx.globalAlpha = clamp(star.a * flicker, 0, 1);
+    ctx.globalAlpha = clamp((star.a + star.bandBoost * scene.galaxy.density) * flicker, 0, 1);
     ctx.fillStyle = star.c;
     ctx.fillRect(star.x, star.y, star.s, star.s);
   }
