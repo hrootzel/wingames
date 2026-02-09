@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   normalizeLevelPack,
+  normalizeRect,
   makeBall,
   updateBall,
   clampBallVelocity,
@@ -26,9 +27,10 @@ const VX_MAG = [210, 190, 170, 150];
 test('normalizeLevelPack parses campaign JSON', () => {
   const pack = JSON.parse(readFileSync('levels/levelpack_v1.json', 'utf8'));
   const levels = normalizeLevelPack(pack, { maxSize: RADIUS.length - 1 });
-  assert.equal(levels.length, 12);
+  assert.equal(levels.length, 40);
   assert.equal(levels[0].id, 'L1');
-  assert.equal(levels[0].balls.length, 1);
+  assert.equal(levels[39].id, 'L40');
+  assert.ok(levels[0].balls.length >= 1);
   assert.ok(Array.isArray(levels[1].geometry.solids));
   assert.ok(levels[1].geometry.solids.length > 0);
   const hasHexa = levels.some((lvl) => lvl.balls.some((b) => b.type === 'hexa'));
@@ -41,6 +43,18 @@ test('normalizeLevelPack parses campaign JSON', () => {
 
 test('normalizeLevelPack rejects invalid format', () => {
   assert.throws(() => normalizeLevelPack({ version: 2, levels: [] }), /Invalid level pack format/);
+});
+
+test('normalizeRect preserves solid metadata and infers barrier orientation', () => {
+  const vertical = normalizeRect({ x: 120, y: 64, w: 14, h: 120, destructible: true, hitPoints: 2, drop: 'clock' });
+  assert.equal(vertical.kind, 'barrier');
+  assert.equal(vertical.destructible, true);
+  assert.equal(vertical.hitPoints, 2);
+  assert.equal(vertical.drop, 'clock');
+  const platform = normalizeRect({ x: 80, y: 220, w: 160, h: 10 });
+  assert.equal(platform.kind, 'platform');
+  assert.equal(platform.destructible, false);
+  assert.equal(platform.hitPoints, 0);
 });
 
 test('makeBall clamps spawn into world and floor bounds', () => {
@@ -169,6 +183,7 @@ test('advanceHarpoon stops at nearest solid underside while extending', () => {
   const result = advanceHarpoon(harpoon, 0.1, solids, 0);
   assert.equal(result.stuck, true);
   assert.equal(result.stuckAt, 'solid');
+  assert.equal(result.solidIndex, 0);
   assert.equal(harpoon.state, 'stick');
   assert.equal(harpoon.yTop, 192);
 });
@@ -239,6 +254,15 @@ test('findLadderExitPlatformY finds platform joined to ladder top', () => {
 
 test('findPlayerSupportY returns platform top support before floor', () => {
   const solids = [{ x: 238, y: 214, w: 164, h: 12 }];
+  const supportY = findPlayerSupportY(310, 214, solids, FLOOR_Y, 11, 24);
+  assert.equal(supportY, 214);
+});
+
+test('findPlayerSupportY ignores barrier tops for standing support', () => {
+  const solids = [
+    { x: 305, y: 120, w: 14, h: 120, kind: 'barrier' },
+    { x: 238, y: 214, w: 164, h: 12, kind: 'platform' },
+  ];
   const supportY = findPlayerSupportY(310, 214, solids, FLOOR_Y, 11, 24);
   assert.equal(supportY, 214);
 });

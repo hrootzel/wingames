@@ -36,6 +36,7 @@ const POWERUP_FALL_GRAVITY = 420;
 const POWERUP_LIFETIME = 9;
 const BULLET_SPEED = 560;
 const BULLET_COOLDOWN = 0.085;
+const SOLID_CRUMBLE_DURATION = 0.24;
 const POWERUP_DURATION = {
   sticky: 16,
   double: 14,
@@ -51,6 +52,28 @@ const WEAPON_TYPES = {
 };
 const POWERUP_TYPES = ['shield', 'sticky', 'double', 'gun', 'slow', 'freeze', 'dynamite', 'life', 'single', 'fruit'];
 const MODE_TYPES = ['campaign', 'endless'];
+const POWERUP_ALIAS = {
+  'two ropes': 'double',
+  tworopes: 'double',
+  double: 'double',
+  'metal rope': 'sticky',
+  metalrope: 'sticky',
+  sticky: 'sticky',
+  gun: 'gun',
+  hourglass: 'slow',
+  slow: 'slow',
+  clock: 'freeze',
+  freeze: 'freeze',
+  'blue goo': 'shield',
+  shield: 'shield',
+  dynamite: 'dynamite',
+  '1-up': 'life',
+  '1up': 'life',
+  life: 'life',
+  fruit: 'fruit',
+  single: 'single',
+  none: null,
+};
 
 const STORAGE = {
   settings: 'super_buster:v1:settings',
@@ -201,7 +224,88 @@ const game = {
   slowTimer: 0,
   freezeTimer: 0,
   endlessSpawnTimer: 0,
+  dropRngState: 0,
+  levelPopCounter: 0,
+  levelSolidBreakCounter: 0,
 };
+
+function hash32(input) {
+  let h = 2166136261 >>> 0;
+  const str = String(input);
+  for (let i = 0; i < str.length; i += 1) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function initLevelDropRng(level) {
+  const levelId = level?.id || `L${game.levelIndex + 1}`;
+  game.dropRngState = (hash32(`drop:${settings.mode}:${levelId}:${game.levelIndex}`) ^ 0x9e3779b9) >>> 0;
+  if (game.dropRngState === 0) game.dropRngState = 0x6d2b79f5;
+  game.levelPopCounter = 0;
+  game.levelSolidBreakCounter = 0;
+}
+
+function nextDropRand() {
+  let x = game.dropRngState >>> 0;
+  x ^= x << 13;
+  x ^= x >>> 17;
+  x ^= x << 5;
+  game.dropRngState = x >>> 0;
+  return (game.dropRngState >>> 0) / 4294967296;
+}
+
+function normalizePowerupName(value) {
+  const key = String(value || '').trim().toLowerCase();
+  if (!key) return null;
+  if (Object.prototype.hasOwnProperty.call(POWERUP_ALIAS, key)) {
+    return POWERUP_ALIAS[key];
+  }
+  return POWERUP_TYPES.includes(key) ? key : null;
+}
+
+function cloneGeometryForRuntime(geometry) {
+  const solids = (geometry?.solids || []).map((rect) => ({
+    ...rect,
+    _hp: rect.destructible ? Math.max(1, Math.round(Number(rect.hitPoints) || 1)) : 0,
+    _crumble: 0,
+    _destroyed: false,
+  }));
+  const ladders = (geometry?.ladders || []).map((ladder) => ({ ...ladder }));
+  return { solids, ladders };
+}
+
+function activeSolids(solids) {
+  return (solids || []).filter((solid) => solid && !solid._destroyed && !solid.disabled);
+}
+
+function damageSolidFromHarpoon(solidIndex) {
+  if (!Number.isFinite(solidIndex) || solidIndex < 0) return false;
+  const solid = game.geometry?.solids?.[solidIndex];
+  if (!solid || solid._destroyed || !solid.destructible) return false;
+  solid._hp = Math.max(0, (Number.isFinite(solid._hp) ? solid._hp : Math.max(1, solid.hitPoints || 1)) - 1);
+  if (solid._hp <= 0) {
+    solid._destroyed = true;
+    solid._crumble = SOLID_CRUMBLE_DURATION;
+    maybeSpawnSolidDrop(solid);
+    game.status = `${solid.kind === 'barrier' ? 'Barrier' : 'Platform'} destroyed`;
+    sfx.play(BANK_SUPERBUSTER, 'pop');
+  }
+  return true;
+}
+
+function updateCrumblingSolids(dt) {
+  const solids = game.geometry?.solids || [];
+  for (let i = solids.length - 1; i >= 0; i -= 1) {
+    const solid = solids[i];
+    if (!solid || !solid._destroyed) continue;
+    solid._crumble = Math.max(0, (Number(solid._crumble) || 0) - dt);
+    if (solid._crumble <= 0) {
+      solids.splice(i, 1);
+    }
+  }
+}
 
 let settings = loadSettings();
 
@@ -384,12 +488,13 @@ async function tryLoadExternalLevelPack() {
 
 function loadLevel() {
   const endless = isEndlessMode();
-  const level = LEVELS[game.levelIndex];
+  const level = LEVELS[game.levelIndex] || LEVELS[game.levelIndex % LEVELS.length] || LEVELS[0];
   const tuning = game.tuning || buildTuning(settings);
   const timeMul = tuning.preset.timeMul || 1;
+  initLevelDropRng(level);
   if (endless) {
     game.balls = [];
-    game.geometry = pickEndlessGeometry(game.levelIndex);
+    game.geometry = cloneGeometryForRuntime(pickEndlessGeometry(game.levelIndex));
     game.levelTimeLeft = Number.POSITIVE_INFINITY;
   } else {
     game.balls = level.balls.map((spec) => makeBall(spec, {
@@ -399,7 +504,7 @@ function loadLevel() {
       worldW: WORLD_W,
       floorY: FLOOR_Y,
     }));
-    game.geometry = level.geometry || { solids: [], ladders: [] };
+    game.geometry = cloneGeometryForRuntime(level.geometry || { solids: [], ladders: [] });
     game.levelTimeLeft = Math.max(1, (Number(level.timeLimitSec) || 60) * timeMul);
   }
   game.harpoons = [];
@@ -502,6 +607,9 @@ function updateHarpoons(dt) {
     const result = advanceHarpoon(h, dt, game.geometry.solids, 0);
     if (result.stuck) {
       sfx.play(BANK_SUPERBUSTER, 'harpoonTop');
+      if (result.stuckAt === 'solid') {
+        damageSolidFromHarpoon(result.solidIndex);
+      }
     }
     if (!h.active) {
       game.harpoons.splice(i, 1);
@@ -513,11 +621,12 @@ function shouldDropPowerup(ballSize) {
   if (ballSize <= 0) return false;
   const tuning = game.tuning || buildTuning(settings);
   const chance = tuning.preset.bonusDropChance || 0;
-  return Math.random() < chance;
+  const roll = isEndlessMode() ? Math.random() : nextDropRand();
+  return roll < chance;
 }
 
 function randomPowerupType() {
-  const r = Math.random();
+  const r = isEndlessMode() ? Math.random() : nextDropRand();
   if (r < 0.17) return 'shield';
   if (r < 0.30) return 'sticky';
   if (r < 0.43) return 'double';
@@ -531,16 +640,41 @@ function randomPowerupType() {
 }
 
 function maybeSpawnPowerupFromBall(ball) {
+  game.levelPopCounter += 1;
   if (!shouldDropPowerup(ball.size)) return;
   const type = randomPowerupType();
+  spawnPowerup(type, ball.x, Math.max(12, ball.y - 8));
+}
+
+function spawnPowerup(type, x, y) {
+  const normalized = normalizePowerupName(type);
+  if (!normalized) return false;
   game.powerups.push({
-    type,
-    x: ball.x,
-    y: Math.max(12, ball.y - 8),
+    type: normalized,
+    x: clamp(Number(x), 8, WORLD_W - 8),
+    y: clamp(Number(y), 8, FLOOR_Y - 8),
     vy: -120,
     ttl: POWERUP_LIFETIME,
     r: 9,
   });
+  return true;
+}
+
+function maybeSpawnSolidDrop(solid) {
+  if (!solid) return false;
+  const explicit = normalizePowerupName(solid.drop);
+  if (explicit) {
+    game.levelSolidBreakCounter += 1;
+    return spawnPowerup(explicit, solid.x + solid.w * 0.5, solid.y - 8);
+  }
+  if (Array.isArray(solid.dropTable) && solid.dropTable.length > 0) {
+    const i = game.levelSolidBreakCounter % solid.dropTable.length;
+    game.levelSolidBreakCounter += 1;
+    const chosen = normalizePowerupName(solid.dropTable[i]);
+    if (!chosen) return false;
+    return spawnPowerup(chosen, solid.x + solid.w * 0.5, solid.y - 8);
+  }
+  return false;
 }
 
 function applyPowerup(type) {
@@ -607,8 +741,9 @@ function updatePowerups(dt) {
     const nextY = p.y + p.vy * dt;
 
     let supportY = FLOOR_Y - p.r;
-    const solids = game.geometry?.solids || [];
+    const solids = activeSolids(game.geometry?.solids || []);
     for (const rect of solids) {
+      if (rect.kind === 'barrier') continue;
       const left = rect.x + p.r - 1;
       const right = rect.x + rect.w - p.r + 1;
       if (p.x < left || p.x > right) continue;
@@ -780,6 +915,8 @@ function updatePlaying(dt) {
     return;
   }
 
+  updateCrumblingSolids(dt);
+  const solids = activeSolids(game.geometry.solids);
   const horizontal = (input.right ? 1 : 0) - (input.left ? 1 : 0);
   const moveState = updatePlayerMovement(game.player, input, dt, {
     floorY: FLOOR_Y,
@@ -788,7 +925,7 @@ function updatePlaying(dt) {
     climbSpeed: game.player.climbSpeed,
     gravity: tuning.gravity,
     ladders: game.geometry.ladders,
-    solids: game.geometry.solids,
+    solids,
   });
   if (horizontal !== 0) {
     game.player.facing = horizontal > 0 ? 1 : -1;
@@ -843,7 +980,7 @@ function updatePlaying(dt) {
       floorY: FLOOR_Y,
       playerX: game.player.x,
     });
-    for (const rect of game.geometry.solids) {
+    for (const rect of solids) {
       collideBallWithSolid(ball, rect, RADIUS);
     }
     clampBallVelocity(ball, { jumpSpeed: tuning.jumpSpeed, vxMag: tuning.vxMag, capFactor: BALL_CAP_FACTOR });
@@ -898,7 +1035,7 @@ function updatePlaying(dt) {
   if (game.state === GameState.PLAYING && game.balls.length === 0) {
     if (isEndlessMode()) {
       game.levelIndex += 1;
-      game.geometry = pickEndlessGeometry(game.levelIndex);
+      game.geometry = cloneGeometryForRuntime(pickEndlessGeometry(game.levelIndex));
       spawnEndlessWave();
     } else {
       setLevelClear();
@@ -943,12 +1080,37 @@ function update(dt) {
 function drawGeometry(ctx2d, geometry) {
   const solids = geometry?.solids || [];
   if (solids.length) {
-    ctx2d.fillStyle = 'rgba(15, 23, 42, 0.78)';
-    ctx2d.strokeStyle = 'rgba(148, 163, 184, 0.45)';
-    ctx2d.lineWidth = 1;
     for (const rect of solids) {
+      const verticalish = rect.kind === 'barrier' || rect.h > rect.w;
+      const decayAlpha = rect._destroyed
+        ? clamp((Number(rect._crumble) || 0) / SOLID_CRUMBLE_DURATION, 0, 1)
+        : 1;
+      if (decayAlpha <= 0) continue;
+      ctx2d.save();
+      ctx2d.globalAlpha = decayAlpha;
+      if (verticalish) {
+        ctx2d.fillStyle = rect.destructible ? 'rgba(110, 52, 45, 0.7)' : 'rgba(41, 54, 72, 0.82)';
+        ctx2d.strokeStyle = rect.destructible ? 'rgba(254, 202, 202, 0.58)' : 'rgba(148, 163, 184, 0.5)';
+      } else {
+        ctx2d.fillStyle = rect.destructible ? 'rgba(81, 54, 36, 0.74)' : 'rgba(15, 23, 42, 0.78)';
+        ctx2d.strokeStyle = rect.destructible ? 'rgba(253, 186, 116, 0.55)' : 'rgba(148, 163, 184, 0.45)';
+      }
+      ctx2d.lineWidth = 1;
       ctx2d.fillRect(rect.x, rect.y, rect.w, rect.h);
       ctx2d.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+      if (rect.destructible && !rect._destroyed) {
+        const hp = Math.max(1, Number(rect._hp) || Number(rect.hitPoints) || 1);
+        const cracks = Math.min(4, hp + 1);
+        ctx2d.strokeStyle = verticalish ? 'rgba(254, 226, 226, 0.22)' : 'rgba(255, 237, 213, 0.24)';
+        for (let i = 0; i < cracks; i += 1) {
+          const fx = rect.x + (rect.w * (i + 1)) / (cracks + 1);
+          ctx2d.beginPath();
+          ctx2d.moveTo(fx - 3, rect.y + 2);
+          ctx2d.lineTo(fx + 2, rect.y + rect.h - 2);
+          ctx2d.stroke();
+        }
+      }
+      ctx2d.restore();
     }
   }
 
@@ -1196,15 +1358,10 @@ function installDebugApi() {
       Object.assign(game.player, patch || {});
     },
     spawnPowerup(type, x, y) {
-      const t = POWERUP_TYPES.includes(type) ? type : 'shield';
-      game.powerups.push({
-        type: t,
-        x: clamp(Number(x), 6, WORLD_W - 6),
-        y: clamp(Number(y), 6, FLOOR_Y - 6),
-        vy: 0,
-        ttl: POWERUP_LIFETIME,
-        r: 9,
-      });
+      if (spawnPowerup(type, x, y)) {
+        const p = game.powerups[game.powerups.length - 1];
+        p.vy = 0;
+      }
     },
     forcePlayerHit() {
       handlePlayerHit();

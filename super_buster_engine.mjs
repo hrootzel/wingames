@@ -19,7 +19,19 @@ export function normalizeRect(rect) {
   if (w <= 0 || h <= 0) {
     return null;
   }
-  return { x, y, w, h };
+  const orientation = String(rect?.orientation || '').toLowerCase();
+  const kindRaw = String(rect?.kind || '').toLowerCase();
+  const kind = kindRaw === 'barrier' || kindRaw === 'platform'
+    ? kindRaw
+    : (orientation === 'vertical' || h > w ? 'barrier' : 'platform');
+  const destructible = rect?.destructible === true;
+  const hitPointsRaw = Number(rect?.hitPoints);
+  const hitPoints = destructible ? clamp(Math.round(hitPointsRaw || 1), 1, 99) : 0;
+  const drop = typeof rect?.drop === 'string' ? rect.drop : null;
+  const dropTable = Array.isArray(rect?.dropTable)
+    ? rect.dropTable.map((item) => String(item))
+    : null;
+  return { x, y, w, h, kind, destructible, hitPoints, drop, dropTable };
 }
 
 export function normalizeLevel(level, index, options = {}) {
@@ -103,35 +115,41 @@ export function makeBall(spec, options = {}) {
 export function advanceHarpoon(harpoon, dt, solids = [], ceilingY = 0) {
   const h = harpoon;
   if (!h.active) {
-    return { stuck: false, stuckAt: null };
+    return { stuck: false, stuckAt: null, solidIndex: -1 };
   }
   if (h.state === 'extend') {
     const oldTop = h.yTop;
     const newTop = h.yTop - h.extendSpeed * dt;
     let hitBottomY = -1;
-    for (const rect of solids) {
+    let hitSolidIndex = -1;
+    for (let i = 0; i < solids.length; i += 1) {
+      const rect = solids[i];
+      if (!rect || rect._destroyed || rect.disabled) continue;
       const left = rect.x;
       const right = rect.x + rect.w;
       const bottom = rect.y + rect.h;
       if (h.x < left || h.x > right) continue;
       if (oldTop >= bottom && newTop <= bottom) {
-        hitBottomY = Math.max(hitBottomY, bottom);
+        if (bottom > hitBottomY) {
+          hitBottomY = bottom;
+          hitSolidIndex = i;
+        }
       }
     }
     if (hitBottomY >= 0) {
       h.yTop = hitBottomY;
       h.state = 'stick';
       h.timer = h.stickTime;
-      return { stuck: true, stuckAt: 'solid' };
+      return { stuck: true, stuckAt: 'solid', solidIndex: hitSolidIndex };
     }
     if (newTop <= ceilingY) {
       h.yTop = ceilingY;
       h.state = 'stick';
       h.timer = h.stickTime;
-      return { stuck: true, stuckAt: 'ceiling' };
+      return { stuck: true, stuckAt: 'ceiling', solidIndex: -1 };
     }
     h.yTop = newTop;
-    return { stuck: false, stuckAt: null };
+    return { stuck: false, stuckAt: null, solidIndex: -1 };
   }
   if (h.state === 'stick') {
     h.timer -= dt;
@@ -139,7 +157,7 @@ export function advanceHarpoon(harpoon, dt, solids = [], ceilingY = 0) {
       h.active = false;
     }
   }
-  return { stuck: false, stuckAt: null };
+  return { stuck: false, stuckAt: null, solidIndex: -1 };
 }
 
 export function updateBall(ball, dt, options = {}) {
@@ -325,7 +343,8 @@ export function findLadderAtPosition(x, y, ladders = [], marginX = 8, marginY = 
 export function findPlayerSupportY(x, currentY, solids = [], floorY = 336, halfW = 11, snapDistance = 20) {
   let supportY = floorY;
   for (const solid of solids) {
-    if (!solid) continue;
+    if (!solid || solid._destroyed || solid.disabled) continue;
+    if (solid.kind === 'barrier') continue;
     const left = solid.x + halfW - 2;
     const right = solid.x + solid.w - halfW + 2;
     if (x < left || x > right) continue;
@@ -356,7 +375,8 @@ export function findLadderTopSupportY(x, currentY, ladders = [], halfW = 11, sna
 export function findSupportBelowY(x, minY, solids = [], floorY = 336, halfW = 11, ladders = []) {
   let supportY = floorY;
   for (const solid of solids) {
-    if (!solid) continue;
+    if (!solid || solid._destroyed || solid.disabled) continue;
+    if (solid.kind === 'barrier') continue;
     const left = solid.x + halfW - 2;
     const right = solid.x + solid.w - halfW + 2;
     if (x < left || x > right) continue;
@@ -383,7 +403,8 @@ export function findLadderExitPlatformY(x, ladder, solids = [], halfW = 11, join
   if (!ladder) return null;
   let bestY = Number.POSITIVE_INFINITY;
   for (const solid of solids) {
-    if (!solid) continue;
+    if (!solid || solid._destroyed || solid.disabled) continue;
+    if (solid.kind === 'barrier') continue;
     const left = solid.x + halfW - 2;
     const right = solid.x + solid.w - halfW + 2;
     if (x < left || x > right) continue;

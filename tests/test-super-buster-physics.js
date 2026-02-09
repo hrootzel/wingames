@@ -729,3 +729,98 @@ test('super buster: endless mode spawns new wave instead of level clear', async 
   expect(after.state).toBe('PLAYING');
   expect(after.levelIndex).toBeGreaterThan(waveBefore);
 });
+
+test('super buster: destructible platform crumbles when hit by harpoon', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB20',
+    name: 'Destruct Platform Lab',
+    timeLimitSec: 60,
+    geometry: {
+      solids: [{ x: 240, y: 220, w: 160, h: 12, kind: 'platform', destructible: true, hitPoints: 1 }],
+      ladders: [],
+    },
+    balls: [{ size: 0, x: 50, y: 50, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Destruct Platform Lab');
+
+  await page.evaluate(() => {
+    window.__superBusterDebug.setPlayerX(320);
+    window.__superBusterDebug.setBall(0, { x: 50, y: 50, vx: 0, vy: 0 });
+  });
+  await page.keyboard.press('Space');
+
+  await expect.poll(async () => {
+    const s = await page.evaluate(() => window.__superBusterDebug.getState());
+    return s.geometry.solids.length;
+  }).toBe(0);
+});
+
+test('super buster: destructible vertical barrier crumbles when hit by harpoon', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB21',
+    name: 'Destruct Barrier Lab',
+    timeLimitSec: 60,
+    geometry: {
+      solids: [
+        { x: 314, y: 180, w: 12, h: 110, kind: 'barrier', destructible: true, hitPoints: 1 },
+      ],
+      ladders: [],
+    },
+    balls: [{ size: 0, x: 50, y: 50, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Destruct Barrier Lab');
+
+  await page.evaluate(() => {
+    window.__superBusterDebug.setPlayerX(320);
+    window.__superBusterDebug.setBall(0, { x: 50, y: 50, vx: 0, vy: 0 });
+  });
+  await page.keyboard.press('Space');
+
+  await expect.poll(async () => {
+    const s = await page.evaluate(() => window.__superBusterDebug.getState());
+    return s.geometry.solids.length;
+  }).toBe(0);
+});
+
+test('super buster: breakable platform can have deterministic drop', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB22',
+    name: 'Deterministic Drop Lab',
+    timeLimitSec: 60,
+    geometry: {
+      solids: [{ x: 248, y: 220, w: 144, h: 12, kind: 'platform', destructible: true, drop: 'two ropes' }],
+      ladders: [],
+    },
+    balls: [{ size: 0, x: 40, y: 40, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Deterministic Drop Lab');
+
+  await page.evaluate(() => {
+    window.__superBusterDebug.setPlayerX(320);
+    window.__superBusterDebug.setBall(0, { x: 40, y: 40, vx: 0, vy: 0 });
+  });
+  await page.keyboard.press('Space');
+
+  await expect.poll(async () => {
+    const s = await page.evaluate(() => window.__superBusterDebug.getState());
+    return s.powerups[0]?.type || null;
+  }).toBe('double');
+});
