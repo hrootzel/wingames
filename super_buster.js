@@ -22,9 +22,12 @@ const BASE_GRAVITY = 320;
 const RADIUS = [10, 16, 24, 34];
 const BASE_JUMP_SPEED = [240, 320, 420, 520];
 const BASE_VX_MAG = [118, 108, 98, 90];
-const SCORE_TABLE = {
-  normal: [600, 800, 1000, 1500],
-  hexa: [500, 800, 1000, 1500],
+const SCORE_RULES = {
+  ballPop: 100,
+  itemPickup: 500,
+  fruitPickup: 1000,
+  timeBonusPerSec: 20,
+  perfectBonus: 1000,
 };
 const STARTING_LIVES = 3;
 const MOVE_SFX_INTERVAL = 0.09;
@@ -37,6 +40,8 @@ const POWERUP_DURATION = {
   sticky: 16,
   double: 14,
   gun: 10,
+  slow: 10,
+  freeze: 4.5,
 };
 const WEAPON_TYPES = {
   single: 'single',
@@ -44,7 +49,7 @@ const WEAPON_TYPES = {
   double: 'double',
   gun: 'gun',
 };
-const POWERUP_TYPES = ['shield', 'sticky', 'double', 'gun'];
+const POWERUP_TYPES = ['shield', 'sticky', 'double', 'gun', 'slow', 'freeze', 'dynamite', 'life', 'single', 'fruit'];
 
 const STORAGE = {
   settings: 'super_buster:v1:settings',
@@ -190,6 +195,8 @@ const game = {
   status: 'Ready.',
   tuning: null,
   levelStartLives: STARTING_LIVES,
+  slowTimer: 0,
+  freezeTimer: 0,
 };
 
 let settings = loadSettings();
@@ -337,6 +344,8 @@ function loadLevel() {
   game.state = GameState.PLAYING;
   game.stateTimer = 0;
   game.levelStartLives = game.lives;
+  game.slowTimer = 0;
+  game.freezeTimer = 0;
   game.status = level.name;
 }
 
@@ -366,6 +375,8 @@ function newGame() {
   game.state = GameState.LEVEL_START;
   game.stateTimer = 0;
   game.levelStartLives = STARTING_LIVES;
+  game.slowTimer = 0;
+  game.freezeTimer = 0;
   game.status = 'Ready.';
 }
 
@@ -424,10 +435,16 @@ function shouldDropPowerup(ballSize) {
 
 function randomPowerupType() {
   const r = Math.random();
-  if (r < 0.28) return 'shield';
-  if (r < 0.53) return 'sticky';
-  if (r < 0.77) return 'double';
-  return 'gun';
+  if (r < 0.17) return 'shield';
+  if (r < 0.30) return 'sticky';
+  if (r < 0.43) return 'double';
+  if (r < 0.54) return 'gun';
+  if (r < 0.65) return 'slow';
+  if (r < 0.73) return 'freeze';
+  if (r < 0.81) return 'dynamite';
+  if (r < 0.87) return 'single';
+  if (r < 0.93) return 'life';
+  return 'fruit';
 }
 
 function maybeSpawnPowerupFromBall(ball) {
@@ -444,10 +461,43 @@ function maybeSpawnPowerupFromBall(ball) {
 }
 
 function applyPowerup(type) {
-  game.score += 250;
+  if (type === 'fruit') {
+    game.score += SCORE_RULES.fruitPickup;
+    game.status = 'Fruit bonus!';
+    return;
+  }
+  game.score += SCORE_RULES.itemPickup;
   if (type === 'shield') {
     game.player.shieldCharges = 1;
     game.status = 'Bubble shield acquired.';
+    return;
+  }
+  if (type === 'single') {
+    game.player.weaponType = WEAPON_TYPES.single;
+    game.player.weaponTimer = 0;
+    game.status = 'Weapon reset to harpoon.';
+    return;
+  }
+  if (type === 'life') {
+    game.lives = Math.min(9, game.lives + 1);
+    game.status = '1UP!';
+    return;
+  }
+  if (type === 'slow') {
+    game.slowTimer = POWERUP_DURATION.slow;
+    game.freezeTimer = Math.max(0, game.freezeTimer - 0.8);
+    game.status = 'Sandclock: enemy speed reduced.';
+    return;
+  }
+  if (type === 'freeze') {
+    game.freezeTimer = POWERUP_DURATION.freeze;
+    game.slowTimer = Math.max(game.slowTimer, 1.2);
+    game.status = 'Time freeze!';
+    return;
+  }
+  if (type === 'dynamite') {
+    triggerDynamite();
+    game.status = 'Dynamite blast!';
     return;
   }
   if (type === 'sticky' || type === 'double' || type === 'gun') {
@@ -457,17 +507,40 @@ function applyPowerup(type) {
   }
 }
 
+function triggerDynamite() {
+  for (let i = game.balls.length - 1; i >= 0; i -= 1) {
+    if (game.balls[i].size > 0) {
+      splitBall(i);
+    }
+  }
+}
+
 function updatePowerups(dt) {
   for (let i = game.powerups.length - 1; i >= 0; i -= 1) {
     const p = game.powerups[i];
     p.ttl -= dt;
+    const oldY = p.y;
     p.vy += POWERUP_FALL_GRAVITY * dt;
-    p.y += p.vy * dt;
-    const floorItemY = FLOOR_Y - p.r;
-    if (p.y > floorItemY) {
-      p.y = floorItemY;
-      p.vy = 0;
+    const nextY = p.y + p.vy * dt;
+
+    let supportY = FLOOR_Y - p.r;
+    const solids = game.geometry?.solids || [];
+    for (const rect of solids) {
+      const left = rect.x + p.r - 1;
+      const right = rect.x + rect.w - p.r + 1;
+      if (p.x < left || p.x > right) continue;
+      const top = rect.y - p.r;
+      if (top >= oldY - 0.5 && top < supportY) {
+        supportY = top;
+      }
     }
+    if (nextY >= supportY) {
+      p.y = supportY;
+      p.vy = 0;
+    } else {
+      p.y = nextY;
+    }
+
     const dx = p.x - game.player.x;
     const dy = p.y - (game.player.y - game.player.h * 0.55);
     const rr = p.r + game.player.hitR * 0.8;
@@ -537,8 +610,12 @@ function splitBall(index) {
 }
 
 function getBallScore(type, size) {
-  const table = SCORE_TABLE[type] || SCORE_TABLE.normal;
-  return table[size] || 100;
+  let score = SCORE_RULES.ballPop;
+  if (type === 'hexa') score += 100;
+  if (type === 'bouncy') score += 50;
+  if (type === 'seeker') score += 100;
+  if (size >= 2) score += 50;
+  return score;
 }
 
 function playerHitBall(ball) {
@@ -561,8 +638,8 @@ function setPlayerHit() {
 }
 
 function setLevelClear() {
-  const timeBonus = Math.max(0, Math.floor(game.levelTimeLeft)) * 20;
-  const perfectBonus = game.lives === game.levelStartLives ? 1000 : 0;
+  const timeBonus = Math.max(0, Math.floor(game.levelTimeLeft)) * SCORE_RULES.timeBonusPerSec;
+  const perfectBonus = game.lives === game.levelStartLives ? SCORE_RULES.perfectBonus : 0;
   game.score += timeBonus + perfectBonus;
   game.state = GameState.LEVEL_CLEAR;
   game.stateTimer = 0.8;
@@ -600,6 +677,10 @@ function handlePlayerHit() {
 
 function updatePlaying(dt) {
   const tuning = game.tuning || buildTuning(settings);
+  game.slowTimer = Math.max(0, game.slowTimer - dt);
+  game.freezeTimer = Math.max(0, game.freezeTimer - dt);
+  const ballTimeScale = game.freezeTimer > 0 ? 0 : (game.slowTimer > 0 ? 0.55 : 1);
+  const ballDt = dt * ballTimeScale;
   game.player.shootTimer = Math.max(0, game.player.shootTimer - dt);
   game.player.bulletCooldown = Math.max(0, game.player.bulletCooldown - dt);
   if (game.player.weaponType !== WEAPON_TYPES.single) {
@@ -653,7 +734,7 @@ function updatePlaying(dt) {
   updatePowerups(dt);
 
   for (const ball of game.balls) {
-    updateBall(ball, dt, {
+    updateBall(ball, ballDt, {
       gravity: tuning.gravity,
       radius: RADIUS,
       jumpSpeed: tuning.jumpSpeed,
@@ -661,6 +742,7 @@ function updatePlaying(dt) {
       capFactor: BALL_CAP_FACTOR,
       worldW: WORLD_W,
       floorY: FLOOR_Y,
+      playerX: game.player.x,
     });
     for (const rect of game.geometry.solids) {
       collideBallWithSolid(ball, rect, RADIUS);
@@ -811,6 +893,12 @@ function render() {
       sticky: '#86efac',
       double: '#fca5a5',
       gun: '#fcd34d',
+      slow: '#93c5fd',
+      freeze: '#bfdbfe',
+      dynamite: '#fb7185',
+      life: '#34d399',
+      single: '#f9a8d4',
+      fruit: '#f59e0b',
     };
     ctx.fillStyle = colors[p.type] || '#e2e8f0';
     ctx.beginPath();
@@ -818,7 +906,19 @@ function render() {
     ctx.fill();
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 9px monospace';
-    const glyph = p.type === 'shield' ? 'S' : (p.type === 'sticky' ? 'W' : (p.type === 'double' ? 'D' : 'G'));
+    const glyphMap = {
+      shield: 'S',
+      sticky: 'W',
+      double: 'D',
+      gun: 'G',
+      slow: 'C',
+      freeze: 'F',
+      dynamite: 'X',
+      life: '+',
+      single: '1',
+      fruit: '$',
+    };
+    const glyph = glyphMap[p.type] || '?';
     ctx.fillText(glyph, p.x - 3, p.y + 3);
   }
   for (const ball of game.balls) {
@@ -845,7 +945,10 @@ function updateHud() {
   const weaponLabel = game.player.weaponType === WEAPON_TYPES.single ? 'harpoon' : game.player.weaponType;
   const timerLabel = game.player.weaponTimer > 0 ? ` ${game.player.weaponTimer.toFixed(1)}s` : '';
   const shieldLabel = game.player.shieldCharges > 0 ? ' shield' : '';
-  statusEl.textContent = `${game.status} | ${weaponLabel}${timerLabel}${shieldLabel}`;
+  const fxLabel = game.freezeTimer > 0
+    ? ` freeze ${game.freezeTimer.toFixed(1)}s`
+    : (game.slowTimer > 0 ? ` slow ${game.slowTimer.toFixed(1)}s` : '');
+  statusEl.textContent = `${game.status} | ${weaponLabel}${timerLabel}${shieldLabel}${fxLabel}`;
 }
 
 function unlockAudio() {

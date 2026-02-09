@@ -33,6 +33,10 @@ test('normalizeLevelPack parses campaign JSON', () => {
   assert.ok(levels[1].geometry.solids.length > 0);
   const hasHexa = levels.some((lvl) => lvl.balls.some((b) => b.type === 'hexa'));
   assert.equal(hasHexa, true);
+  const hasBouncy = levels.some((lvl) => lvl.balls.some((b) => b.type === 'bouncy'));
+  const hasSeeker = levels.some((lvl) => lvl.balls.some((b) => b.type === 'seeker'));
+  assert.equal(hasBouncy, true);
+  assert.equal(hasSeeker, true);
 });
 
 test('normalizeLevelPack rejects invalid format', () => {
@@ -89,6 +93,35 @@ test('updateBall keeps hexa floating without gravity acceleration', () => {
   });
   assert.ok(Math.abs(ball.vy + 90) < 1e-6);
   assert.ok(ball.spin !== 0);
+});
+
+test('updateBall bouncy type uses stronger floor rebound', () => {
+  const ball = { type: 'bouncy', size: 2, x: 200, y: FLOOR_Y - RADIUS[2] - 0.3, vx: 0, vy: 220 };
+  updateBall(ball, 1 / 60, {
+    gravity: 1800,
+    radius: RADIUS,
+    jumpSpeed: JUMP_SPEED,
+    vxMag: VX_MAG,
+    capFactor: 1.08,
+    worldW: WORLD_W,
+    floorY: FLOOR_Y,
+  });
+  assert.ok(ball.vy < -JUMP_SPEED[2]);
+});
+
+test('updateBall seeker type nudges vx toward player x', () => {
+  const ball = { type: 'seeker', size: 2, x: 240, y: 180, vx: -40, vy: 10 };
+  updateBall(ball, 1 / 30, {
+    gravity: 1800,
+    radius: RADIUS,
+    jumpSpeed: JUMP_SPEED,
+    vxMag: VX_MAG,
+    capFactor: 1.08,
+    worldW: WORLD_W,
+    floorY: FLOOR_Y,
+    playerX: 340,
+  });
+  assert.ok(ball.vx > -40);
 });
 
 test('clampBallVelocity prevents runaway speed growth', () => {

@@ -519,7 +519,7 @@ test('super buster: hexa bubble pops with hexa score table', async ({ page }) =>
     const s = await page.evaluate(() => window.__superBusterDebug.getState());
     if (s.balls.length >= 2) return s.score;
     return -1;
-  }).toBe(1000);
+  }).toBe(250);
 });
 
 test('super buster: level clear awards time bonus hook', async ({ page }) => {
@@ -551,4 +551,139 @@ test('super buster: level clear awards time bonus hook', async ({ page }) => {
 
   const end = await page.evaluate(() => window.__superBusterDebug.getState());
   expect(end.score).toBeGreaterThan(600);
+});
+
+test('super buster: slow and freeze pickups reduce/stop ball movement', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB15',
+    name: 'Clock Lab',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
+    balls: [{ type: 'seeker', size: 2, x: 320, y: 220, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Clock Lab');
+
+  const base = await page.evaluate(async () => {
+    const s0 = window.__superBusterDebug.getState().balls[0];
+    await new Promise((resolve) => setTimeout(resolve, 220));
+    const s1 = window.__superBusterDebug.getState().balls[0];
+    return Math.abs(s1.x - s0.x) + Math.abs(s1.y - s0.y);
+  });
+
+  await page.evaluate(() => {
+    const s = window.__superBusterDebug.getState();
+    window.__superBusterDebug.spawnPowerup('slow', s.player.x, s.player.y - 16);
+  });
+  await page.waitForTimeout(140);
+  const slowed = await page.evaluate(async () => {
+    const s0 = window.__superBusterDebug.getState().balls[0];
+    await new Promise((resolve) => setTimeout(resolve, 220));
+    const s1 = window.__superBusterDebug.getState().balls[0];
+    return Math.abs(s1.x - s0.x) + Math.abs(s1.y - s0.y);
+  });
+  expect(slowed).toBeLessThan(base * 0.8);
+
+  await page.evaluate(() => {
+    const s = window.__superBusterDebug.getState();
+    window.__superBusterDebug.spawnPowerup('freeze', s.player.x, s.player.y - 16);
+  });
+  await page.waitForTimeout(140);
+  const frozen = await page.evaluate(async () => {
+    const s0 = window.__superBusterDebug.getState().balls[0];
+    await new Promise((resolve) => setTimeout(resolve, 220));
+    const s1 = window.__superBusterDebug.getState().balls[0];
+    return Math.abs(s1.x - s0.x) + Math.abs(s1.y - s0.y);
+  });
+  expect(frozen).toBeLessThan(0.5);
+});
+
+test('super buster: dynamite pickup splits large bubbles', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB16',
+    name: 'Dynamite Lab',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
+    balls: [
+      { size: 3, x: 220, y: 190, dir: 1 },
+      { size: 2, x: 420, y: 190, dir: -1 },
+    ],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Dynamite Lab');
+
+  const before = await page.evaluate(() => window.__superBusterDebug.getState().balls.length);
+  await page.evaluate(() => {
+    const s = window.__superBusterDebug.getState();
+    window.__superBusterDebug.spawnPowerup('dynamite', s.player.x, s.player.y - 16);
+  });
+  await page.waitForTimeout(140);
+  const after = await page.evaluate(() => window.__superBusterDebug.getState().balls.length);
+  expect(after).toBeGreaterThan(before);
+});
+
+test('super buster: life pickup grants extra life', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB17',
+    name: 'Life Lab',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
+    balls: [{ size: 0, x: 40, y: 40, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Life Lab');
+
+  await page.evaluate(() => {
+    const s = window.__superBusterDebug.getState();
+    window.__superBusterDebug.spawnPowerup('life', s.player.x, s.player.y - 16);
+  });
+  await page.waitForTimeout(120);
+  const lives = await page.evaluate(() => window.__superBusterDebug.getState().lives);
+  expect(lives).toBe(4);
+});
+
+test('super buster: dropped powerup lands on platform top', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB18',
+    name: 'Drop Platform Lab',
+    timeLimitSec: 60,
+    geometry: {
+      solids: [{ x: 240, y: 214, w: 160, h: 12 }],
+      ladders: [],
+    },
+    balls: [{ size: 0, x: 40, y: 40, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Drop Platform Lab');
+
+  await page.evaluate(() => {
+    window.__superBusterDebug.setPlayerX(100);
+    window.__superBusterDebug.spawnPowerup('fruit', 320, 80);
+  });
+  await page.waitForTimeout(1200);
+
+  const p = await page.evaluate(() => window.__superBusterDebug.getState().powerups[0]);
+  expect(p).toBeTruthy();
+  expect(Math.abs(p.y - 205)).toBeLessThanOrEqual(1.0);
+  expect(Math.abs(p.vy)).toBeLessThanOrEqual(0.01);
 });

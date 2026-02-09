@@ -470,6 +470,24 @@ export function drawBall(ctx, ball, radii, palettes) {
   ctx.arc(ball.x - r * 0.08, ball.y - r * 0.47, Math.max(1, r * 0.08), 0, Math.PI * 2);
   ctx.fill();
 
+  if (ball.type === 'bouncy') {
+    ctx.strokeStyle = 'rgba(253, 224, 71, 0.62)';
+    ctx.lineWidth = Math.max(1.2, r * 0.08);
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, r * 0.62, Math.PI * 0.18, Math.PI * 1.82);
+    ctx.stroke();
+  } else if (ball.type === 'seeker') {
+    const pulse = 0.45 + 0.55 * Math.sin(t * 9 + ball.x * 0.02);
+    ctx.fillStyle = `rgba(248, 250, 252, ${0.35 + pulse * 0.35})`;
+    ctx.beginPath();
+    ctx.arc(ball.x + r * 0.15, ball.y - r * 0.06, Math.max(1.2, r * 0.11), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+    ctx.beginPath();
+    ctx.arc(ball.x + r * 0.15, ball.y - r * 0.06, Math.max(0.6, r * 0.05), 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   const speed = Math.hypot(ball.vx || 0, ball.vy || 0);
   if (speed > 40) {
     const tx = ball.x - (ball.vx / speed) * r * 0.9;
