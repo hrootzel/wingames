@@ -5,11 +5,13 @@ import {
   normalizeLevelPack,
   makeBall,
   updateBall,
+  clampBallVelocity,
   collideBallWithSolid,
   advanceHarpoon,
   harpoonHitsBall,
   findLadderAtPosition,
   findPlayerSupportY,
+  findSupportBelowY,
   findLadderExitPlatformY,
   updatePlayerMovement,
 } from '../super_buster_engine.mjs';
@@ -51,11 +53,22 @@ test('updateBall bounces off floor with size jump speed', () => {
     gravity: 1800,
     radius: RADIUS,
     jumpSpeed: JUMP_SPEED,
+    vxMag: VX_MAG,
+    capFactor: 1.08,
     worldW: WORLD_W,
     floorY: FLOOR_Y,
   });
   assert.equal(ball.y, FLOOR_Y - RADIUS[2]);
   assert.equal(ball.vy, -JUMP_SPEED[2]);
+});
+
+test('clampBallVelocity prevents runaway speed growth', () => {
+  const ball = { size: 3, vx: 999, vy: -999 };
+  const jump = [240, 320, 420, 520];
+  const vx = [118, 108, 98, 90];
+  clampBallVelocity(ball, { jumpSpeed: jump, vxMag: vx, capFactor: 1.08 });
+  assert.ok(Math.abs(ball.vx) <= vx[3] * 1.08 + 1e-6);
+  assert.ok(Math.abs(ball.vy) <= jump[3] * 1.08 + 1e-6);
 });
 
 test('collideBallWithSolid resolves top-face hit and flips vy upward', () => {
@@ -135,10 +148,11 @@ test('updatePlayerMovement climbs ladder when up is pressed', () => {
   assert.ok(player.y < beforeY);
 });
 
-test('updatePlayerMovement keeps player on floor when no ladder input', () => {
+test('updatePlayerMovement keeps grounded player on floor when no ladder input', () => {
   const player = {
     x: 320,
-    y: 280,
+    y: FLOOR_Y,
+    vy: 0,
     w: 22,
     h: 28,
     onLadder: false,
@@ -165,6 +179,15 @@ test('findPlayerSupportY returns platform top support before floor', () => {
   const solids = [{ x: 238, y: 214, w: 164, h: 12 }];
   const supportY = findPlayerSupportY(310, 214, solids, FLOOR_Y, 11, 24);
   assert.equal(supportY, 214);
+});
+
+test('findSupportBelowY returns nearest support below current y', () => {
+  const solids = [
+    { x: 238, y: 214, w: 164, h: 12 },
+    { x: 260, y: 280, w: 120, h: 12 },
+  ];
+  const supportY = findSupportBelowY(310, 220, solids, FLOOR_Y, 11);
+  assert.equal(supportY, 280);
 });
 
 test('updatePlayerMovement dismounts onto platform at ladder top', () => {
@@ -209,4 +232,25 @@ test('updatePlayerMovement does not re-enter ladder from platform when holding u
   assert.equal(result.onLadder, false);
   assert.equal(player.onLadder, false);
   assert.equal(player.y, 214);
+});
+
+test('updatePlayerMovement falls gradually after leaving platform edge', () => {
+  const solids = [{ x: 238, y: 214, w: 164, h: 12 }];
+  const player = {
+    x: 391,
+    y: 214,
+    vy: 0,
+    w: 22,
+    h: 28,
+    onLadder: false,
+    ladderIndex: -1,
+  };
+  updatePlayerMovement(
+    player,
+    { left: false, right: true, up: false, down: false },
+    1 / 60,
+    { floorY: FLOOR_Y, worldW: WORLD_W, moveSpeed: 220, climbSpeed: 180, gravity: 1800, ladders: [], solids },
+  );
+  assert.ok(player.y > 214);
+  assert.ok(player.y < FLOOR_Y);
 });

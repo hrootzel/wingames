@@ -123,6 +123,8 @@ export function updateBall(ball, dt, options = {}) {
   const gravity = Number.isFinite(Number(options.gravity)) ? Number(options.gravity) : 1800;
   const radius = options.radius || [10, 16, 24, 34];
   const jumpSpeed = options.jumpSpeed || [520, 650, 780, 920];
+  const vxMag = options.vxMag || null;
+  const capFactor = Number.isFinite(Number(options.capFactor)) ? Number(options.capFactor) : 1.08;
   const worldW = Number.isFinite(Number(options.worldW)) ? Number(options.worldW) : 640;
   const floorY = Number.isFinite(Number(options.floorY)) ? Number(options.floorY) : 336;
 
@@ -148,6 +150,24 @@ export function updateBall(ball, dt, options = {}) {
   if (ball.x + r > worldW) {
     ball.x = worldW - r;
     ball.vx = -Math.abs(ball.vx);
+  }
+  clampBallVelocity(ball, { jumpSpeed, vxMag, capFactor });
+}
+
+export function clampBallVelocity(ball, options = {}) {
+  const jumpSpeed = options.jumpSpeed || [520, 650, 780, 920];
+  const vxMag = options.vxMag || null;
+  const capFactor = Number.isFinite(Number(options.capFactor)) ? Number(options.capFactor) : 1.08;
+  const size = ball.size;
+
+  const maxVy = Math.max(1, jumpSpeed[size] * capFactor);
+  if (ball.vy > maxVy) ball.vy = maxVy;
+  if (ball.vy < -maxVy) ball.vy = -maxVy;
+
+  if (vxMag) {
+    const maxVx = Math.max(1, vxMag[size] * capFactor);
+    if (ball.vx > maxVx) ball.vx = maxVx;
+    if (ball.vx < -maxVx) ball.vx = -maxVx;
   }
 }
 
@@ -259,6 +279,21 @@ export function findPlayerSupportY(x, currentY, solids = [], floorY = 336, halfW
   return supportY;
 }
 
+export function findSupportBelowY(x, minY, solids = [], floorY = 336, halfW = 11) {
+  let supportY = floorY;
+  for (const solid of solids) {
+    if (!solid) continue;
+    const left = solid.x + halfW - 2;
+    const right = solid.x + solid.w - halfW + 2;
+    if (x < left || x > right) continue;
+    const top = solid.y;
+    if (top >= minY - 0.5 && top < supportY) {
+      supportY = top;
+    }
+  }
+  return supportY;
+}
+
 export function findLadderExitPlatformY(x, ladder, solids = [], halfW = 11, joinTolerance = 5) {
   if (!ladder) return null;
   let bestY = Number.POSITIVE_INFINITY;
@@ -280,6 +315,7 @@ export function updatePlayerMovement(player, input, dt, options = {}) {
   const worldW = Number.isFinite(Number(options.worldW)) ? Number(options.worldW) : 640;
   const moveSpeed = Number.isFinite(Number(options.moveSpeed)) ? Number(options.moveSpeed) : 220;
   const climbSpeed = Number.isFinite(Number(options.climbSpeed)) ? Number(options.climbSpeed) : 170;
+  const gravity = Number.isFinite(Number(options.gravity)) ? Number(options.gravity) : 1500;
   const ladders = options.ladders || [];
   const solids = options.solids || [];
 
@@ -292,6 +328,9 @@ export function updatePlayerMovement(player, input, dt, options = {}) {
 
   if (!Number.isFinite(player.y)) {
     player.y = floorY;
+  }
+  if (!Number.isFinite(player.vy)) {
+    player.vy = 0;
   }
   if (!Number.isFinite(player.ladderIndex)) {
     player.ladderIndex = -1;
@@ -330,7 +369,16 @@ export function updatePlayerMovement(player, input, dt, options = {}) {
     if (!candidate) {
       player.onLadder = false;
       player.ladderIndex = -1;
-      player.y = floorY;
+      const oldY = player.y;
+      player.vy += gravity * dt;
+      const nextY = player.y + player.vy * dt;
+      const landingY = findSupportBelowY(player.x, oldY, solids, floorY, halfW);
+      if (nextY >= landingY) {
+        player.y = landingY;
+        player.vy = 0;
+      } else {
+        player.y = nextY;
+      }
     } else {
       const ladder = candidate.ladder;
       player.ladderIndex = candidate.index;
@@ -342,6 +390,7 @@ export function updatePlayerMovement(player, input, dt, options = {}) {
         player.onLadder = false;
         player.ladderIndex = -1;
         player.y = exitPlatformY;
+        player.vy = 0;
         if (horizontal !== 0) {
           player.x = clamp(player.x + horizontal * moveSpeed * dt, minX, maxX);
         }
@@ -364,13 +413,29 @@ export function updatePlayerMovement(player, input, dt, options = {}) {
         player.onLadder = false;
         player.ladderIndex = -1;
         player.y = floorY;
+        player.vy = 0;
       }
     }
   } else {
     if (horizontal !== 0) {
       player.x = clamp(player.x + horizontal * moveSpeed * dt, minX, maxX);
     }
-    player.y = findPlayerSupportY(player.x, player.y, solids, floorY, halfW, 24);
+    const supportY = findPlayerSupportY(player.x, player.y, solids, floorY, halfW, 12);
+    if (player.y < supportY - 0.5 || player.vy > 0) {
+      const oldY = player.y;
+      player.vy += gravity * dt;
+      const nextY = player.y + player.vy * dt;
+      const landingY = findSupportBelowY(player.x, oldY, solids, floorY, halfW);
+      if (nextY >= landingY) {
+        player.y = landingY;
+        player.vy = 0;
+      } else {
+        player.y = nextY;
+      }
+    } else {
+      player.y = supportY;
+      player.vy = 0;
+    }
   }
 
   return {

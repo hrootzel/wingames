@@ -160,55 +160,133 @@ export function drawBall(ctx, ball, radii, palettes) {
   ctx.restore();
 }
 
-export function drawPlayer(ctx, player, floorY) {
+export function drawPlayer(ctx, player, floorY, harpoon = null) {
   const t = performance.now() * 0.001;
   const baseY = Number.isFinite(player.y) ? player.y : floorY;
-  const apexX = player.x;
-  const apexY = baseY - player.h;
-  const leftX = player.x - player.w / 2;
-  const rightX = player.x + player.w / 2;
-  const bob = player.onLadder ? Math.sin(t * 8) * 1.8 : 0;
-  const bodyTop = apexY + 4 + bob;
-  const bodyBottom = baseY - 3 + bob;
+  const facing = player.facing >= 0 ? 1 : -1;
+  const isClimbing = !!player.onLadder;
+  const walkPhase = Math.sin(t * 11);
+  const climbPhase = Math.sin(t * 14);
+  const idleBob = isClimbing ? Math.sin(t * 7.5) * 0.8 : Math.sin(t * 3.4) * 0.75;
+  const shootKick = Math.max(0, Math.min(1, (player.shootTimer || 0) / 0.13));
 
-  const bodyGrad = ctx.createLinearGradient(apexX, bodyTop, apexX, bodyBottom);
-  bodyGrad.addColorStop(0, '#fdba74');
-  bodyGrad.addColorStop(0.55, '#f97316');
-  bodyGrad.addColorStop(1, '#c2410c');
-  ctx.fillStyle = bodyGrad;
-  ctx.beginPath();
-  ctx.moveTo(apexX, bodyTop);
-  ctx.lineTo(rightX - 1, bodyBottom);
-  ctx.lineTo(leftX + 1, bodyBottom);
-  ctx.closePath();
-  ctx.fill();
+  const cx = player.x;
+  const feetY = baseY;
+  const bodyH = 13;
+  const bodyW = 12;
+  const headR = 5;
+  const bodyY = feetY - bodyH - 4 + idleBob;
+  const headY = bodyY - headR - 0.5;
+  const legLift = isClimbing ? climbPhase * 1.6 : walkPhase * 1.35;
+  const armSwing = isClimbing ? -climbPhase * 1.3 : walkPhase * 0.9;
+  const gunRecoil = shootKick * 1.8;
+  const aimingUp = !!harpoon?.active || shootKick > 0.01;
+  const armAngle = aimingUp ? (-Math.PI * 0.5 + facing * 0.12) : (facing * (0.1 + armSwing * 0.06));
 
-  ctx.fillStyle = '#f8fafc';
-  ctx.beginPath();
-  ctx.arc(apexX, bodyTop - 4, 4.2, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.save();
+  ctx.translate(cx, 0);
 
-  ctx.fillStyle = '#1e293b';
-  ctx.beginPath();
-  ctx.arc(apexX - 1.2, bodyTop - 4.4, 1.15, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(apexX + 1.2, bodyTop - 4.4, 1.15, 0, Math.PI * 2);
-  ctx.fill();
+  // Backpack thruster
+  ctx.fillStyle = '#475569';
+  ctx.fillRect(-facing * 8, bodyY + 2, facing * -4, 8);
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillRect(-facing * 8, bodyY + 3, facing * -1.5, 3);
+  if (shootKick > 0.02) {
+    ctx.fillStyle = `rgba(56, 189, 248, ${0.2 + shootKick * 0.35})`;
+    ctx.fillRect(-facing * 10.5, bodyY + 5, facing * -1.8, 2);
+  }
 
-  ctx.fillStyle = '#0ea5e9';
-  ctx.fillRect(apexX + 3, bodyTop + 3, 8, 3.3);
+  // Legs
   ctx.fillStyle = '#e2e8f0';
-  ctx.fillRect(apexX + 9.5, bodyTop + 3.6, 2.5, 2.1);
+  const l1 = isClimbing ? -legLift : legLift;
+  const l2 = -l1;
+  ctx.fillRect(-4, feetY - 8 + l1, 3.6, 8.2);
+  ctx.fillRect(0.4, feetY - 8 + l2, 3.6, 8.2);
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(-4.8, feetY - 1 + l1, 5.1, 2.2);
+  ctx.fillRect(0, feetY - 1 + l2, 5.1, 2.2);
 
-  ctx.strokeStyle = 'rgba(15, 23, 42, 0.48)';
-  ctx.lineWidth = 2.1;
-  ctx.stroke();
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.34)';
-  ctx.lineWidth = 1;
+  // Torso capsule
+  const torsoGrad = ctx.createLinearGradient(0, bodyY, 0, bodyY + bodyH);
+  torsoGrad.addColorStop(0, '#f8fafc');
+  torsoGrad.addColorStop(0.48, '#e2e8f0');
+  torsoGrad.addColorStop(1, '#94a3b8');
+  ctx.fillStyle = torsoGrad;
   ctx.beginPath();
-  ctx.moveTo(apexX, bodyTop + 1);
-  ctx.lineTo(apexX + 5, bodyBottom - 4);
+  ctx.roundRect(-bodyW * 0.5, bodyY, bodyW, bodyH, 4);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(30, 41, 59, 0.5)';
+  ctx.lineWidth = 1.2;
   ctx.stroke();
+
+  // Suit stripe
+  ctx.fillStyle = '#f97316';
+  ctx.fillRect(-1.2, bodyY + 2, 2.4, bodyH - 4);
+
+  // Gun arm + harpoon launcher
+  const shoulderX = facing * 2.4;
+  const shoulderY = bodyY + 5.8 + armSwing * 0.45;
+  ctx.save();
+  ctx.translate(shoulderX, shoulderY);
+  ctx.rotate(armAngle);
+  const armLen = 6.2 - gunRecoil * 0.4;
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 2.1;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(armLen, 0);
+  ctx.stroke();
+
+  const gunGrad = ctx.createLinearGradient(armLen - 1, -2, armLen + 6.5, 2);
+  gunGrad.addColorStop(0, '#f8fafc');
+  gunGrad.addColorStop(1, '#64748b');
+  ctx.fillStyle = gunGrad;
+  ctx.beginPath();
+  ctx.roundRect(armLen - 0.8, -1.8, 6.3, 3.6, 1.2);
+  ctx.fill();
+
+  if (shootKick > 0.02) {
+    ctx.fillStyle = `rgba(251, 191, 36, ${0.35 + shootKick * 0.55})`;
+    ctx.beginPath();
+    ctx.moveTo(armLen + 5.8, 0);
+    ctx.lineTo(armLen + 8.8, -1.25);
+    ctx.lineTo(armLen + 8.8, 1.25);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Helmet
+  const helmetGrad = ctx.createLinearGradient(0, headY - headR, 0, headY + headR);
+  helmetGrad.addColorStop(0, '#f8fafc');
+  helmetGrad.addColorStop(1, '#cbd5e1');
+  ctx.fillStyle = helmetGrad;
+  ctx.beginPath();
+  ctx.arc(0, headY, headR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Visor
+  const visorGrad = ctx.createLinearGradient(-4.5 * facing, headY - 2.4, 4.5 * facing, headY + 2.4);
+  visorGrad.addColorStop(0, '#38bdf8');
+  visorGrad.addColorStop(1, '#0f172a');
+  ctx.fillStyle = visorGrad;
+  ctx.beginPath();
+  ctx.ellipse(facing * 1.1, headY, 3.6, 2.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.42)';
+  ctx.beginPath();
+  ctx.ellipse(facing * 0.4, headY - 0.8, 1.2, 0.7, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Climbing support arm
+  if (isClimbing) {
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(-facing * 2.3, bodyY + 6);
+    ctx.lineTo(-facing * 6.2, bodyY + 5.2 - climbPhase * 0.8);
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }

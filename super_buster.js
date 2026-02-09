@@ -8,6 +8,7 @@ import {
   makeBall,
   advanceHarpoon,
   updateBall,
+  clampBallVelocity,
   collideBallWithSolid,
   harpoonHitsBall,
   updatePlayerMovement,
@@ -17,13 +18,31 @@ const WORLD_W = 640;
 const WORLD_H = 360;
 const FLOOR_Y = WORLD_H - 24;
 
-const GRAVITY = 1800;
+const BASE_GRAVITY = 320;
 const RADIUS = [10, 16, 24, 34];
-const JUMP_SPEED = [520, 650, 780, 920];
-const VX_MAG = [210, 190, 170, 150];
+const BASE_JUMP_SPEED = [240, 320, 420, 520];
+const BASE_VX_MAG = [118, 108, 98, 90];
 const SCORE_ADD = [120, 80, 50, 30];
 const STARTING_LIVES = 3;
 const MOVE_SFX_INTERVAL = 0.09;
+const BALL_CAP_FACTOR = 1.08;
+
+const STORAGE = {
+  settings: 'super_buster:v1:settings',
+};
+
+const DEFAULT_SETTINGS = {
+  difficulty: 'normal',
+  showGeometry: true,
+  volume: 0.6,
+};
+
+const DIFFICULTY_PRESETS = {
+  easy: { name: 'Easy', speedMul: 0.88, gravityMul: 0.9, timeMul: 1.12 },
+  normal: { name: 'Normal', speedMul: 1.0, gravityMul: 1.0, timeMul: 1.0 },
+  hard: { name: 'Hard', speedMul: 1.14, gravityMul: 1.07, timeMul: 0.9 },
+  nightmare: { name: 'Nightmare', speedMul: 1.28, gravityMul: 1.15, timeMul: 0.82 },
+};
 
 const GameState = {
   LEVEL_START: 'LEVEL_START',
@@ -95,8 +114,16 @@ const livesEl = document.getElementById('lives');
 const statusEl = document.getElementById('status');
 const timeEl = document.getElementById('time');
 const newBtn = document.getElementById('new-game');
+const settingsToggle = document.getElementById('settings-toggle');
+const settingsModal = document.getElementById('settings-modal');
+const settingsClose = document.getElementById('settings-close');
+const settingsApply = document.getElementById('settings-apply');
+const settingsCancel = document.getElementById('settings-cancel');
+const optDifficulty = document.getElementById('opt-difficulty');
+const optGeometry = document.getElementById('opt-geometry');
+const optVolume = document.getElementById('opt-volume');
 
-const sfx = new SfxEngine({ master: 0.6 });
+const sfx = new SfxEngine({ master: DEFAULT_SETTINGS.volume });
 let audioUnlocked = false;
 
 const input = {
@@ -118,6 +145,9 @@ const game = {
     hitR: 12,
     onLadder: false,
     ladderIndex: -1,
+    vy: 0,
+    facing: 1,
+    shootTimer: 0,
   },
   harpoon: {
     active: false,
@@ -139,7 +169,106 @@ const game = {
   state: GameState.LEVEL_START,
   stateTimer: 0,
   status: 'Ready.',
+  tuning: null,
 };
+
+let settings = loadSettings();
+
+function scaleArray(values, mul) {
+  return values.map((v) => v * mul);
+}
+
+function getPreset(diff) {
+  return DIFFICULTY_PRESETS[diff] || DIFFICULTY_PRESETS.normal;
+}
+
+function buildTuning(currentSettings) {
+  const preset = getPreset(currentSettings.difficulty);
+  return {
+    preset,
+    gravity: BASE_GRAVITY * preset.gravityMul,
+    jumpSpeed: scaleArray(BASE_JUMP_SPEED, preset.speedMul),
+    vxMag: scaleArray(BASE_VX_MAG, preset.speedMul),
+  };
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(STORAGE.settings);
+    if (!raw) return { ...DEFAULT_SETTINGS };
+    const parsed = JSON.parse(raw);
+    const difficulty = Object.prototype.hasOwnProperty.call(DIFFICULTY_PRESETS, parsed.difficulty)
+      ? parsed.difficulty
+      : DEFAULT_SETTINGS.difficulty;
+    const showGeometry = parsed.showGeometry !== false;
+    const volumeNum = Number(parsed.volume);
+    const volume = Number.isFinite(volumeNum) ? clamp(volumeNum, 0, 1) : DEFAULT_SETTINGS.volume;
+    return { difficulty, showGeometry, volume };
+  } catch (err) {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+function saveSettings(next) {
+  try {
+    localStorage.setItem(STORAGE.settings, JSON.stringify(next));
+  } catch (err) {
+    // ignore
+  }
+}
+
+function applySettingsToRuntime(previousSettings = null) {
+  const prevTuning = game.tuning;
+  game.tuning = buildTuning(settings);
+  sfx.setMaster(settings.volume);
+
+  if (previousSettings && prevTuning) {
+    const oldMul = prevTuning.preset.speedMul;
+    const newMul = game.tuning.preset.speedMul;
+    if (oldMul > 0 && newMul > 0 && Math.abs(oldMul - newMul) > 1e-6) {
+      const scale = newMul / oldMul;
+      for (const ball of game.balls) {
+        ball.vx *= scale;
+        ball.vy *= scale;
+        clampBallVelocity(ball, {
+          jumpSpeed: game.tuning.jumpSpeed,
+          vxMag: game.tuning.vxMag,
+          capFactor: BALL_CAP_FACTOR,
+        });
+      }
+    }
+  }
+}
+
+function openSettings() {
+  if (!settingsModal) return;
+  optDifficulty.value = settings.difficulty;
+  optGeometry.checked = settings.showGeometry;
+  optVolume.value = String(settings.volume);
+  settingsModal.classList.remove('hidden');
+  settingsToggle?.setAttribute('aria-expanded', 'true');
+}
+
+function closeSettings() {
+  if (!settingsModal) return;
+  settingsModal.classList.add('hidden');
+  settingsToggle?.setAttribute('aria-expanded', 'false');
+}
+
+function applySettingsFromModal() {
+  const prev = { ...settings };
+  settings = {
+    difficulty: Object.prototype.hasOwnProperty.call(DIFFICULTY_PRESETS, optDifficulty.value)
+      ? optDifficulty.value
+      : DEFAULT_SETTINGS.difficulty,
+    showGeometry: !!optGeometry.checked,
+    volume: clamp(Number(optVolume.value), 0, 1),
+  };
+  saveSettings(settings);
+  applySettingsToRuntime(prev);
+  game.status = `Settings applied (${getPreset(settings.difficulty).name}).`;
+  closeSettings();
+}
 
 async function tryLoadExternalLevelPack() {
   try {
@@ -158,20 +287,25 @@ async function tryLoadExternalLevelPack() {
 
 function loadLevel() {
   const level = LEVELS[game.levelIndex];
+  const tuning = game.tuning || buildTuning(settings);
+  const timeMul = tuning.preset.timeMul || 1;
   game.balls = level.balls.map((spec) => makeBall(spec, {
     radius: RADIUS,
-    vxMag: VX_MAG,
-    jumpSpeed: JUMP_SPEED,
+    vxMag: tuning.vxMag,
+    jumpSpeed: tuning.jumpSpeed,
     worldW: WORLD_W,
     floorY: FLOOR_Y,
   }));
   game.geometry = level.geometry || { solids: [], ladders: [] };
-  game.levelTimeLeft = Math.max(1, Number(level.timeLimitSec) || 60);
+  game.levelTimeLeft = Math.max(1, (Number(level.timeLimitSec) || 60) * timeMul);
   game.harpoon.active = false;
   game.player.x = WORLD_W * 0.5;
   game.player.y = FLOOR_Y;
   game.player.onLadder = false;
   game.player.ladderIndex = -1;
+  game.player.vy = 0;
+  game.player.facing = 1;
+  game.player.shootTimer = 0;
   game.state = GameState.PLAYING;
   game.stateTimer = 0;
   game.status = level.name;
@@ -188,6 +322,9 @@ function newGame() {
   game.player.y = FLOOR_Y;
   game.player.onLadder = false;
   game.player.ladderIndex = -1;
+  game.player.vy = 0;
+  game.player.facing = 1;
+  game.player.shootTimer = 0;
   game.moveSfxTimer = MOVE_SFX_INTERVAL;
   game.state = GameState.LEVEL_START;
   game.stateTimer = 0;
@@ -202,6 +339,7 @@ function fireHarpoon() {
   h.yTop = h.yBottom;
   h.state = 'extend';
   h.timer = 0;
+  game.player.shootTimer = 0.13;
   sfx.play(BANK_SUPERBUSTER, 'shoot');
 }
 
@@ -214,6 +352,7 @@ function updateHarpoon(dt) {
 
 function splitBall(index) {
   const ball = game.balls[index];
+  const tuning = game.tuning || buildTuning(settings);
   const size = ball.size;
   game.balls.splice(index, 1);
   game.score += SCORE_ADD[size] || 10;
@@ -227,8 +366,8 @@ function splitBall(index) {
   const child = size - 1;
   const r = RADIUS[child];
   const baseY = Math.min(ball.y, FLOOR_Y - r);
-  const vy = -JUMP_SPEED[child] * 0.85;
-  const vx = VX_MAG[child];
+  const vy = -tuning.jumpSpeed[child] * 0.85;
+  const vx = tuning.vxMag[child];
   sfx.play(BANK_SUPERBUSTER, 'split', { sizeIndex: size, childSizeIndex: child, maxSize });
   game.balls.push({
     size: child,
@@ -292,6 +431,8 @@ function handlePlayerHit() {
 }
 
 function updatePlaying(dt) {
+  const tuning = game.tuning || buildTuning(settings);
+  game.player.shootTimer = Math.max(0, game.player.shootTimer - dt);
   game.levelTimeLeft = Math.max(0, game.levelTimeLeft - dt);
   if (game.levelTimeLeft <= 0) {
     game.status = 'Time up!';
@@ -299,14 +440,19 @@ function updatePlaying(dt) {
     return;
   }
 
+  const horizontal = (input.right ? 1 : 0) - (input.left ? 1 : 0);
   const moveState = updatePlayerMovement(game.player, input, dt, {
     floorY: FLOOR_Y,
     worldW: WORLD_W,
     moveSpeed: game.player.speed,
     climbSpeed: game.player.climbSpeed,
+    gravity: tuning.gravity,
     ladders: game.geometry.ladders,
     solids: game.geometry.solids,
   });
+  if (horizontal !== 0) {
+    game.player.facing = horizontal > 0 ? 1 : -1;
+  }
   if (moveState.movedHorizontally) {
     game.moveSfxTimer += dt;
     while (game.moveSfxTimer >= MOVE_SFX_INTERVAL) {
@@ -326,15 +472,18 @@ function updatePlaying(dt) {
 
   for (const ball of game.balls) {
     updateBall(ball, dt, {
-      gravity: GRAVITY,
+      gravity: tuning.gravity,
       radius: RADIUS,
-      jumpSpeed: JUMP_SPEED,
+      jumpSpeed: tuning.jumpSpeed,
+      vxMag: tuning.vxMag,
+      capFactor: BALL_CAP_FACTOR,
       worldW: WORLD_W,
       floorY: FLOOR_Y,
     });
     for (const rect of game.geometry.solids) {
       collideBallWithSolid(ball, rect, RADIUS);
     }
+    clampBallVelocity(ball, { jumpSpeed: tuning.jumpSpeed, vxMag: tuning.vxMag, capFactor: BALL_CAP_FACTOR });
   }
 
   if (game.harpoon.active) {
@@ -424,12 +573,14 @@ function drawGeometry(ctx2d, geometry) {
 
 function render() {
   drawBackground(ctx, WORLD_W, WORLD_H, FLOOR_Y);
-  drawGeometry(ctx, game.geometry);
+  if (settings.showGeometry) {
+    drawGeometry(ctx, game.geometry);
+  }
   drawHarpoon(ctx, game.harpoon);
   for (const ball of game.balls) {
     drawBall(ctx, ball, RADIUS, BALL_COLORS);
   }
-  drawPlayer(ctx, game.player, FLOOR_Y);
+  drawPlayer(ctx, game.player, FLOOR_Y, game.harpoon);
 }
 
 function updateHud() {
@@ -466,6 +617,13 @@ function preventArrowScroll(ev) {
 }
 
 function handleKeyDown(ev) {
+  if (settingsModal && !settingsModal.classList.contains('hidden')) {
+    if (ev.key === 'Escape') {
+      closeSettings();
+      ev.preventDefault();
+    }
+    return;
+  }
   const key = ev.key.toLowerCase();
   if (key === 'arrowleft' || key === 'a') {
     input.left = true;
@@ -548,6 +706,8 @@ function installDebugApi() {
         harpoon: clonePlain(game.harpoon),
         balls: clonePlain(game.balls),
         geometry: clonePlain(game.geometry),
+        settings: clonePlain(settings),
+        tuning: clonePlain(game.tuning),
       };
     },
     setBall(index, patch) {
@@ -558,6 +718,9 @@ function installDebugApi() {
     setPlayerX(x) {
       game.player.x = clamp(Number(x), game.player.w / 2, WORLD_W - game.player.w / 2);
     },
+    setPlayer(patch) {
+      Object.assign(game.player, patch || {});
+    },
   };
 }
 
@@ -566,6 +729,16 @@ document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
 newBtn.addEventListener('click', () => newGame());
 document.addEventListener('pointerdown', unlockAudio, { once: true });
+settingsToggle?.addEventListener('click', (ev) => {
+  ev.stopPropagation();
+  openSettings();
+});
+settingsClose?.addEventListener('click', closeSettings);
+settingsCancel?.addEventListener('click', closeSettings);
+settingsApply?.addEventListener('click', applySettingsFromModal);
+settingsModal?.addEventListener('click', (ev) => {
+  if (ev.target === settingsModal) closeSettings();
+});
 
 initGameShell({
   surfaceEl: '#buster-surface',
@@ -580,6 +753,7 @@ initGameShell({
 installDebugApi();
 
 async function start() {
+  applySettingsToRuntime(null);
   await tryLoadExternalLevelPack();
   newGame();
   loop();

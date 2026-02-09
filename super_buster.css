@@ -9,6 +9,13 @@ body.superbuster {
   background: linear-gradient(135deg, #0b1020, #132034);
 }
 
+.superbuster .app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
 .buster-board {
   padding: 16px;
 }
@@ -83,4 +90,106 @@ body.superbuster {
 .buster-controls {
   margin-top: 12px;
   justify-content: flex-start;
+}
+
+.icon-button {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.4);
+  color: #e2e8f0;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 14px rgba(2, 6, 23, 0.32);
+}
+
+.icon-button:hover {
+  transform: translateY(-1px);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.ms-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: grid;
+  place-items: center;
+  z-index: 3000;
+}
+
+.ms-modal-card {
+  background: rgba(15, 23, 42, 0.95);
+  color: #e2e8f0;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  width: min(92vw, 420px);
+  padding: 16px;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.5);
+}
+
+.ms-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.ms-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.ms-form {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.ms-field {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.ms-field select,
+.ms-field input[type="range"] {
+  width: 100%;
+}
+
+.ms-toggle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 600;
+}
+
+.ms-toggle input {
+  accent-color: var(--buster-accent);
+}
+
+.ms-note {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(226, 232, 240, 0.72);
+}
+
+.ms-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+button.secondary {
+  background: transparent;
+  color: inherit;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  box-shadow: none;
 }

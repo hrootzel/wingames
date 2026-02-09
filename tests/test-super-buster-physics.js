@@ -179,3 +179,43 @@ test('super buster: climbing reaches platform top and dismounts', async ({ page 
   expect(player.onLadder).toBe(false);
   expect(Math.abs(player.y - 214)).toBeLessThanOrEqual(0.5);
 });
+
+test('super buster: stepping off platform starts falling (no teleport)', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB5',
+    name: 'Drop Lab',
+    timeLimitSec: 60,
+    geometry: {
+      solids: [{ x: 220, y: 214, w: 140, h: 12 }],
+      ladders: [],
+    },
+    balls: [{ size: 0, x: 40, y: 40, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(pack),
+    });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Drop Lab');
+
+  await page.evaluate(() => {
+    window.__superBusterDebug.setPlayer({ x: 349, y: 214, vy: 0, onLadder: false, ladderIndex: -1 });
+    window.__superBusterDebug.setBall(0, { x: 40, y: 40, vx: 0, vy: 0 });
+  });
+
+  const yStart = await page.evaluate(() => window.__superBusterDebug.getState().player.y);
+  expect(Math.abs(yStart - 214)).toBeLessThanOrEqual(0.5);
+
+  await page.keyboard.down('ArrowRight');
+  await page.waitForTimeout(110);
+  await page.keyboard.up('ArrowRight');
+
+  const yAfter = await page.evaluate(() => window.__superBusterDebug.getState().player.y);
+  expect(yAfter).toBeGreaterThan(214);
+  expect(yAfter).toBeLessThan(336);
+});
