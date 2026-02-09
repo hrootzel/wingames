@@ -214,8 +214,143 @@ test('super buster: stepping off platform starts falling (no teleport)', async (
   await page.keyboard.down('ArrowRight');
   await page.waitForTimeout(110);
   await page.keyboard.up('ArrowRight');
+  await page.waitForTimeout(140);
 
   const yAfter = await page.evaluate(() => window.__superBusterDebug.getState().player.y);
   expect(yAfter).toBeGreaterThan(214);
   expect(yAfter).toBeLessThan(336);
+});
+
+test('super buster: can stand on ladder top and move onto side platform', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB6',
+    name: 'Ladder Top Lab',
+    timeLimitSec: 60,
+    geometry: {
+      solids: [
+        { x: 96, y: 178, w: 182, h: 12 },
+        { x: 362, y: 178, w: 182, h: 12 },
+      ],
+      ladders: [{ x: 313, y: 178, w: 14, h: 158 }],
+    },
+    balls: [{ size: 0, x: 40, y: 40, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(pack),
+    });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Ladder Top Lab');
+
+  await page.evaluate(() => {
+    window.__superBusterDebug.setPlayer({ x: 320, y: 336, vy: 0, onLadder: false, ladderIndex: -1 });
+    window.__superBusterDebug.setBall(0, { x: 40, y: 40, vx: 0, vy: 0 });
+  });
+
+  await page.keyboard.down('ArrowUp');
+  await page.waitForTimeout(1200);
+  await page.keyboard.up('ArrowUp');
+
+  const onTop = await page.evaluate(() => window.__superBusterDebug.getState().player);
+  expect(onTop.onLadder).toBe(false);
+  expect(Math.abs(onTop.y - 178)).toBeLessThanOrEqual(0.7);
+
+  await page.keyboard.down('ArrowLeft');
+  await page.waitForTimeout(520);
+  await page.keyboard.up('ArrowLeft');
+
+  const afterMove = await page.evaluate(() => window.__superBusterDebug.getState().player);
+  expect(afterMove.x).toBeLessThan(269);
+  expect(Math.abs(afterMove.y - 178)).toBeLessThanOrEqual(0.9);
+});
+
+test('super buster: stopping on ladder-top gap causes fall', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB8',
+    name: 'Ladder Gap Stop',
+    timeLimitSec: 60,
+    geometry: {
+      solids: [
+        { x: 96, y: 178, w: 182, h: 12 },
+        { x: 362, y: 178, w: 182, h: 12 },
+      ],
+      ladders: [{ x: 313, y: 178, w: 14, h: 158 }],
+    },
+    balls: [{ size: 0, x: 40, y: 40, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(pack),
+    });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Ladder Gap Stop');
+
+  await page.evaluate(() => {
+    window.__superBusterDebug.setPlayer({
+      x: 290,
+      y: 178,
+      vy: 0,
+      onLadder: false,
+      ladderIndex: -1,
+      gapBridgeRemaining: 20,
+      gapBridgeY: 178,
+    });
+    window.__superBusterDebug.setBall(0, { x: 40, y: 40, vx: 0, vy: 0 });
+  });
+
+  await page.waitForTimeout(140);
+  const after = await page.evaluate(() => window.__superBusterDebug.getState().player.y);
+  expect(after).toBeGreaterThan(178);
+  expect(after).toBeLessThan(336);
+});
+
+test('super buster: harpoon is anchored at floor even when firing from platform', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB7',
+    name: 'Harpoon Floor Anchor',
+    timeLimitSec: 60,
+    geometry: {
+      solids: [{ x: 238, y: 214, w: 164, h: 12 }],
+      ladders: [],
+    },
+    balls: [{ size: 0, x: 40, y: 40, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(pack),
+    });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Harpoon Floor Anchor');
+
+  await page.evaluate(() => {
+    window.__superBusterDebug.setPlayer({ x: 310, y: 214, vy: 0, onLadder: false, ladderIndex: -1 });
+    window.__superBusterDebug.setBall(0, { x: 40, y: 40, vx: 0, vy: 0 });
+  });
+
+  await page.keyboard.press('Space');
+
+  await expect.poll(async () => {
+    const h = await page.evaluate(() => window.__superBusterDebug.getState().harpoon);
+    if (!h.active) return null;
+    return h;
+  }).not.toBeNull();
+
+  const state = await page.evaluate(() => window.__superBusterDebug.getState().harpoon);
+  expect(Math.abs(state.yBottom - 336)).toBeLessThanOrEqual(0.6);
+  expect(state.yTop).toBeLessThan(state.yBottom);
 });

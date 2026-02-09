@@ -1,63 +1,303 @@
-export function drawBackground(ctx, worldW, worldH, floorY) {
+const SCENE_CACHE = new Map();
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function hash32(input) {
+  let h = 2166136261 >>> 0;
+  const str = String(input);
+  for (let i = 0; i < str.length; i += 1) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function makeRng(seed) {
+  let x = seed >>> 0;
+  return () => {
+    x = (x + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(x ^ (x >>> 15), 1 | x);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function buildMountainPath(rng, worldW, baseY, amp, step, drift) {
+  const points = [{ x: 0, y: baseY }];
+  for (let x = 0; x <= worldW + step; x += step) {
+    const phase = x * 0.018 + drift;
+    const n = (rng() - 0.5) * amp * 0.6;
+    const y = baseY - Math.sin(phase) * amp * 0.75 - n;
+    points.push({ x, y });
+  }
+  return points;
+}
+
+function buildScene(worldW, worldH, floorY, levelIndex) {
+  const seed = hash32(`bg:${levelIndex}:${worldW}:${worldH}:${floorY}`);
+  const rng = makeRng(seed);
+  const paletteMode = Math.floor(rng() * 3);
+  const palettes = [
+    {
+      skyTop: '#050b17',
+      skyMid: '#0d1f3d',
+      skyBot: '#08182d',
+      bandA: 'rgba(110, 170, 255, 0)',
+      bandB: 'rgba(110, 170, 255, 0.15)',
+      mountainBack: 'rgba(25, 39, 62, 0.7)',
+      mountainFront: 'rgba(14, 27, 45, 0.92)',
+      soilTop: '#4c2f27',
+      soilMid: '#3a241f',
+      soilBot: '#231714',
+      soilRidge: 'rgba(252, 211, 161, 0.38)',
+      craterFill: 'rgba(24, 12, 11, 0.42)',
+      craterRim: 'rgba(248, 180, 130, 0.24)',
+      starA: '#dbeafe',
+      starB: '#bfdbfe',
+    },
+    {
+      skyTop: '#060813',
+      skyMid: '#1b1538',
+      skyBot: '#12182f',
+      bandA: 'rgba(186, 146, 255, 0)',
+      bandB: 'rgba(186, 146, 255, 0.16)',
+      mountainBack: 'rgba(44, 33, 73, 0.72)',
+      mountainFront: 'rgba(24, 20, 54, 0.9)',
+      soilTop: '#5a3d31',
+      soilMid: '#402b24',
+      soilBot: '#2a1d1a',
+      soilRidge: 'rgba(255, 210, 178, 0.35)',
+      craterFill: 'rgba(28, 16, 16, 0.45)',
+      craterRim: 'rgba(255, 192, 170, 0.2)',
+      starA: '#ede9fe',
+      starB: '#ddd6fe',
+    },
+    {
+      skyTop: '#031016',
+      skyMid: '#0a2b32',
+      skyBot: '#0d1d25',
+      bandA: 'rgba(117, 255, 201, 0)',
+      bandB: 'rgba(117, 255, 201, 0.14)',
+      mountainBack: 'rgba(20, 57, 63, 0.68)',
+      mountainFront: 'rgba(12, 35, 42, 0.9)',
+      soilTop: '#4a3525',
+      soilMid: '#322417',
+      soilBot: '#231911',
+      soilRidge: 'rgba(201, 254, 240, 0.28)',
+      craterFill: 'rgba(17, 13, 10, 0.45)',
+      craterRim: 'rgba(175, 255, 228, 0.2)',
+      starA: '#ccfbf1',
+      starB: '#a7f3d0',
+    },
+  ];
+  const palette = palettes[paletteMode];
+  const starCount = 72 + Math.floor(rng() * 34);
+  const stars = [];
+  for (let i = 0; i < starCount; i += 1) {
+    const zoneH = floorY - 56;
+    stars.push({
+      x: rng() * worldW,
+      y: 8 + rng() * Math.max(18, zoneH),
+      s: 0.7 + rng() * 1.8,
+      a: 0.24 + rng() * 0.62,
+      tw: rng() * Math.PI * 2,
+      ts: 0.45 + rng() * 1.3,
+      c: rng() < 0.35 ? palette.starB : palette.starA,
+    });
+  }
+
+  const galaxy = {
+    y: worldH * (0.17 + rng() * 0.14),
+    thickness: 28 + rng() * 22,
+    drift: rng() * Math.PI * 2,
+  };
+
+  const planet = {
+    x: worldW * (0.15 + rng() * 0.7),
+    y: 42 + rng() * 36,
+    r: 18 + rng() * 22,
+    hue: rng() < 0.5 ? 'rgba(255, 184, 120, 0.2)' : 'rgba(110, 222, 255, 0.2)',
+  };
+
+  const auroraCount = 1 + Math.floor(rng() * 3);
+  const auroras = [];
+  for (let i = 0; i < auroraCount; i += 1) {
+    auroras.push({
+      y: worldH * (0.16 + rng() * 0.24),
+      amp: 8 + rng() * 20,
+      thick: 9 + rng() * 18,
+      speed: 0.12 + rng() * 0.24,
+      drift: rng() * Math.PI * 2,
+      alpha: 0.06 + rng() * 0.1,
+      colorA: paletteMode === 2 ? 'rgba(120, 255, 214, 0)' : 'rgba(110, 255, 228, 0)',
+      colorB: paletteMode === 1 ? 'rgba(173, 145, 255, 0.18)' : 'rgba(118, 230, 255, 0.18)',
+    });
+  }
+
+  const mountainsBack = buildMountainPath(rng, worldW, floorY - 60, 34 + rng() * 14, 34, rng() * 5.2);
+  const mountainsFront = buildMountainPath(rng, worldW, floorY - 32, 24 + rng() * 12, 26, rng() * 5.2);
+
+  const craterCount = 5 + Math.floor(rng() * 5);
+  const craters = [];
+  for (let i = 0; i < craterCount; i += 1) {
+    const rw = 22 + rng() * 54;
+    const rh = 6 + rng() * 14;
+    craters.push({
+      x: rw * 0.55 + rng() * (worldW - rw * 1.1),
+      y: floorY + 7 + rng() * Math.max(4, worldH - floorY - 16),
+      rw,
+      rh,
+    });
+  }
+
+  const rockCount = 14 + Math.floor(rng() * 14);
+  const rocks = [];
+  for (let i = 0; i < rockCount; i += 1) {
+    const w = 6 + rng() * 16;
+    const h = 2 + rng() * 6;
+    rocks.push({
+      x: rng() * (worldW - w),
+      y: floorY + 3 + rng() * Math.max(4, worldH - floorY - h - 2),
+      w,
+      h,
+    });
+  }
+
+  return { stars, galaxy, planet, auroras, mountainsBack, mountainsFront, craters, rocks, seed, palette };
+}
+
+function getScene(worldW, worldH, floorY, levelIndex) {
+  const key = `${worldW}x${worldH}:${floorY}:${levelIndex}`;
+  let scene = SCENE_CACHE.get(key);
+  if (!scene) {
+    scene = buildScene(worldW, worldH, floorY, levelIndex);
+    SCENE_CACHE.set(key, scene);
+  }
+  return scene;
+}
+
+function fillMountainShape(ctx, points, worldW, floorY, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, floorY);
+  for (const p of points) {
+    ctx.lineTo(p.x, p.y);
+  }
+  ctx.lineTo(worldW, floorY);
+  ctx.closePath();
+  ctx.fill();
+}
+
+export function drawBackground(ctx, worldW, worldH, floorY, levelIndex = 0) {
   const t = performance.now() * 0.001;
+  const scene = getScene(worldW, worldH, floorY, levelIndex);
+  const pal = scene.palette;
+
   const sky = ctx.createLinearGradient(0, 0, 0, worldH);
-  sky.addColorStop(0, '#081225');
-  sky.addColorStop(0.55, '#12284a');
-  sky.addColorStop(1, '#101b33');
+  sky.addColorStop(0, pal.skyTop);
+  sky.addColorStop(0.52, pal.skyMid);
+  sky.addColorStop(1, pal.skyBot);
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, worldW, worldH);
 
-  const haze = ctx.createRadialGradient(worldW * 0.5, -30, 20, worldW * 0.5, worldH * 0.45, worldW * 0.8);
-  haze.addColorStop(0, 'rgba(125, 211, 252, 0.18)');
-  haze.addColorStop(1, 'rgba(125, 211, 252, 0)');
-  ctx.fillStyle = haze;
-  ctx.fillRect(0, 0, worldW, worldH);
+  const bandY = scene.galaxy.y + Math.sin(t * 0.06 + scene.galaxy.drift) * 2.5;
+  const galaxyGrad = ctx.createLinearGradient(0, bandY - scene.galaxy.thickness, 0, bandY + scene.galaxy.thickness);
+  galaxyGrad.addColorStop(0, pal.bandA);
+  galaxyGrad.addColorStop(0.5, pal.bandB);
+  galaxyGrad.addColorStop(1, pal.bandA);
+  ctx.fillStyle = galaxyGrad;
+  ctx.fillRect(0, bandY - scene.galaxy.thickness, worldW, scene.galaxy.thickness * 2);
 
-  ctx.globalAlpha = 0.32;
-  ctx.fillStyle = '#8ec5ff';
-  for (let i = 0; i < 38; i++) {
-    const px = ((i * 73 + Math.sin(t + i * 1.3) * 28) % worldW + worldW) % worldW;
-    const py = 16 + (i * 31) % Math.max(20, floorY - 70);
-    const s = (i % 3) + 1;
-    ctx.fillRect(px, py, s, s);
+  for (const aurora of scene.auroras) {
+    const y = aurora.y + Math.sin(t * aurora.speed + aurora.drift) * 4;
+    const auroraGrad = ctx.createLinearGradient(0, y - aurora.thick, 0, y + aurora.thick);
+    auroraGrad.addColorStop(0, aurora.colorA);
+    auroraGrad.addColorStop(0.5, aurora.colorB);
+    auroraGrad.addColorStop(1, aurora.colorA);
+    ctx.globalAlpha = aurora.alpha;
+    ctx.fillStyle = auroraGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    for (let x = 0; x <= worldW; x += 24) {
+      const ny = y + Math.sin(x * 0.018 + t * aurora.speed * 5 + aurora.drift) * aurora.amp;
+      ctx.lineTo(x, ny);
+    }
+    ctx.lineTo(worldW, y + aurora.thick);
+    ctx.lineTo(0, y + aurora.thick);
+    ctx.closePath();
+    ctx.fill();
   }
   ctx.globalAlpha = 1;
 
-  ctx.fillStyle = '#0a1428';
+  const planetGrad = ctx.createRadialGradient(scene.planet.x - scene.planet.r * 0.25, scene.planet.y - scene.planet.r * 0.25, 2, scene.planet.x, scene.planet.y, scene.planet.r);
+  planetGrad.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
+  planetGrad.addColorStop(0.55, scene.planet.hue);
+  planetGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = planetGrad;
   ctx.beginPath();
-  ctx.moveTo(0, floorY - 26);
-  for (let x = 0; x <= worldW; x += 20) {
-    const y = floorY - 26 - Math.sin(x * 0.025 + t * 0.5) * 5;
-    ctx.lineTo(x, y);
-  }
-  ctx.lineTo(worldW, floorY);
-  ctx.lineTo(0, floorY);
-  ctx.closePath();
+  ctx.arc(scene.planet.x, scene.planet.y, scene.planet.r, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = '#0b1d2a';
+  for (const star of scene.stars) {
+    const flicker = 0.74 + 0.26 * Math.sin(t * star.ts + star.tw);
+    ctx.globalAlpha = clamp(star.a * flicker, 0, 1);
+    ctx.fillStyle = star.c;
+    ctx.fillRect(star.x, star.y, star.s, star.s);
+  }
+  ctx.globalAlpha = 1;
+
+  fillMountainShape(ctx, scene.mountainsBack, worldW, floorY, pal.mountainBack);
+  fillMountainShape(ctx, scene.mountainsFront, worldW, floorY, pal.mountainFront);
+
+  const soilGrad = ctx.createLinearGradient(0, floorY, 0, worldH);
+  soilGrad.addColorStop(0, pal.soilTop);
+  soilGrad.addColorStop(0.45, pal.soilMid);
+  soilGrad.addColorStop(1, pal.soilBot);
+  ctx.fillStyle = soilGrad;
   ctx.fillRect(0, floorY, worldW, worldH - floorY);
 
-  const floorGrad = ctx.createLinearGradient(0, floorY, 0, worldH);
-  floorGrad.addColorStop(0, 'rgba(20, 35, 58, 0.8)');
-  floorGrad.addColorStop(1, 'rgba(4, 9, 20, 0.95)');
-  ctx.fillStyle = floorGrad;
-  ctx.fillRect(0, floorY, worldW, worldH - floorY);
+  ctx.globalAlpha = 0.22;
+  for (const rock of scene.rocks) {
+    ctx.fillStyle = '#2c1f1d';
+    ctx.fillRect(rock.x, rock.y, rock.w, rock.h);
+  }
+  ctx.globalAlpha = 1;
 
-  ctx.strokeStyle = 'rgba(180, 220, 255, 0.3)';
-  ctx.lineWidth = 2.2;
+  for (const crater of scene.craters) {
+    ctx.fillStyle = pal.craterFill;
+    ctx.beginPath();
+    ctx.ellipse(crater.x, crater.y, crater.rw * 0.5, crater.rh, -0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = pal.craterRim;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(crater.x - crater.rw * 0.08, crater.y - crater.rh * 0.06, crater.rw * 0.4, crater.rh * 0.7, -0.08, Math.PI * 1.08, Math.PI * 1.95);
+    ctx.stroke();
+  }
+
+  const ridge = ctx.createLinearGradient(0, floorY - 1, 0, floorY + 3);
+  ridge.addColorStop(0, pal.soilRidge);
+  ridge.addColorStop(1, 'rgba(252, 211, 161, 0)');
+  ctx.strokeStyle = ridge;
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(0, floorY + 0.5);
   ctx.lineTo(worldW, floorY + 0.5);
   ctx.stroke();
 
-  ctx.strokeStyle = 'rgba(125, 211, 252, 0.16)';
-  ctx.lineWidth = 1;
-  for (let x = -40; x < worldW + 40; x += 24) {
-    const shift = ((t * 18) % 24);
+  const meteorPhase = (t * 0.11 + (scene.seed % 100) / 100) % 1;
+  if (meteorPhase > 0.72 && meteorPhase < 0.82) {
+    const p = (meteorPhase - 0.72) / 0.1;
+    const mx = worldW * (0.12 + p * 0.78);
+    const my = 30 + p * 58;
+    ctx.strokeStyle = `rgba(190, 230, 255, ${0.22 + (1 - p) * 0.25})`;
+    ctx.lineWidth = 1.6;
     ctx.beginPath();
-    ctx.moveTo(x + shift, floorY + 1);
-    ctx.lineTo(x + shift - 10, worldH);
+    ctx.moveTo(mx - 18, my - 10);
+    ctx.lineTo(mx, my);
     ctx.stroke();
   }
 }

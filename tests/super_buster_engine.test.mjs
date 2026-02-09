@@ -12,6 +12,7 @@ import {
   findLadderAtPosition,
   findPlayerSupportY,
   findSupportBelowY,
+  findLadderTopSupportY,
   findLadderExitPlatformY,
   updatePlayerMovement,
 } from '../super_buster_engine.mjs';
@@ -190,6 +191,18 @@ test('findSupportBelowY returns nearest support below current y', () => {
   assert.equal(supportY, 280);
 });
 
+test('findLadderTopSupportY returns ladder top near ladder center', () => {
+  const ladders = [{ x: 313, y: 178, w: 14, h: 158 }];
+  const supportY = findLadderTopSupportY(320, 179, ladders, 11, 12);
+  assert.equal(supportY, 178);
+});
+
+test('findSupportBelowY can land on ladder top when no solid underfoot', () => {
+  const ladders = [{ x: 313, y: 178, w: 14, h: 158 }];
+  const supportY = findSupportBelowY(320, 170, [], FLOOR_Y, 11, ladders);
+  assert.equal(supportY, 178);
+});
+
 test('updatePlayerMovement dismounts onto platform at ladder top', () => {
   const ladders = [{ x: 300, y: 226, w: 20, h: 110 }];
   const solids = [{ x: 238, y: 214, w: 164, h: 12 }];
@@ -210,6 +223,83 @@ test('updatePlayerMovement dismounts onto platform at ladder top', () => {
   assert.equal(result.onLadder, false);
   assert.equal(player.onLadder, false);
   assert.equal(player.y, 214);
+});
+
+test('updatePlayerMovement dismounts onto ladder top when no joined platform exists', () => {
+  const ladders = [{ x: 313, y: 178, w: 14, h: 158 }];
+  const player = {
+    x: 320,
+    y: 206.3,
+    w: 22,
+    h: 28,
+    onLadder: true,
+    ladderIndex: 0,
+  };
+  const result = updatePlayerMovement(
+    player,
+    { left: false, right: false, up: true, down: false },
+    1 / 60,
+    { floorY: FLOOR_Y, worldW: WORLD_W, moveSpeed: 220, climbSpeed: 180, ladders, solids: [] },
+  );
+  assert.equal(result.onLadder, false);
+  assert.equal(player.onLadder, false);
+  assert.equal(player.y, 178);
+});
+
+test('updatePlayerMovement can cross a small ladder-top gap while moving', () => {
+  const ladders = [{ x: 313, y: 178, w: 14, h: 158 }];
+  const solids = [
+    { x: 96, y: 178, w: 182, h: 12 },
+    { x: 362, y: 178, w: 182, h: 12 },
+  ];
+  const player = {
+    x: 320,
+    y: 178,
+    vy: 0,
+    w: 22,
+    h: 28,
+    onLadder: false,
+    ladderIndex: -1,
+    gapBridgeRemaining: 0,
+    gapBridgeY: 178,
+  };
+  for (let i = 0; i < 14; i += 1) {
+    updatePlayerMovement(
+      player,
+      { left: true, right: false, up: false, down: false },
+      1 / 60,
+      { floorY: FLOOR_Y, worldW: WORLD_W, moveSpeed: 220, climbSpeed: 180, gravity: 1800, ladders, solids },
+    );
+  }
+  assert.ok(player.x <= 269);
+  assert.ok(Math.abs(player.y - 178) <= 1.0);
+});
+
+test('updatePlayerMovement falls if stopping over ladder-top gap', () => {
+  const ladders = [{ x: 313, y: 178, w: 14, h: 158 }];
+  const solids = [
+    { x: 96, y: 178, w: 182, h: 12 },
+    { x: 362, y: 178, w: 182, h: 12 },
+  ];
+  const player = {
+    x: 290,
+    y: 178,
+    vy: 0,
+    w: 22,
+    h: 28,
+    onLadder: false,
+    ladderIndex: -1,
+    gapBridgeRemaining: 18,
+    gapBridgeY: 178,
+  };
+  updatePlayerMovement(
+    player,
+    { left: false, right: false, up: false, down: false },
+    1 / 60,
+    { floorY: FLOOR_Y, worldW: WORLD_W, moveSpeed: 220, climbSpeed: 180, gravity: 1800, ladders, solids },
+  );
+  assert.ok(player.y > 178);
+  assert.ok(player.y < FLOOR_Y);
 });
 
 test('updatePlayerMovement does not re-enter ladder from platform when holding up', () => {

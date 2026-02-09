@@ -145,6 +145,8 @@ const game = {
     hitR: 12,
     onLadder: false,
     ladderIndex: -1,
+    gapBridgeRemaining: 0,
+    gapBridgeY: FLOOR_Y,
     vy: 0,
     facing: 1,
     shootTimer: 0,
@@ -304,6 +306,8 @@ function loadLevel() {
   game.player.onLadder = false;
   game.player.ladderIndex = -1;
   game.player.vy = 0;
+  game.player.gapBridgeRemaining = 0;
+  game.player.gapBridgeY = FLOOR_Y;
   game.player.facing = 1;
   game.player.shootTimer = 0;
   game.state = GameState.PLAYING;
@@ -323,6 +327,8 @@ function newGame() {
   game.player.onLadder = false;
   game.player.ladderIndex = -1;
   game.player.vy = 0;
+  game.player.gapBridgeRemaining = 0;
+  game.player.gapBridgeY = FLOOR_Y;
   game.player.facing = 1;
   game.player.shootTimer = 0;
   game.moveSfxTimer = MOVE_SFX_INTERVAL;
@@ -335,7 +341,8 @@ function fireHarpoon() {
   const h = game.harpoon;
   h.active = true;
   h.x = game.player.x;
-  h.yBottom = game.player.y - game.player.h;
+  // Pang-style: rope is anchored at the ground with no bottom gap.
+  h.yBottom = FLOOR_Y;
   h.yTop = h.yBottom;
   h.state = 'extend';
   h.timer = 0;
@@ -572,7 +579,7 @@ function drawGeometry(ctx2d, geometry) {
 }
 
 function render() {
-  drawBackground(ctx, WORLD_W, WORLD_H, FLOOR_Y);
+  drawBackground(ctx, WORLD_W, WORLD_H, FLOOR_Y, game.levelIndex);
   if (settings.showGeometry) {
     drawGeometry(ctx, game.geometry);
   }

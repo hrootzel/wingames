@@ -279,7 +279,23 @@ export function findPlayerSupportY(x, currentY, solids = [], floorY = 336, halfW
   return supportY;
 }
 
-export function findSupportBelowY(x, minY, solids = [], floorY = 336, halfW = 11) {
+export function findLadderTopSupportY(x, currentY, ladders = [], halfW = 11, snapDistance = 20) {
+  let supportY = Number.POSITIVE_INFINITY;
+  for (const ladder of ladders) {
+    if (!ladder) continue;
+    const standMargin = Math.max(6, halfW * 0.65);
+    const left = ladder.x - standMargin;
+    const right = ladder.x + ladder.w + standMargin;
+    if (x < left || x > right) continue;
+    const top = ladder.y;
+    if (currentY <= top + snapDistance && top < supportY) {
+      supportY = top;
+    }
+  }
+  return Number.isFinite(supportY) ? supportY : null;
+}
+
+export function findSupportBelowY(x, minY, solids = [], floorY = 336, halfW = 11, ladders = []) {
   let supportY = floorY;
   for (const solid of solids) {
     if (!solid) continue;
@@ -287,6 +303,17 @@ export function findSupportBelowY(x, minY, solids = [], floorY = 336, halfW = 11
     const right = solid.x + solid.w - halfW + 2;
     if (x < left || x > right) continue;
     const top = solid.y;
+    if (top >= minY - 0.5 && top < supportY) {
+      supportY = top;
+    }
+  }
+  for (const ladder of ladders) {
+    if (!ladder) continue;
+    const standMargin = Math.max(6, halfW * 0.65);
+    const left = ladder.x - standMargin;
+    const right = ladder.x + ladder.w + standMargin;
+    if (x < left || x > right) continue;
+    const top = ladder.y;
     if (top >= minY - 0.5 && top < supportY) {
       supportY = top;
     }
@@ -335,6 +362,12 @@ export function updatePlayerMovement(player, input, dt, options = {}) {
   if (!Number.isFinite(player.ladderIndex)) {
     player.ladderIndex = -1;
   }
+  if (!Number.isFinite(player.gapBridgeRemaining)) {
+    player.gapBridgeRemaining = 0;
+  }
+  if (!Number.isFinite(player.gapBridgeY)) {
+    player.gapBridgeY = player.y;
+  }
   if (typeof player.onLadder !== 'boolean') {
     player.onLadder = false;
   }
@@ -372,7 +405,7 @@ export function updatePlayerMovement(player, input, dt, options = {}) {
       const oldY = player.y;
       player.vy += gravity * dt;
       const nextY = player.y + player.vy * dt;
-      const landingY = findSupportBelowY(player.x, oldY, solids, floorY, halfW);
+      const landingY = findSupportBelowY(player.x, oldY, solids, floorY, halfW, ladders);
       if (nextY >= landingY) {
         player.y = landingY;
         player.vy = 0;
@@ -386,10 +419,10 @@ export function updatePlayerMovement(player, input, dt, options = {}) {
       const climbMinY = ladder.y + player.h;
       const climbMaxY = Math.min(floorY, ladder.y + ladder.h);
       const exitPlatformY = findLadderExitPlatformY(player.x, ladder, solids, halfW);
-      if (climbDir < 0 && player.y <= climbMinY + 0.6 && exitPlatformY != null) {
+      if (climbDir < 0 && player.y <= climbMinY + 0.6) {
         player.onLadder = false;
         player.ladderIndex = -1;
-        player.y = exitPlatformY;
+        player.y = exitPlatformY != null ? exitPlatformY : ladder.y;
         player.vy = 0;
         if (horizontal !== 0) {
           player.x = clamp(player.x + horizontal * moveSpeed * dt, minX, maxX);
@@ -420,12 +453,44 @@ export function updatePlayerMovement(player, input, dt, options = {}) {
     if (horizontal !== 0) {
       player.x = clamp(player.x + horizontal * moveSpeed * dt, minX, maxX);
     }
-    const supportY = findPlayerSupportY(player.x, player.y, solids, floorY, halfW, 12);
+    const supportSnap = 16;
+    let supportY = findPlayerSupportY(player.x, player.y, solids, floorY, halfW, supportSnap);
+    const ladderTopY = findLadderTopSupportY(player.x, player.y, ladders, halfW, supportSnap);
+    if (ladderTopY != null && ladderTopY < supportY) {
+      supportY = ladderTopY;
+    }
+    const onSupport = Math.abs(player.y - supportY) <= 0.5;
+    if (onSupport && supportY < floorY - 0.5) {
+      player.gapBridgeRemaining = 42;
+      player.gapBridgeY = supportY;
+    } else if (onSupport) {
+      player.gapBridgeRemaining = 0;
+      player.gapBridgeY = supportY;
+    }
+
+    const unsupportedAtHeight = player.y < floorY - 0.5 && supportY > player.y + 1;
+    if (
+      unsupportedAtHeight &&
+      horizontal !== 0 &&
+      player.vy >= 0 &&
+      player.gapBridgeRemaining > 0 &&
+      Math.abs(player.y - player.gapBridgeY) <= 2.5
+    ) {
+      const moved = Math.abs(player.x - oldX);
+      player.gapBridgeRemaining = Math.max(0, player.gapBridgeRemaining - Math.max(0.01, moved));
+      player.y = player.gapBridgeY;
+      player.vy = 0;
+      return {
+        movedHorizontally: moved > 1e-6,
+        onLadder: player.onLadder,
+      };
+    }
+
     if (player.y < supportY - 0.5 || player.vy > 0) {
       const oldY = player.y;
       player.vy += gravity * dt;
       const nextY = player.y + player.vy * dt;
-      const landingY = findSupportBelowY(player.x, oldY, solids, floorY, halfW);
+      const landingY = findSupportBelowY(player.x, oldY, solids, floorY, halfW, ladders);
       if (nextY >= landingY) {
         player.y = landingY;
         player.vy = 0;
