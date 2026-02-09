@@ -275,7 +275,10 @@ export function initGameShell(options) {
     const bottomLane = shell ? shell.querySelector('.gs-snap-bottom') : null;
     if (topLane) topLane.style.removeProperty('zoom');
     if (bottomLane) bottomLane.style.removeProperty('zoom');
-    if (hud) { hud.style.removeProperty('zoom'); hud.style.removeProperty('transform'); }
+    if (hud) {
+      hud.style.removeProperty('zoom'); hud.style.removeProperty('transform');
+      for (const el of hud.querySelectorAll('[data-gs-no-zoom]')) el.style.removeProperty('zoom');
+    }
     if (shell) shell.style.removeProperty('--gs-hud-width-live');
 
     let scale, cssW, cssH;
@@ -284,6 +287,10 @@ export function initGameShell(options) {
       // Apply HUD scaling
       if (hud && Math.abs(hudScale - 1) > 0.001) {
         hud.style.zoom = hudScale.toFixed(3);
+        // Counter-scale elements that shouldn't shrink (e.g. preview canvases)
+        for (const el of hud.querySelectorAll('[data-gs-no-zoom]')) {
+          el.style.zoom = (1 / hudScale).toFixed(3);
+        }
       }
       if (shell && hudW > 0) {
         shell.style.setProperty('--gs-hud-width-live', `${Math.max(hudMinWidth, hudW * hudScale)}px`);

@@ -10,6 +10,7 @@
 
 .plopplop .plop-wrap {
   --gs-hud-width: 250px;
+  --gs-snap-col-min: 120px;
 }
 
 .plopplop .plop-stage {
