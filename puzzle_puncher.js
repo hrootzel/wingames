@@ -171,7 +171,6 @@ function makeGame() {
     },
     rngState: {
       crashDrought: 0,
-      diamondDrought: 0,
     },
     fx: {
       phase: 0,
@@ -250,7 +249,6 @@ function newGame() {
   game.pressure.waveTimer = 0;
   game.pressure.pendingRows = 0;
   game.rngState.crashDrought = 0;
-  game.rngState.diamondDrought = 0;
   game.fx.phase = 0;
   game.fx.hitstop = 0;
   game.fx.shake = 0;
@@ -276,19 +274,14 @@ function rollGem(rng) {
 }
 
 function rollPiece(rng, pieceIndex) {
-  const diamondChance = pieceIndex < 8
-    ? 0
-    : Math.min(0.16, 0.015 + game.rngState.diamondDrought * 0.009);
-  const isDiamond = rng.next() < diamondChance;
+  const isDiamond = pieceIndex % 25 === 0;
   if (isDiamond) {
-    game.rngState.diamondDrought = 0;
     const gem = rollGem(rng);
     if (rng.int(2) === 0) {
       return { a: { kind: Kind.DIAMOND, color: null }, b: gem };
     }
     return { a: gem, b: { kind: Kind.DIAMOND, color: null } };
   }
-  game.rngState.diamondDrought += 1;
   return { a: rollGem(rng), b: rollGem(rng) };
 }
 
@@ -957,7 +950,8 @@ function applyGarbageRows(rows) {
     const g = makeEmptyCell();
     g.kind = Kind.GARBAGE;
     g.color = COLORS[game.rng.int(COLORS.length)];
-    g.counter = 3 + game.rng.int(2);
+    // SPF-style counter gems are timed from 5 and tick down once per lock.
+    g.counter = 5;
     g.face = game.rng.int(4);
     g.shine = game.rng.next();
     g.bounce = 1;
