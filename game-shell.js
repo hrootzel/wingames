@@ -198,30 +198,21 @@ export function initGameShell(options) {
     return w || 200;
   }
 
-  // Apply HUD scaling via transform (cross-browser, unlike zoom)
+  // Apply HUD scaling via transform (cross-browser, unlike zoom).
+  // Scales each child individually so data-gs-no-zoom panels keep natural layout.
   function applyHudScale(s) {
     if (!hud) return;
-    if (Math.abs(s - 1) < 0.001) {
-      hud.style.removeProperty('transform');
-      hud.style.removeProperty('transform-origin');
-      hud.style.removeProperty('width');
-      // Reset no-zoom counter-scale
-      for (const el of hud.querySelectorAll('[data-gs-no-zoom]')) {
-        el.style.removeProperty('transform');
-        el.style.removeProperty('transform-origin');
-        el.style.removeProperty('width');
-      }
-      return;
+    for (const child of hud.children) {
+      child.style.removeProperty('transform');
+      child.style.removeProperty('transform-origin');
+      child.style.removeProperty('width');
     }
-    hud.style.transformOrigin = 'top left';
-    hud.style.transform = `scale(${s.toFixed(3)})`;
-    hud.style.width = `${(100 / s).toFixed(2)}%`;
-    // Counter-scale no-zoom elements
-    const inv = 1 / s;
-    for (const el of hud.querySelectorAll('[data-gs-no-zoom]')) {
-      el.style.transformOrigin = 'top left';
-      el.style.transform = `scale(${inv.toFixed(3)})`;
-      el.style.width = `${(100 * s).toFixed(2)}%`;
+    if (Math.abs(s - 1) < 0.001) return;
+    for (const child of hud.children) {
+      if (child.hasAttribute('data-gs-no-zoom')) continue;
+      child.style.transformOrigin = 'top left';
+      child.style.transform = `scale(${s.toFixed(3)})`;
+      child.style.width = `${(100 / s).toFixed(2)}%`;
     }
   }
 

@@ -40,7 +40,7 @@ for (const game of GAMES) {
           layout: shell.dataset.gsLayout,
           canvasW: canvas ? Math.round(canvas.getBoundingClientRect().width) : 0,
           canvasH: canvas ? Math.round(canvas.getBoundingClientRect().height) : 0,
-          hudZoom: hud ? (() => { const t = getComputedStyle(hud).transform; if (!t || t === 'none') return 1; const m = t.match(/matrix\(([^,]+)/); return m ? parseFloat(m[1]) : 1; })() : 1,
+          hudZoom: hud ? (() => { const c = hud.querySelector(':scope > :not([data-gs-no-zoom])'); if (!c) return 1; const t = getComputedStyle(c).transform; if (!t || t === 'none') return 1; const m = t.match(/matrix\(([^,]+)/); return m ? parseFloat(m[1]) : 1; })() : 1,
           vpW: window.innerWidth,
           vpH: window.innerHeight,
           noZoomSizes,
