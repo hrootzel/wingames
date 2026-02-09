@@ -15,6 +15,9 @@
         <h1>Super Buster</h1>
         <p class="subtitle">Harpoons up, bubbles down.</p>
       </div>
+      <div class="settings">
+        <button id="settings-toggle" class="icon-button" aria-expanded="false" aria-controls="settings-modal" aria-label="Settings" title="Settings">&#9881;</button>
+      </div>
     </header>
 
     <div class="hud">
@@ -38,6 +41,7 @@
               <div>Score: <span id="score">0</span></div>
               <div>Level: <span id="level">1</span></div>
               <div>Lives: <span id="lives">3</span></div>
+              <div>Time: <span id="time">0.0</span></div>
             </div>
           </div>
 
@@ -45,6 +49,7 @@
             <h3>Controls</h3>
             <div class="key-hints">
               <div><span class="key">Left/Right</span> Move</div>
+              <div><span class="key">Up/Down</span> Climb ladder</div>
               <div><span class="key">Space/Enter</span> Fire harpoon</div>
               <div><span class="key">R</span> Restart</div>
             </div>
@@ -61,6 +66,55 @@
       Pop every bouncing ball by hitting it with the harpoon. Each hit splits a ball
       into two smaller ones until the tiniest size disappears. Clear all levels to win.
     </p>
+  </div>
+
+  <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="settings-title">Settings</h2>
+        <button id="settings-close" class="icon-button" aria-label="Close settings">&#10005;</button>
+      </header>
+
+      <div class="ms-form">
+        <label class="ms-field">
+          <span>Level Pack</span>
+          <select id="opt-levelpack">
+            <option value="v1">Classic Tour (v1)</option>
+            <option value="v2">Curated 40 (v2)</option>
+          </select>
+        </label>
+        <label class="ms-field">
+          <span>Game Mode</span>
+          <select id="opt-mode">
+            <option value="campaign">Campaign</option>
+            <option value="endless">Endless</option>
+          </select>
+        </label>
+        <label class="ms-field">
+          <span>Difficulty</span>
+          <select id="opt-difficulty">
+            <option value="easy">Easy</option>
+            <option value="normal">Normal</option>
+            <option value="hard">Hard</option>
+            <option value="nightmare">Nightmare</option>
+          </select>
+        </label>
+        <label class="ms-toggle">
+          <input id="opt-geometry" type="checkbox">
+          <span>Show platforms and ladders overlay</span>
+        </label>
+        <label class="ms-field">
+          <span>Audio Volume</span>
+          <input id="opt-volume" type="range" min="0" max="1" step="0.01">
+        </label>
+        <p id="settings-hint" class="ms-note">More gameplay options can be added here later.</p>
+      </div>
+
+      <div class="ms-actions">
+        <button id="settings-apply">Apply</button>
+        <button id="settings-cancel" class="secondary">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="super_buster.js"></script>
