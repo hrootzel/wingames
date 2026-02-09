@@ -30,6 +30,7 @@ export function normalizeLevel(level, index, options = {}) {
     x: Number(ball.x),
     y: Number(ball.y),
     dir: Number(ball.dir) >= 0 ? 1 : -1,
+    type: ball?.type === 'hexa' ? 'hexa' : 'normal',
   }));
   return {
     id: level.id || `L${index + 1}`,
@@ -68,11 +69,27 @@ export function makeBall(spec, options = {}) {
   const x = clamp(Number.isFinite(rawX) ? rawX : worldW * 0.5, r, worldW - r);
   const y = clamp(Number.isFinite(rawY) ? rawY : floorY - r - 12, r, floorY - r);
   const dir = Number(spec.dir) >= 0 ? 1 : -1;
+  const type = spec?.type === 'hexa' ? 'hexa' : 'normal';
+  const baseVx = vxMag[size] * dir;
+  if (type === 'hexa') {
+    const hexaVx = baseVx * 1.18;
+    return {
+      type,
+      size,
+      x,
+      y,
+      vx: hexaVx,
+      vy: -(Math.abs(hexaVx) * 0.34 + 28),
+      spin: 0,
+      spinRate: (hexaVx >= 0 ? 1 : -1) * (1.8 + size * 0.2),
+    };
+  }
   return {
+    type,
     size,
     x,
     y,
-    vx: vxMag[size] * dir,
+    vx: baseVx,
     vy: -jumpSpeed[size] * 0.8,
   };
 }
@@ -128,16 +145,23 @@ export function updateBall(ball, dt, options = {}) {
   const worldW = Number.isFinite(Number(options.worldW)) ? Number(options.worldW) : 640;
   const floorY = Number.isFinite(Number(options.floorY)) ? Number(options.floorY) : 336;
 
+  const isHexa = ball.type === 'hexa';
   ball.prevX = ball.x;
   ball.prevY = ball.y;
-  ball.vy += gravity * dt;
+  if (!isHexa) {
+    ball.vy += gravity * dt;
+  }
   ball.x += ball.vx * dt;
   ball.y += ball.vy * dt;
 
   const r = radius[ball.size];
   if (ball.y + r > floorY) {
     ball.y = floorY - r;
-    ball.vy = -jumpSpeed[ball.size];
+    if (isHexa) {
+      ball.vy = -Math.abs(ball.vy);
+    } else {
+      ball.vy = -jumpSpeed[ball.size];
+    }
   }
   if (ball.y - r < 0) {
     ball.y = r;
@@ -151,6 +175,13 @@ export function updateBall(ball, dt, options = {}) {
     ball.x = worldW - r;
     ball.vx = -Math.abs(ball.vx);
   }
+  if (isHexa) {
+    if (!Number.isFinite(ball.spin)) ball.spin = 0;
+    if (!Number.isFinite(ball.spinRate)) {
+      ball.spinRate = (ball.vx >= 0 ? 1 : -1) * (1.8 + ball.size * 0.2);
+    }
+    ball.spin += ball.spinRate * dt;
+  }
   clampBallVelocity(ball, { jumpSpeed, vxMag, capFactor });
 }
 
@@ -160,7 +191,10 @@ export function clampBallVelocity(ball, options = {}) {
   const capFactor = Number.isFinite(Number(options.capFactor)) ? Number(options.capFactor) : 1.08;
   const size = ball.size;
 
-  const maxVy = Math.max(1, jumpSpeed[size] * capFactor);
+  const isHexa = ball.type === 'hexa';
+  const maxVy = isHexa
+    ? Math.max(1, (vxMag ? vxMag[size] : jumpSpeed[size]) * 1.3 * capFactor)
+    : Math.max(1, jumpSpeed[size] * capFactor);
   if (ball.vy > maxVy) ball.vy = maxVy;
   if (ball.vy < -maxVy) ball.vy = -maxVy;
 

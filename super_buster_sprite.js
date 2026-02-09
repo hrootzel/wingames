@@ -378,6 +378,53 @@ export function drawBall(ctx, ball, radii, palettes) {
   const t = performance.now() * 0.001;
   const r = radii[ball.size];
   const palette = palettes[ball.size % palettes.length];
+
+  if (ball.type === 'hexa') {
+    const rot = (Number.isFinite(ball.spin) ? ball.spin : 0) + Math.sin(t * 1.3 + ball.x * 0.01) * 0.08;
+    const edge = Math.max(1.2, r * 0.09);
+    ctx.save();
+    ctx.translate(ball.x, ball.y);
+    ctx.rotate(rot);
+    ctx.shadowColor = 'rgba(125, 211, 252, 0.28)';
+    ctx.shadowBlur = r * 0.35;
+    ctx.fillStyle = palette.base;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i += 1) {
+      const a = -Math.PI * 0.5 + (Math.PI * 2 * i) / 6;
+      const px = Math.cos(a) * r;
+      const py = Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.58)';
+    ctx.lineWidth = edge;
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.78);
+    ctx.lineTo(r * 0.58, -r * 0.12);
+    ctx.lineTo(0, r * 0.2);
+    ctx.lineTo(-r * 0.58, -r * 0.12);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = Math.max(1, r * 0.05);
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.74);
+    ctx.lineTo(0, r * 0.75);
+    ctx.moveTo(-r * 0.67, -r * 0.02);
+    ctx.lineTo(r * 0.67, -r * 0.02);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
   const wobble = Math.sin(t * 4 + ball.x * 0.04 + ball.y * 0.03) * 0.08;
   const glowA = 0.15 + 0.1 * (0.5 + 0.5 * Math.sin(t * 6 + ball.size));
 

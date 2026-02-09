@@ -31,6 +31,8 @@ test('normalizeLevelPack parses campaign JSON', () => {
   assert.equal(levels[0].balls.length, 1);
   assert.ok(Array.isArray(levels[1].geometry.solids));
   assert.ok(levels[1].geometry.solids.length > 0);
+  const hasHexa = levels.some((lvl) => lvl.balls.some((b) => b.type === 'hexa'));
+  assert.equal(hasHexa, true);
 });
 
 test('normalizeLevelPack rejects invalid format', () => {
@@ -48,6 +50,17 @@ test('makeBall clamps spawn into world and floor bounds', () => {
   assert.ok(ball.vx < 0);
 });
 
+test('makeBall preserves hexa type and sets spin data', () => {
+  const ball = makeBall(
+    { type: 'hexa', size: 2, x: 200, y: 120, dir: 1 },
+    { radius: RADIUS, vxMag: VX_MAG, jumpSpeed: JUMP_SPEED, worldW: WORLD_W, floorY: FLOOR_Y },
+  );
+  assert.equal(ball.type, 'hexa');
+  assert.ok(Number.isFinite(ball.spin));
+  assert.ok(Number.isFinite(ball.spinRate));
+  assert.ok(ball.vx > VX_MAG[2]);
+});
+
 test('updateBall bounces off floor with size jump speed', () => {
   const ball = { size: 2, x: 200, y: FLOOR_Y - RADIUS[2] - 0.5, vx: 0, vy: 300 };
   updateBall(ball, 1 / 60, {
@@ -61,6 +74,21 @@ test('updateBall bounces off floor with size jump speed', () => {
   });
   assert.equal(ball.y, FLOOR_Y - RADIUS[2]);
   assert.equal(ball.vy, -JUMP_SPEED[2]);
+});
+
+test('updateBall keeps hexa floating without gravity acceleration', () => {
+  const ball = { type: 'hexa', size: 2, x: 200, y: 170, vx: 120, vy: -90, spin: 0, spinRate: 2.2 };
+  updateBall(ball, 1 / 60, {
+    gravity: 1800,
+    radius: RADIUS,
+    jumpSpeed: JUMP_SPEED,
+    vxMag: VX_MAG,
+    capFactor: 1.08,
+    worldW: WORLD_W,
+    floorY: FLOOR_Y,
+  });
+  assert.ok(Math.abs(ball.vy + 90) < 1e-6);
+  assert.ok(ball.spin !== 0);
 });
 
 test('clampBallVelocity prevents runaway speed growth', () => {

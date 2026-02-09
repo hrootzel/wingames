@@ -492,3 +492,63 @@ test('super buster: gun weapon fires bullets and can pop a ball', async ({ page 
     return s.balls.length;
   }).toBe(0);
 });
+
+test('super buster: hexa bubble pops with hexa score table', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB13',
+    name: 'Hexa Score Lab',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
+    balls: [{ type: 'hexa', size: 2, x: 320, y: 190, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Hexa Score Lab');
+
+  await page.evaluate(() => {
+    window.__superBusterDebug.setPlayerX(320);
+    window.__superBusterDebug.setBall(0, { x: 320, y: 180, vx: 0, vy: 0 });
+  });
+  await page.keyboard.press('Space');
+
+  await expect.poll(async () => {
+    const s = await page.evaluate(() => window.__superBusterDebug.getState());
+    if (s.balls.length >= 2) return s.score;
+    return -1;
+  }).toBe(1000);
+});
+
+test('super buster: level clear awards time bonus hook', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB14',
+    name: 'Bonus Hook Lab',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
+    balls: [{ size: 0, x: 320, y: 190, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Bonus Hook Lab');
+
+  await page.evaluate(() => {
+    window.__superBusterDebug.setPlayerX(320);
+    window.__superBusterDebug.setBall(0, { x: 320, y: 180, vx: 0, vy: 0 });
+  });
+  await page.keyboard.press('Space');
+
+  await expect.poll(async () => {
+    const s = await page.evaluate(() => window.__superBusterDebug.getState());
+    return s.state;
+  }).toBe('LEVEL_CLEAR');
+
+  const end = await page.evaluate(() => window.__superBusterDebug.getState());
+  expect(end.score).toBeGreaterThan(600);
+});

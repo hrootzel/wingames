@@ -22,7 +22,10 @@ const BASE_GRAVITY = 320;
 const RADIUS = [10, 16, 24, 34];
 const BASE_JUMP_SPEED = [240, 320, 420, 520];
 const BASE_VX_MAG = [118, 108, 98, 90];
-const SCORE_ADD = [120, 80, 50, 30];
+const SCORE_TABLE = {
+  normal: [600, 800, 1000, 1500],
+  hexa: [500, 800, 1000, 1500],
+};
 const STARTING_LIVES = 3;
 const MOVE_SFX_INTERVAL = 0.09;
 const BALL_CAP_FACTOR = 1.08;
@@ -186,6 +189,7 @@ const game = {
   stateTimer: 0,
   status: 'Ready.',
   tuning: null,
+  levelStartLives: STARTING_LIVES,
 };
 
 let settings = loadSettings();
@@ -332,6 +336,7 @@ function loadLevel() {
   game.player.bulletCooldown = 0;
   game.state = GameState.PLAYING;
   game.stateTimer = 0;
+  game.levelStartLives = game.lives;
   game.status = level.name;
 }
 
@@ -360,6 +365,7 @@ function newGame() {
   game.moveSfxTimer = MOVE_SFX_INTERVAL;
   game.state = GameState.LEVEL_START;
   game.stateTimer = 0;
+  game.levelStartLives = STARTING_LIVES;
   game.status = 'Ready.';
 }
 
@@ -438,6 +444,7 @@ function maybeSpawnPowerupFromBall(ball) {
 }
 
 function applyPowerup(type) {
+  game.score += 250;
   if (type === 'shield') {
     game.player.shieldCharges = 1;
     game.status = 'Bubble shield acquired.';
@@ -491,7 +498,7 @@ function splitBall(index) {
   const size = ball.size;
   game.balls.splice(index, 1);
   maybeSpawnPowerupFromBall(ball);
-  game.score += SCORE_ADD[size] || 10;
+  game.score += getBallScore(ball.type, size);
   const maxSize = RADIUS.length - 1;
   sfx.play(BANK_SUPERBUSTER, 'hit', { sizeIndex: size, maxSize });
   if (size === 0) {
@@ -502,23 +509,36 @@ function splitBall(index) {
   const child = size - 1;
   const r = RADIUS[child];
   const baseY = Math.min(ball.y, FLOOR_Y - r);
-  const vy = -tuning.jumpSpeed[child] * 0.85;
-  const vx = tuning.vxMag[child];
+  const isHexa = ball.type === 'hexa';
+  const baseVx = tuning.vxMag[child];
+  const vx = isHexa ? baseVx * 1.18 : baseVx;
+  const vy = isHexa ? -(Math.abs(vx) * 0.34 + 28) : -tuning.jumpSpeed[child] * 0.85;
   sfx.play(BANK_SUPERBUSTER, 'split', { sizeIndex: size, childSizeIndex: child, maxSize });
   game.balls.push({
+    type: ball.type || 'normal',
     size: child,
     x: ball.x - r * 0.25,
     y: baseY,
     vx: -vx,
     vy,
+    spin: isHexa ? (ball.spin || 0) : undefined,
+    spinRate: isHexa ? (-1) * (1.8 + child * 0.2) : undefined,
   });
   game.balls.push({
+    type: ball.type || 'normal',
     size: child,
     x: ball.x + r * 0.25,
     y: baseY,
     vx,
     vy,
+    spin: isHexa ? (ball.spin || 0) : undefined,
+    spinRate: isHexa ? (1.8 + child * 0.2) : undefined,
   });
+}
+
+function getBallScore(type, size) {
+  const table = SCORE_TABLE[type] || SCORE_TABLE.normal;
+  return table[size] || 100;
 }
 
 function playerHitBall(ball) {
@@ -541,9 +561,12 @@ function setPlayerHit() {
 }
 
 function setLevelClear() {
+  const timeBonus = Math.max(0, Math.floor(game.levelTimeLeft)) * 20;
+  const perfectBonus = game.lives === game.levelStartLives ? 1000 : 0;
+  game.score += timeBonus + perfectBonus;
   game.state = GameState.LEVEL_CLEAR;
   game.stateTimer = 0.8;
-  game.status = 'Level clear!';
+  game.status = `Level clear! +${timeBonus}${perfectBonus ? ` +${perfectBonus} perfect` : ''}`;
   game.harpoons = [];
   game.bullets = [];
   sfx.play(BANK_SUPERBUSTER, 'levelClear', { level: game.levelIndex + 1 });
