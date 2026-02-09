@@ -1,0 +1,6541 @@
+{
+  "version": 1,
+  "meta": {
+    "id": "dotemu_selected_best40",
+    "name": "DotEmu Selected Best 40",
+    "author": "selection_tool"
+  },
+  "defaults": {
+    "timeLimitSec": 60
+  },
+  "levels": [
+    {
+      "id": "L1",
+      "name": "W1_BoraBora / bb_03.xml",
+      "timeLimitSec": 25,
+      "geometry": {
+        "solids": [
+          {
+            "x": -18,
+            "y": 310,
+            "w": 676,
+            "h": 65,
+            "kind": "platform"
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 70,
+          "y": 158,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 70,
+          "y": 158,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 70,
+          "y": 158,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 70,
+          "y": 158,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 70,
+          "y": 158,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 70,
+          "y": 158,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 70,
+          "y": 158,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 70,
+          "y": 158,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 142,
+          "y": 155,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 498,
+          "y": 155,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 570,
+          "y": 158,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 570,
+          "y": 158,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 570,
+          "y": 158,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 570,
+          "y": 158,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 570,
+          "y": 158,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 570,
+          "y": 158,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 570,
+          "y": 158,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 570,
+          "y": 158,
+          "dir": -1
+        }
+      ],
+      "_source": "W1_BoraBora/bb_03.xml"
+    },
+    {
+      "id": "L2",
+      "name": "W1_BoraBora / bb_04.xml",
+      "timeLimitSec": 30,
+      "geometry": {
+        "solids": [
+          {
+            "x": 18,
+            "y": 168,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 124,
+            "y": 181,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "double"
+          },
+          {
+            "x": 0,
+            "y": 155,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 462,
+            "y": 155,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 213,
+            "y": 181,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 89,
+            "y": 155,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 356,
+            "y": 168,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 36,
+            "y": 181,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 178,
+            "y": 155,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 338,
+            "y": 181,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 196,
+            "y": 168,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 373,
+            "y": 155,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 427,
+            "y": 181,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "double"
+          },
+          {
+            "x": 444,
+            "y": 168,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 516,
+            "y": 181,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 533,
+            "y": 168,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 551,
+            "y": 155,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 320,
+            "y": 155,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 267,
+            "y": 155,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 284,
+            "y": 168,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 302,
+            "y": 181,
+            "w": 36,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 107,
+            "y": 168,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 71,
+          "y": 65,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 213,
+          "y": 65,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 142,
+          "y": 65,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 284,
+          "y": 65,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 356,
+          "y": 65,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 427,
+          "y": 65,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 569,
+          "y": 65,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 498,
+          "y": 65,
+          "dir": 1
+        }
+      ],
+      "_source": "W1_BoraBora/bb_04.xml"
+    },
+    {
+      "id": "L3",
+      "name": "W1_BoraBora / bb_14.xml",
+      "timeLimitSec": 35,
+      "geometry": {
+        "solids": [
+          {
+            "x": 392,
+            "y": 55,
+            "w": 18,
+            "h": 90,
+            "kind": "barrier"
+          },
+          {
+            "x": 230,
+            "y": 55,
+            "w": 18,
+            "h": 90,
+            "kind": "barrier"
+          },
+          {
+            "x": 249,
+            "y": 121,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 321,
+            "y": 121,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 51,
+            "y": 133,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 34,
+            "y": 133,
+            "w": 18,
+            "h": 65,
+            "kind": "barrier"
+          },
+          {
+            "x": 51,
+            "y": 185,
+            "w": 89,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 140,
+            "y": 133,
+            "w": 18,
+            "h": 65,
+            "kind": "barrier"
+          },
+          {
+            "x": 588,
+            "y": 133,
+            "w": 18,
+            "h": 65,
+            "kind": "barrier"
+          },
+          {
+            "x": 499,
+            "y": 185,
+            "w": 89,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 481,
+            "y": 133,
+            "w": 18,
+            "h": 65,
+            "kind": "barrier"
+          },
+          {
+            "x": 499,
+            "y": 133,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 249,
+            "y": 133,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 321,
+            "y": 133,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 158,
+            "y": 133,
+            "w": 36,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 410,
+            "y": 133,
+            "w": 36,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 194,
+            "y": 133,
+            "w": 36,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 446,
+            "y": 133,
+            "w": 36,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 276,
+          "y": 61,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 293,
+          "y": 61,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 311,
+          "y": 61,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 329,
+          "y": 61,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 347,
+          "y": 61,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 364,
+          "y": 61,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 276,
+          "y": 74,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 293,
+          "y": 74,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 311,
+          "y": 74,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 329,
+          "y": 74,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 347,
+          "y": 74,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 364,
+          "y": 74,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 276,
+          "y": 87,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 293,
+          "y": 87,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 311,
+          "y": 87,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 329,
+          "y": 87,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 347,
+          "y": 87,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 364,
+          "y": 87,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 276,
+          "y": 99,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 293,
+          "y": 99,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 311,
+          "y": 99,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 329,
+          "y": 99,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 347,
+          "y": 99,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 364,
+          "y": 99,
+          "dir": -1
+        }
+      ],
+      "_source": "W1_BoraBora/bb_14.xml"
+    },
+    {
+      "id": "L4",
+      "name": "W1_BoraBora / bb_15.xml",
+      "timeLimitSec": 40,
+      "geometry": {
+        "solids": [],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 116,
+          "y": 90,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 231,
+          "y": 117,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 524,
+          "y": 90,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 409,
+          "y": 116,
+          "dir": 1
+        }
+      ],
+      "_source": "W1_BoraBora/bb_15.xml"
+    },
+    {
+      "id": "L5",
+      "name": "W2_DeathValley / dv_02.xml",
+      "timeLimitSec": 30,
+      "geometry": {
+        "solids": [
+          {
+            "x": 543,
+            "y": 116,
+            "w": 36,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 463,
+            "y": 45,
+            "w": 9,
+            "h": 26,
+            "kind": "barrier",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 160,
+            "y": 45,
+            "w": 9,
+            "h": 26,
+            "kind": "barrier",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 64,
+            "y": 116,
+            "w": 36,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 421,
+            "y": 155,
+            "w": 9,
+            "h": 26,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 202,
+            "y": 155,
+            "w": 9,
+            "h": 26,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 302,
+            "y": 82,
+            "w": 36,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 302,
+            "y": 241,
+            "w": 36,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 499,
+          "y": 56,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 499,
+          "y": 56,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 499,
+          "y": 56,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 499,
+          "y": 56,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 499,
+          "y": 56,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 499,
+          "y": 56,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 499,
+          "y": 56,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 499,
+          "y": 56,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 499,
+          "y": 56,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 499,
+          "y": 56,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 499,
+          "y": 56,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 499,
+          "y": 56,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 499,
+          "y": 56,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 141,
+          "y": 56,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 141,
+          "y": 56,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 141,
+          "y": 56,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 141,
+          "y": 56,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 141,
+          "y": 56,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 141,
+          "y": 56,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 141,
+          "y": 56,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 141,
+          "y": 56,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 141,
+          "y": 56,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 141,
+          "y": 56,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 141,
+          "y": 56,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 141,
+          "y": 56,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 141,
+          "y": 56,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 236,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 236,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 236,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 236,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 236,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 236,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 236,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 236,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 236,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 236,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 236,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 404,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 404,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 404,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 404,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 404,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 404,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 404,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 404,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 404,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 404,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 404,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 178,
+          "y": 122,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 462,
+          "y": 122,
+          "dir": -1
+        }
+      ],
+      "_source": "W2_DeathValley/dv_02.xml"
+    },
+    {
+      "id": "L6",
+      "name": "W2_DeathValley / dv_04.xml",
+      "timeLimitSec": 40,
+      "geometry": {
+        "solids": [],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 169,
+          "y": 90,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 62,
+          "y": 291,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 480,
+          "y": 90,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 578,
+          "y": 291,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 53,
+          "y": 39,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 587,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 258,
+          "y": 207,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 382,
+          "y": 207,
+          "dir": -1
+        }
+      ],
+      "_source": "W2_DeathValley/dv_04.xml"
+    },
+    {
+      "id": "L7",
+      "name": "W2_DeathValley / dv_05.xml",
+      "timeLimitSec": 25,
+      "geometry": {
+        "solids": [],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 231,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 409,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 160,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 551,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 89,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 480,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 320,
+          "y": 78,
+          "dir": 1
+        }
+      ],
+      "_source": "W2_DeathValley/dv_05.xml"
+    },
+    {
+      "id": "L8",
+      "name": "W2_DeathValley / dv_07.xml",
+      "timeLimitSec": 25,
+      "geometry": {
+        "solids": [],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 213,
+          "y": 129,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 329,
+          "y": 129,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 98,
+          "y": 129,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 280,
+          "y": 58,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 146,
+          "y": 201,
+          "dir": 1
+        }
+      ],
+      "_source": "W2_DeathValley/dv_07.xml"
+    },
+    {
+      "id": "L9",
+      "name": "W2_DeathValley / dv_08.xml",
+      "timeLimitSec": 40,
+      "geometry": {
+        "solids": [
+          {
+            "x": 142,
+            "y": 207,
+            "w": 71,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 427,
+            "y": 207,
+            "w": 71,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 213,
+            "y": 207,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 498,
+            "y": 207,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 53,
+            "y": 207,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 338,
+            "y": 207,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 302,
+            "y": 207,
+            "w": 36,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 0,
+            "y": 207,
+            "w": 53,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 587,
+            "y": 207,
+            "w": 53,
+            "h": 13,
+            "kind": "platform"
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 178,
+          "y": 181,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 178,
+          "y": 129,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 178,
+          "y": 78,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 178,
+          "y": 26,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 462,
+          "y": 181,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 462,
+          "y": 130,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 462,
+          "y": 78,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 462,
+          "y": 26,
+          "dir": 1
+        }
+      ],
+      "_source": "W2_DeathValley/dv_08.xml"
+    },
+    {
+      "id": "L10",
+      "name": "W2_DeathValley / dv_09.xml",
+      "timeLimitSec": 70,
+      "geometry": {
+        "solids": [
+          {
+            "x": 222,
+            "y": 142,
+            "w": 18,
+            "h": 26,
+            "kind": "barrier"
+          },
+          {
+            "x": 400,
+            "y": 142,
+            "w": 18,
+            "h": 26,
+            "kind": "barrier"
+          },
+          {
+            "x": 116,
+            "y": 116,
+            "w": 18,
+            "h": 26,
+            "kind": "barrier"
+          },
+          {
+            "x": 507,
+            "y": 116,
+            "w": 18,
+            "h": 26,
+            "kind": "barrier"
+          },
+          {
+            "x": 311,
+            "y": 168,
+            "w": 18,
+            "h": 26,
+            "kind": "barrier"
+          },
+          {
+            "x": 204,
+            "y": 155,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 187,
+            "y": 149,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 169,
+            "y": 142,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 151,
+            "y": 136,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 133,
+            "y": 129,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "shield"
+          },
+          {
+            "x": 489,
+            "y": 129,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 471,
+            "y": 136,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 453,
+            "y": 142,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 436,
+            "y": 149,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "shield"
+          },
+          {
+            "x": 418,
+            "y": 155,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 382,
+            "y": 149,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 364,
+            "y": 155,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 347,
+            "y": 162,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 329,
+            "y": 168,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 293,
+            "y": 168,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "shield"
+          },
+          {
+            "x": 276,
+            "y": 162,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 258,
+            "y": 155,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 240,
+            "y": 149,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 231,
+          "y": 111,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 409,
+          "y": 111,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 124,
+          "y": 75,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 516,
+          "y": 75,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 320,
+          "y": 147,
+          "dir": 1
+        }
+      ],
+      "_source": "W2_DeathValley/dv_09.xml"
+    },
+    {
+      "id": "L11",
+      "name": "W2_DeathValley / dv_11.xml",
+      "timeLimitSec": 50,
+      "geometry": {
+        "solids": [],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 320,
+          "y": 90,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 320,
+          "y": 181,
+          "dir": 1
+        }
+      ],
+      "_source": "W2_DeathValley/dv_11.xml"
+    },
+    {
+      "id": "L12",
+      "name": "W2_DeathValley / dv_13.xml",
+      "timeLimitSec": 30,
+      "geometry": {
+        "solids": [
+          {
+            "x": 0,
+            "y": -142,
+            "w": 640,
+            "h": 129,
+            "kind": "platform"
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 592,
+          "y": 296,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 47,
+          "y": 296,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 444,
+          "y": 39,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 196,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 391,
+          "y": 207,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 160,
+          "y": 155,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 249,
+          "y": 207,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 480,
+          "y": 155,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 320,
+          "y": 103,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 89,
+          "y": 103,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 554,
+          "y": 104,
+          "dir": 1
+        }
+      ],
+      "_source": "W2_DeathValley/dv_13.xml"
+    },
+    {
+      "id": "L13",
+      "name": "W2_DeathValley / dv_14.xml",
+      "timeLimitSec": 50,
+      "geometry": {
+        "solids": [],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 320,
+          "y": 291,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 587,
+          "y": 78,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 320,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 587,
+          "y": 58,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 587,
+          "y": 39,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 53,
+          "y": 78,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 53,
+          "y": 58,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 53,
+          "y": 39,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 320,
+          "y": 65,
+          "dir": 1
+        }
+      ],
+      "_source": "W2_DeathValley/dv_14.xml"
+    },
+    {
+      "id": "L14",
+      "name": "W2_DeathValley / dv_15.xml",
+      "timeLimitSec": 35,
+      "geometry": {
+        "solids": [
+          {
+            "x": 640,
+            "y": 0,
+            "w": 622,
+            "h": 336,
+            "kind": "platform"
+          },
+          {
+            "x": -622,
+            "y": 0,
+            "w": 622,
+            "h": 336,
+            "kind": "platform"
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 231,
+          "y": 52,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 409,
+          "y": 52,
+          "dir": -1
+        }
+      ],
+      "_source": "W2_DeathValley/dv_15.xml"
+    },
+    {
+      "id": "L15",
+      "name": "W3_Scotland / sc_01.xml",
+      "timeLimitSec": 30,
+      "geometry": {
+        "solids": [],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "seeker",
+          "size": 3,
+          "x": 326,
+          "y": 126,
+          "dir": 1
+        }
+      ],
+      "_source": "W3_Scotland/sc_01.xml"
+    },
+    {
+      "id": "L16",
+      "name": "W3_Scotland / sc_02.xml",
+      "timeLimitSec": 45,
+      "geometry": {
+        "solids": [
+          {
+            "x": 284,
+            "y": 181,
+            "w": 9,
+            "h": 39,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 338,
+            "y": 181,
+            "w": 9,
+            "h": 39,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 356,
+            "y": 194,
+            "w": 9,
+            "h": 26,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 480,
+            "y": 207,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 142,
+            "y": 207,
+            "w": 18,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "freeze"
+          },
+          {
+            "x": 587,
+            "y": 181,
+            "w": 9,
+            "h": 39,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 124,
+            "y": 194,
+            "w": 9,
+            "h": 26,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 533,
+            "y": 194,
+            "w": 9,
+            "h": 26,
+            "kind": "barrier",
+            "destructible": true,
+            "drop": "freeze"
+          },
+          {
+            "x": 498,
+            "y": 194,
+            "w": 9,
+            "h": 26,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 551,
+            "y": 181,
+            "w": 9,
+            "h": 39,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 604,
+            "y": 168,
+            "w": 9,
+            "h": 52,
+            "kind": "barrier",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 89,
+            "y": 194,
+            "w": 9,
+            "h": 26,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 71,
+            "y": 181,
+            "w": 9,
+            "h": 39,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 36,
+            "y": 181,
+            "w": 9,
+            "h": 39,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 18,
+            "y": 168,
+            "w": 9,
+            "h": 52,
+            "kind": "barrier",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 249,
+            "y": 168,
+            "w": 9,
+            "h": 52,
+            "kind": "barrier",
+            "destructible": true,
+            "drop": "double"
+          },
+          {
+            "x": 267,
+            "y": 194,
+            "w": 9,
+            "h": 26,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 373,
+            "y": 168,
+            "w": 9,
+            "h": 52,
+            "kind": "barrier",
+            "destructible": true,
+            "drop": "double"
+          },
+          {
+            "x": 302,
+            "y": 207,
+            "w": 36,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 444,
+            "y": 207,
+            "w": 36,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 160,
+            "y": 207,
+            "w": 36,
+            "h": 13,
+            "kind": "platform"
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 213,
+          "y": 52,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 427,
+          "y": 52,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 498,
+          "y": 116,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 142,
+          "y": 116,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 71,
+          "y": 52,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 569,
+          "y": 52,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 2,
+          "x": 373,
+          "y": 129,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 2,
+          "x": 267,
+          "y": 129,
+          "dir": -1
+        }
+      ],
+      "_source": "W3_Scotland/sc_02.xml"
+    },
+    {
+      "id": "L17",
+      "name": "W3_Scotland / sc_04.xml",
+      "timeLimitSec": 25,
+      "geometry": {
+        "solids": [],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "seeker",
+          "size": 3,
+          "x": 391,
+          "y": 103,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 3,
+          "x": 249,
+          "y": 103,
+          "dir": -1
+        }
+      ],
+      "_source": "W3_Scotland/sc_04.xml"
+    },
+    {
+      "id": "L18",
+      "name": "W3_Scotland / sc_06.xml",
+      "timeLimitSec": 40,
+      "geometry": {
+        "solids": [],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 36,
+          "y": 26,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 71,
+          "y": 52,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 107,
+          "y": 78,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 142,
+          "y": 103,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 178,
+          "y": 129,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 213,
+          "y": 155,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 604,
+          "y": 26,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 569,
+          "y": 52,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 533,
+          "y": 78,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 498,
+          "y": 103,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 462,
+          "y": 129,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 427,
+          "y": 155,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 320,
+          "y": 239,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 107,
+          "y": 239,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 516,
+          "y": 239,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 249,
+          "y": 181,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 391,
+          "y": 181,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 284,
+          "y": 207,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 356,
+          "y": 207,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 356,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 436,
+          "y": 97,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 284,
+          "y": 39,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 204,
+          "y": 97,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 124,
+          "y": 155,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 516,
+          "y": 155,
+          "dir": 1
+        }
+      ],
+      "_source": "W3_Scotland/sc_06.xml"
+    },
+    {
+      "id": "L19",
+      "name": "W3_Scotland / sc_15.xml",
+      "timeLimitSec": 45,
+      "geometry": {
+        "solids": [
+          {
+            "x": 382,
+            "y": 207,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 169,
+            "y": 207,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": -27,
+            "y": 207,
+            "w": 89,
+            "h": 129,
+            "kind": "barrier"
+          },
+          {
+            "x": 578,
+            "y": 207,
+            "w": 89,
+            "h": 129,
+            "kind": "barrier"
+          },
+          {
+            "x": 471,
+            "y": 0,
+            "w": 18,
+            "h": 78,
+            "kind": "barrier"
+          },
+          {
+            "x": 364,
+            "y": 0,
+            "w": 18,
+            "h": 78,
+            "kind": "barrier"
+          },
+          {
+            "x": 258,
+            "y": 0,
+            "w": 18,
+            "h": 78,
+            "kind": "barrier"
+          },
+          {
+            "x": 151,
+            "y": 0,
+            "w": 18,
+            "h": 78,
+            "kind": "barrier"
+          },
+          {
+            "x": -27,
+            "y": 0,
+            "w": 89,
+            "h": 78,
+            "kind": "barrier"
+          },
+          {
+            "x": 578,
+            "y": 0,
+            "w": 89,
+            "h": 78,
+            "kind": "barrier"
+          },
+          {
+            "x": 62,
+            "y": 65,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 489,
+            "y": 65,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 276,
+            "y": 65,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          }
+        ],
+        "ladders": [
+          {
+            "x": 364,
+            "y": 220,
+            "w": 10,
+            "h": 116
+          },
+          {
+            "x": 258,
+            "y": 220,
+            "w": 10,
+            "h": 116
+          },
+          {
+            "x": 151,
+            "y": 220,
+            "w": 10,
+            "h": 116
+          },
+          {
+            "x": 471,
+            "y": 220,
+            "w": 10,
+            "h": 116
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 427,
+          "y": 116,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 213,
+          "y": 116,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 507,
+          "y": 52,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 560,
+          "y": 52,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 507,
+          "y": 13,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 560,
+          "y": 13,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 80,
+          "y": 52,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 133,
+          "y": 52,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 80,
+          "y": 13,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 133,
+          "y": 13,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 213,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 427,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 320,
+          "y": 13,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 321,
+          "y": 52,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 293,
+          "y": 32,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 0,
+          "x": 347,
+          "y": 32,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 2,
+          "x": 596,
+          "y": 142,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 2,
+          "x": 44,
+          "y": 142,
+          "dir": 1
+        }
+      ],
+      "_source": "W3_Scotland/sc_15.xml"
+    },
+    {
+      "id": "L20",
+      "name": "W4_Antartica / an_01.xml",
+      "timeLimitSec": 40,
+      "geometry": {
+        "solids": [
+          {
+            "x": 249,
+            "y": 78,
+            "w": 284,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 213,
+            "y": 233,
+            "w": 320,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 178,
+            "y": 78,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 0,
+            "y": 78,
+            "w": 178,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 107,
+            "y": 155,
+            "w": 53,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 231,
+            "y": 155,
+            "w": 320,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 89,
+            "y": 233,
+            "w": 53,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 160,
+            "y": 155,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 142,
+            "y": 233,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 36,
+            "y": 233,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 551,
+            "y": 155,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 604,
+            "y": 155,
+            "w": 36,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 0,
+            "y": 233,
+            "w": 36,
+            "h": 13,
+            "kind": "platform"
+          }
+        ],
+        "ladders": [
+          {
+            "x": 107,
+            "y": 246,
+            "w": 10,
+            "h": 90
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 580,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 65,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 65,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 65,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 65,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 65,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 65,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 53,
+          "y": 116,
+          "dir": 1
+        }
+      ],
+      "_source": "W4_Antartica/an_01.xml"
+    },
+    {
+      "id": "L21",
+      "name": "W4_Antartica / an_03.xml",
+      "timeLimitSec": 35,
+      "geometry": {
+        "solids": [
+          {
+            "x": 0,
+            "y": 78,
+            "w": 142,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 498,
+            "y": 78,
+            "w": 142,
+            "h": 13,
+            "kind": "platform"
+          }
+        ],
+        "ladders": [
+          {
+            "x": 213,
+            "y": 258,
+            "w": 10,
+            "h": 78
+          },
+          {
+            "x": 160,
+            "y": 246,
+            "w": 10,
+            "h": 39
+          },
+          {
+            "x": 142,
+            "y": 258,
+            "w": 10,
+            "h": 78
+          },
+          {
+            "x": 480,
+            "y": 258,
+            "w": 10,
+            "h": 78
+          },
+          {
+            "x": 427,
+            "y": 246,
+            "w": 10,
+            "h": 39
+          },
+          {
+            "x": 409,
+            "y": 258,
+            "w": 10,
+            "h": 78
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 320,
+          "y": 116,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 551,
+          "y": 39,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 103,
+          "y": 206,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 103,
+          "y": 206,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 103,
+          "y": 206,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 537,
+          "y": 206,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 537,
+          "y": 206,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 537,
+          "y": 206,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 320,
+          "y": 220,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 587,
+          "y": 129,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 53,
+          "y": 129,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 89,
+          "y": 39,
+          "dir": 1
+        }
+      ],
+      "_source": "W4_Antartica/an_03.xml"
+    },
+    {
+      "id": "L22",
+      "name": "W4_Antartica / an_07.xml",
+      "timeLimitSec": 25,
+      "geometry": {
+        "solids": [],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 267,
+          "y": 181,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 373,
+          "y": 181,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 53,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 89,
+          "y": 233,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 124,
+          "y": 194,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 267,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 231,
+          "y": 78,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 196,
+          "y": 116,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 160,
+          "y": 155,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 480,
+          "y": 155,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 391,
+          "y": 65,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 569,
+          "y": 246,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 320,
+          "y": 142,
+          "dir": 1
+        }
+      ],
+      "_source": "W4_Antartica/an_07.xml"
+    },
+    {
+      "id": "L23",
+      "name": "W4_Antartica / an_08.xml",
+      "timeLimitSec": 30,
+      "geometry": {
+        "solids": [],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 267,
+          "y": 103,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 373,
+          "y": 103,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 320,
+          "y": 65,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 71,
+          "y": 142,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 569,
+          "y": 142,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 89,
+          "y": 129,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 551,
+          "y": 129,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 107,
+          "y": 116,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 533,
+          "y": 116,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 124,
+          "y": 103,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 516,
+          "y": 103,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 142,
+          "y": 90,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 498,
+          "y": 90,
+          "dir": -1
+        }
+      ],
+      "_source": "W4_Antartica/an_08.xml"
+    },
+    {
+      "id": "L24",
+      "name": "W4_Antartica / an_09.xml",
+      "timeLimitSec": 35,
+      "geometry": {
+        "solids": [
+          {
+            "x": 462,
+            "y": 142,
+            "w": 178,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 0,
+            "y": 142,
+            "w": 178,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 444,
+            "y": 65,
+            "w": 18,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 178,
+            "y": 65,
+            "w": 18,
+            "h": 13,
+            "kind": "platform"
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 196,
+          "y": 220,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 444,
+          "y": 220,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 320,
+          "y": 142,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 551,
+          "y": 71,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 89,
+          "y": 71,
+          "dir": -1
+        }
+      ],
+      "_source": "W4_Antartica/an_09.xml"
+    },
+    {
+      "id": "L25",
+      "name": "W4_Antartica / an_11.xml",
+      "timeLimitSec": 25,
+      "geometry": {
+        "solids": [
+          {
+            "x": 0,
+            "y": 129,
+            "w": 213,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 427,
+            "y": 129,
+            "w": 213,
+            "h": 13,
+            "kind": "platform"
+          }
+        ],
+        "ladders": [
+          {
+            "x": 427,
+            "y": 142,
+            "w": 10,
+            "h": 194
+          },
+          {
+            "x": 196,
+            "y": 142,
+            "w": 10,
+            "h": 194
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 427,
+          "y": 78,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 569,
+          "y": 78,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 71,
+          "y": 78,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 213,
+          "y": 78,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 107,
+          "y": 181,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 533,
+          "y": 181,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 2,
+          "x": 267,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 2,
+          "x": 373,
+          "y": 194,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 2,
+          "x": 267,
+          "y": 233,
+          "dir": 1
+        }
+      ],
+      "_source": "W4_Antartica/an_11.xml"
+    },
+    {
+      "id": "L26",
+      "name": "W4_Antartica / an_15.xml",
+      "timeLimitSec": 30,
+      "geometry": {
+        "solids": [
+          {
+            "x": 213,
+            "y": 155,
+            "w": 18,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 212,
+            "y": 61,
+            "w": 18,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 409,
+            "y": 155,
+            "w": 18,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 409,
+            "y": 61,
+            "w": 18,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 71,
+            "y": 194,
+            "w": 18,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 71,
+            "y": 99,
+            "w": 18,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 551,
+            "y": 194,
+            "w": 18,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 551,
+            "y": 99,
+            "w": 18,
+            "h": 13,
+            "kind": "platform"
+          }
+        ],
+        "ladders": [
+          {
+            "x": 71,
+            "y": 258,
+            "w": 10,
+            "h": 78
+          },
+          {
+            "x": 0,
+            "y": 246,
+            "w": 10,
+            "h": 52
+          },
+          {
+            "x": 551,
+            "y": 258,
+            "w": 10,
+            "h": 78
+          },
+          {
+            "x": 569,
+            "y": 246,
+            "w": 10,
+            "h": 52
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 320,
+          "y": 194,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 320,
+          "y": 90,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 489,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 223,
+          "y": 114,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 391,
+          "y": 220,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 249,
+          "y": 220,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 419,
+          "y": 114,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 151,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 81,
+          "y": 153,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 561,
+          "y": 153,
+          "dir": 1
+        }
+      ],
+      "_source": "W4_Antartica/an_15.xml"
+    },
+    {
+      "id": "L27",
+      "name": "W5_HongKong / hk_01.xml",
+      "timeLimitSec": 25,
+      "geometry": {
+        "solids": [
+          {
+            "x": 196,
+            "y": 220,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 373,
+            "y": 220,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 551,
+            "y": 220,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 18,
+            "y": 220,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 313,
+          "y": 63,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 313,
+          "y": 63,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 313,
+          "y": 63,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 142,
+          "y": 181,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 498,
+          "y": 181,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 320,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 313,
+          "y": 63,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 313,
+          "y": 63,
+          "dir": 1
+        }
+      ],
+      "_source": "W5_HongKong/hk_01.xml"
+    },
+    {
+      "id": "L28",
+      "name": "W5_HongKong / hk_03.xml",
+      "timeLimitSec": 30,
+      "geometry": {
+        "solids": [
+          {
+            "x": 62,
+            "y": 233,
+            "w": 231,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": -27,
+            "y": 233,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 71,
+            "y": 78,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 498,
+            "y": 78,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 578,
+            "y": 233,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 347,
+            "y": 233,
+            "w": 231,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 142,
+            "y": 78,
+            "w": 18,
+            "h": 155,
+            "kind": "barrier"
+          },
+          {
+            "x": 480,
+            "y": 78,
+            "w": 18,
+            "h": 155,
+            "kind": "barrier"
+          },
+          {
+            "x": 0,
+            "y": 78,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "freeze"
+          },
+          {
+            "x": 569,
+            "y": 78,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "freeze"
+          }
+        ],
+        "ladders": [
+          {
+            "x": 295,
+            "y": 233,
+            "w": 10,
+            "h": 39
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 267,
+          "y": 142,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 373,
+          "y": 142,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 249,
+          "y": 155,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 391,
+          "y": 155,
+          "dir": -1
+        }
+      ],
+      "_source": "W5_HongKong/hk_03.xml"
+    },
+    {
+      "id": "L29",
+      "name": "W5_HongKong / hk_04.xml",
+      "timeLimitSec": 40,
+      "geometry": {
+        "solids": [
+          {
+            "x": -18,
+            "y": 310,
+            "w": 676,
+            "h": 52,
+            "kind": "platform"
+          },
+          {
+            "x": 0,
+            "y": -38,
+            "w": 640,
+            "h": 39,
+            "kind": "platform"
+          },
+          {
+            "x": 231,
+            "y": 168,
+            "w": 178,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          }
+        ],
+        "ladders": [
+          {
+            "x": 391,
+            "y": 0,
+            "w": 10,
+            "h": 168
+          },
+          {
+            "x": 231,
+            "y": 0,
+            "w": 10,
+            "h": 168
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 356,
+          "y": 65,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 53,
+          "y": 136,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 284,
+          "y": 65,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 587,
+          "y": 136,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 50,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 590,
+          "y": 271,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 50,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 590,
+          "y": 271,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 50,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 590,
+          "y": 271,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 50,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 590,
+          "y": 271,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 50,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 590,
+          "y": 271,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 50,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 590,
+          "y": 271,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 50,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 590,
+          "y": 271,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 50,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 590,
+          "y": 271,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 50,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 590,
+          "y": 271,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 444,
+          "y": 39,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 196,
+          "y": 39,
+          "dir": 1
+        }
+      ],
+      "_source": "W5_HongKong/hk_04.xml"
+    },
+    {
+      "id": "L30",
+      "name": "W5_HongKong / hk_05.xml",
+      "timeLimitSec": 45,
+      "geometry": {
+        "solids": [
+          {
+            "x": -18,
+            "y": 323,
+            "w": 676,
+            "h": 39,
+            "kind": "platform"
+          },
+          {
+            "x": 107,
+            "y": 233,
+            "w": 422,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          }
+        ],
+        "ladders": [
+          {
+            "x": 9,
+            "y": 233,
+            "w": 10,
+            "h": 65
+          },
+          {
+            "x": 542,
+            "y": 233,
+            "w": 10,
+            "h": 65
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 142,
+          "y": 78,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 231,
+          "y": 90,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 320,
+          "y": 103,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 409,
+          "y": 116,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 2,
+          "x": 498,
+          "y": 129,
+          "dir": 1
+        }
+      ],
+      "_source": "W5_HongKong/hk_05.xml"
+    },
+    {
+      "id": "L31",
+      "name": "W5_HongKong / hk_06.xml",
+      "timeLimitSec": 30,
+      "geometry": {
+        "solids": [],
+        "ladders": [
+          {
+            "x": 0,
+            "y": 194,
+            "w": 10,
+            "h": 465
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 320,
+          "y": 271,
+          "dir": 1
+        }
+      ],
+      "_source": "W5_HongKong/hk_06.xml"
+    },
+    {
+      "id": "L32",
+      "name": "W5_HongKong / hk_07.xml",
+      "timeLimitSec": 35,
+      "geometry": {
+        "solids": [
+          {
+            "x": -18,
+            "y": 310,
+            "w": 676,
+            "h": 65,
+            "kind": "platform"
+          },
+          {
+            "x": 98,
+            "y": 155,
+            "w": 444,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          }
+        ],
+        "ladders": [
+          {
+            "x": 311,
+            "y": 168,
+            "w": 10,
+            "h": 142
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 107,
+          "y": 284,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 107,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 107,
+          "y": 258,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 107,
+          "y": 246,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 204,
+          "y": 45,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 436,
+          "y": 45,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 36,
+          "y": 246,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 36,
+          "y": 258,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 36,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 1,
+          "x": 36,
+          "y": 284,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 587,
+          "y": 52,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 53,
+          "y": 52,
+          "dir": -1
+        }
+      ],
+      "_source": "W5_HongKong/hk_07.xml"
+    },
+    {
+      "id": "L33",
+      "name": "W5_HongKong / hk_09.xml",
+      "timeLimitSec": 35,
+      "geometry": {
+        "solids": [],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 107,
+          "y": 233,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 542,
+          "y": 90,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 427,
+          "y": 233,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 107,
+          "y": 90,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 213,
+          "y": 90,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 427,
+          "y": 90,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 427,
+          "y": 162,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 542,
+          "y": 233,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 213,
+          "y": 233,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 213,
+          "y": 162,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 320,
+          "y": 162,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 320,
+          "y": 162,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 320,
+          "y": 90,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 542,
+          "y": 162,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 107,
+          "y": 162,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 2,
+          "x": 320,
+          "y": 233,
+          "dir": 1
+        }
+      ],
+      "_source": "W5_HongKong/hk_09.xml"
+    },
+    {
+      "id": "L34",
+      "name": "W5_HongKong / hk_10.xml",
+      "timeLimitSec": 50,
+      "geometry": {
+        "solids": [
+          {
+            "x": 0,
+            "y": 194,
+            "w": 71,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 569,
+            "y": 194,
+            "w": 71,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 267,
+            "y": 194,
+            "w": 107,
+            "h": 13,
+            "kind": "platform"
+          }
+        ],
+        "ladders": [
+          {
+            "x": 71,
+            "y": 194,
+            "w": 10,
+            "h": 142
+          },
+          {
+            "x": 373,
+            "y": 194,
+            "w": 10,
+            "h": 142
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "seeker",
+          "size": 3,
+          "x": 427,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 3,
+          "x": 213,
+          "y": 271,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 3,
+          "x": 516,
+          "y": 271,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 3,
+          "x": 124,
+          "y": 271,
+          "dir": -1
+        }
+      ],
+      "_source": "W5_HongKong/hk_10.xml"
+    },
+    {
+      "id": "L35",
+      "name": "W5_HongKong / hk_11.xml",
+      "timeLimitSec": 70,
+      "geometry": {
+        "solids": [
+          {
+            "x": -36,
+            "y": 258,
+            "w": 124,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 551,
+            "y": 258,
+            "w": 124,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": -36,
+            "y": 181,
+            "w": 124,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 551,
+            "y": 181,
+            "w": 124,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": -36,
+            "y": 103,
+            "w": 124,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 551,
+            "y": 103,
+            "w": 124,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 258,
+            "y": 258,
+            "w": 124,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 462,
+            "y": 181,
+            "w": 107,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 71,
+            "y": 181,
+            "w": 107,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 480,
+            "y": 103,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 71,
+            "y": 103,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 284,
+            "y": 103,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 391,
+            "y": 207,
+            "w": 9,
+            "h": 39,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 231,
+            "y": 207,
+            "w": 9,
+            "h": 39,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 462,
+            "y": 129,
+            "w": 9,
+            "h": 39,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 160,
+            "y": 129,
+            "w": 9,
+            "h": 39,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 72,
+            "y": 7,
+            "w": 9,
+            "h": 39,
+            "kind": "barrier",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 551,
+            "y": 6,
+            "w": 9,
+            "h": 39,
+            "kind": "barrier",
+            "destructible": true,
+            "drop": "fruit"
+          }
+        ],
+        "ladders": [
+          {
+            "x": 71,
+            "y": 271,
+            "w": 10,
+            "h": 65
+          },
+          {
+            "x": 551,
+            "y": 271,
+            "w": 10,
+            "h": 65
+          },
+          {
+            "x": 71,
+            "y": 194,
+            "w": 10,
+            "h": 65
+          },
+          {
+            "x": 551,
+            "y": 194,
+            "w": 10,
+            "h": 65
+          },
+          {
+            "x": 71,
+            "y": 116,
+            "w": 10,
+            "h": 65
+          },
+          {
+            "x": 551,
+            "y": 116,
+            "w": 10,
+            "h": 65
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 36,
+          "y": 26,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 605,
+          "y": 26,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 338,
+          "y": 149,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 302,
+          "y": 149,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 480,
+          "y": 226,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 0,
+          "x": 160,
+          "y": 226,
+          "dir": -1
+        }
+      ],
+      "_source": "W5_HongKong/hk_11.xml"
+    },
+    {
+      "id": "L36",
+      "name": "W5_HongKong / hk_13.xml",
+      "timeLimitSec": 50,
+      "geometry": {
+        "solids": [
+          {
+            "x": 462,
+            "y": 155,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 551,
+            "y": 155,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 0,
+            "y": 155,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 89,
+            "y": 155,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 196,
+            "y": 246,
+            "w": 249,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 1,
+            "y": 246,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 89,
+            "y": 246,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 463,
+            "y": 246,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 552,
+            "y": 246,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 0,
+            "y": 0,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 89,
+            "y": 0,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 462,
+            "y": 0,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 551,
+            "y": 0,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 196,
+            "y": 0,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 284,
+            "y": 0,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 356,
+            "y": 0,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          }
+        ],
+        "ladders": [
+          {
+            "x": 444,
+            "y": 0,
+            "w": 10,
+            "h": 336
+          },
+          {
+            "x": 178,
+            "y": 0,
+            "w": 10,
+            "h": 336
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 258,
+          "y": 174,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 382,
+          "y": 174,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 53,
+          "y": 207,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 587,
+          "y": 207,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 258,
+          "y": 84,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 382,
+          "y": 84,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 2,
+          "x": 53,
+          "y": 52,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 2,
+          "x": 587,
+          "y": 52,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 516,
+          "y": 207,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 124,
+          "y": 207,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 231,
+          "y": 129,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 409,
+          "y": 129,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 320,
+          "y": 58,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 320,
+          "y": 200,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 1,
+          "x": 320,
+          "y": 129,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 142,
+          "y": 52,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 53,
+          "y": 116,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 498,
+          "y": 52,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 587,
+          "y": 116,
+          "dir": 1
+        }
+      ],
+      "_source": "W5_HongKong/hk_13.xml"
+    },
+    {
+      "id": "L37",
+      "name": "W5_HongKong / hk_14.xml",
+      "timeLimitSec": 65,
+      "geometry": {
+        "solids": [
+          {
+            "x": 569,
+            "y": 0,
+            "w": 18,
+            "h": 142,
+            "kind": "barrier"
+          },
+          {
+            "x": 53,
+            "y": 0,
+            "w": 18,
+            "h": 142,
+            "kind": "barrier"
+          },
+          {
+            "x": 0,
+            "y": 52,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 444,
+            "y": 0,
+            "w": 18,
+            "h": 65,
+            "kind": "barrier"
+          },
+          {
+            "x": 249,
+            "y": 0,
+            "w": 18,
+            "h": 65,
+            "kind": "barrier"
+          },
+          {
+            "x": 178,
+            "y": 0,
+            "w": 18,
+            "h": 65,
+            "kind": "barrier"
+          },
+          {
+            "x": 587,
+            "y": 233,
+            "w": 53,
+            "h": 103,
+            "kind": "barrier"
+          },
+          {
+            "x": 0,
+            "y": 233,
+            "w": 53,
+            "h": 103,
+            "kind": "barrier"
+          },
+          {
+            "x": 284,
+            "y": 129,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 444,
+            "y": 284,
+            "w": 142,
+            "h": 52,
+            "kind": "platform"
+          },
+          {
+            "x": 53,
+            "y": 284,
+            "w": 142,
+            "h": 52,
+            "kind": "platform"
+          },
+          {
+            "x": 196,
+            "y": 142,
+            "w": 53,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 391,
+            "y": 142,
+            "w": 53,
+            "h": 13,
+            "kind": "platform"
+          },
+          {
+            "x": 587,
+            "y": 52,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 587,
+            "y": 65,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 0,
+            "y": 65,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 196,
+            "y": 52,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 391,
+            "y": 52,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 462,
+            "y": 39,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 516,
+            "y": 39,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 462,
+            "y": 52,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 516,
+            "y": 52,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 462,
+            "y": 13,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 516,
+            "y": 13,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 462,
+            "y": 26,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 516,
+            "y": 26,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 462,
+            "y": 0,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 516,
+            "y": 0,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 71,
+            "y": 39,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 124,
+            "y": 39,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 71,
+            "y": 52,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 124,
+            "y": 52,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 71,
+            "y": 13,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 124,
+            "y": 13,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 71,
+            "y": 26,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 124,
+            "y": 26,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 71,
+            "y": 0,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 124,
+            "y": 0,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 587,
+            "y": 78,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 587,
+            "y": 90,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 587,
+            "y": 103,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 0,
+            "y": 78,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 0,
+            "y": 90,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 0,
+            "y": 103,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 0,
+            "y": 116,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 0,
+            "y": 129,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 587,
+            "y": 116,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 587,
+            "y": 129,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 373,
+            "y": 0,
+            "w": 18,
+            "h": 65,
+            "kind": "barrier"
+          },
+          {
+            "x": 391,
+            "y": 155,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 391,
+            "y": 168,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 391,
+            "y": 181,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 391,
+            "y": 194,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 391,
+            "y": 207,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 391,
+            "y": 220,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 196,
+            "y": 155,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 196,
+            "y": 168,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 196,
+            "y": 181,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 196,
+            "y": 194,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 196,
+            "y": 207,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 196,
+            "y": 220,
+            "w": 53,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 284,
+            "y": 233,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 622,
+          "y": 13,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 18,
+          "y": 13,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 409,
+          "y": 13,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 0,
+          "x": 231,
+          "y": 13,
+          "dir": -1
+        }
+      ],
+      "_source": "W5_HongKong/hk_14.xml"
+    },
+    {
+      "id": "L38",
+      "name": "W5_HongKong / hk_15.xml",
+      "timeLimitSec": 45,
+      "geometry": {
+        "solids": [
+          {
+            "x": 37,
+            "y": 246,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 37,
+            "y": 168,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 37,
+            "y": 90,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 532,
+            "y": 90,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 532,
+            "y": 168,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 532,
+            "y": 246,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 604,
+            "y": 0,
+            "w": 36,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 0,
+            "y": 0,
+            "w": 36,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          }
+        ],
+        "ladders": [
+          {
+            "x": 107,
+            "y": 0,
+            "w": 10,
+            "h": 336
+          },
+          {
+            "x": 516,
+            "y": 0,
+            "w": 10,
+            "h": 336
+          },
+          {
+            "x": 124,
+            "y": 90,
+            "w": 10,
+            "h": 284
+          },
+          {
+            "x": 124,
+            "y": 168,
+            "w": 10,
+            "h": 284
+          },
+          {
+            "x": 124,
+            "y": 246,
+            "w": 10,
+            "h": 284
+          }
+        ]
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 71,
+          "y": 26,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 258,
+          "y": 53,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 378,
+          "y": 136,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 259,
+          "y": 136,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 3,
+          "x": 377,
+          "y": 53,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 569,
+          "y": 26,
+          "dir": 1
+        }
+      ],
+      "_source": "W5_HongKong/hk_15.xml"
+    },
+    {
+      "id": "L39",
+      "name": "W6_Asteroid / as_04.xml",
+      "timeLimitSec": 30,
+      "geometry": {
+        "solids": [
+          {
+            "x": 302,
+            "y": 181,
+            "w": 36,
+            "h": 13,
+            "kind": "platform"
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 107,
+          "y": 65,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 604,
+          "y": 65,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 36,
+          "y": 65,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 533,
+          "y": 65,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 71,
+          "y": 103,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 569,
+          "y": 103,
+          "dir": -1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 249,
+          "y": 57,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 249,
+          "y": 57,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 249,
+          "y": 57,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 249,
+          "y": 57,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 249,
+          "y": 57,
+          "dir": 1
+        },
+        {
+          "type": "normal",
+          "size": 3,
+          "x": 249,
+          "y": 57,
+          "dir": 1
+        }
+      ],
+      "_source": "W6_Asteroid/as_04.xml"
+    },
+    {
+      "id": "L40",
+      "name": "W6_Asteroid / as_11.xml",
+      "timeLimitSec": 55,
+      "geometry": {
+        "solids": [
+          {
+            "x": 213,
+            "y": 13,
+            "w": 9,
+            "h": 65,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 409,
+            "y": 78,
+            "w": 9,
+            "h": 65,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 213,
+            "y": 78,
+            "w": 9,
+            "h": 65,
+            "kind": "barrier",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 409,
+            "y": 13,
+            "w": 9,
+            "h": 65,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 231,
+            "y": 103,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 320,
+            "y": 103,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 213,
+            "y": 142,
+            "w": 9,
+            "h": 65,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 213,
+            "y": 207,
+            "w": 9,
+            "h": 65,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 409,
+            "y": 142,
+            "w": 9,
+            "h": 65,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 409,
+            "y": 207,
+            "w": 9,
+            "h": 65,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 320,
+            "y": 220,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 231,
+            "y": 220,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 427,
+            "y": 142,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 516,
+            "y": 142,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 427,
+            "y": 258,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 516,
+            "y": 258,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 604,
+            "y": 207,
+            "w": 9,
+            "h": 65,
+            "kind": "barrier",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 604,
+            "y": 142,
+            "w": 9,
+            "h": 65,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 36,
+            "y": 142,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 124,
+            "y": 142,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 36,
+            "y": 258,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 124,
+            "y": 258,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 18,
+            "y": 207,
+            "w": 9,
+            "h": 65,
+            "kind": "barrier",
+            "destructible": false
+          },
+          {
+            "x": 18,
+            "y": 142,
+            "w": 9,
+            "h": 65,
+            "kind": "barrier",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 409,
+            "y": 0,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 569,
+            "y": 0,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": 498,
+            "y": 0,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 142,
+            "y": 0,
+            "w": 89,
+            "h": 9,
+            "kind": "platform",
+            "destructible": true,
+            "drop": "fruit"
+          },
+          {
+            "x": 71,
+            "y": 0,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          },
+          {
+            "x": -1,
+            "y": 0,
+            "w": 71,
+            "h": 9,
+            "kind": "platform",
+            "destructible": false
+          }
+        ],
+        "ladders": []
+      },
+      "balls": [
+        {
+          "type": "seeker",
+          "size": 3,
+          "x": 551,
+          "y": 78,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 3,
+          "x": 516,
+          "y": 78,
+          "dir": -1
+        },
+        {
+          "type": "seeker",
+          "size": 3,
+          "x": 124,
+          "y": 78,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 3,
+          "x": 89,
+          "y": 78,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 284,
+          "y": 78,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 356,
+          "y": 78,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 3,
+          "x": 302,
+          "y": 168,
+          "dir": 1
+        },
+        {
+          "type": "seeker",
+          "size": 3,
+          "x": 338,
+          "y": 168,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 284,
+          "y": 26,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 356,
+          "y": 26,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 160,
+          "y": 220,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 107,
+          "y": 233,
+          "dir": -1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 89,
+          "y": 194,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 142,
+          "y": 181,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 480,
+          "y": 220,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 533,
+          "y": 233,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 551,
+          "y": 194,
+          "dir": 1
+        },
+        {
+          "type": "hexa",
+          "size": 1,
+          "x": 498,
+          "y": 181,
+          "dir": -1
+        }
+      ],
+      "_source": "W6_Asteroid/as_11.xml"
+    }
+  ]
+}

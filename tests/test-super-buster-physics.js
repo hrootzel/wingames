@@ -824,3 +824,37 @@ test('super buster: breakable platform can have deterministic drop', async ({ pa
     return s.powerups[0]?.type || null;
   }).toBe('double');
 });
+
+test('super buster: settings level pack selector reloads v2 pack', async ({ page }) => {
+  const packV1 = makePack({
+    id: 'V1_A',
+    name: 'Pack V1 Stage',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
+    balls: [{ size: 0, x: 120, y: 120, dir: 1 }],
+  });
+  const packV2 = makePack({
+    id: 'V2_A',
+    name: 'Pack V2 Stage',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
+    balls: [{ size: 0, x: 520, y: 120, dir: -1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(packV1) });
+  });
+  await page.route('**/levels/levelpack_v2.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(packV2) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Pack V1 Stage');
+
+  await page.click('#settings-toggle');
+  await page.selectOption('#opt-levelpack', 'v2');
+  await page.click('#settings-apply');
+
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Pack V2 Stage');
+  await expect.poll(async () => (await page.evaluate(() => window.__superBusterDebug.getState().settings.levelPack))).toBe('v2');
+});

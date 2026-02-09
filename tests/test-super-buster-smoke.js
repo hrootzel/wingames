@@ -6,7 +6,7 @@ test('super buster loads campaign and timer counts down', async ({ page }) => {
 
   await page.goto('/super_buster.html');
   await expect(page.locator('#level')).toHaveText('1');
-  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Warmup');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('harpoon');
 
   const startTimeText = await page.locator('#time').textContent();
   const startTime = Number(startTimeText);

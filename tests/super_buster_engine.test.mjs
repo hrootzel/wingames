@@ -41,6 +41,15 @@ test('normalizeLevelPack parses campaign JSON', () => {
   assert.equal(hasSeeker, true);
 });
 
+test('normalizeLevelPack parses v2 campaign JSON', () => {
+  const pack = JSON.parse(readFileSync('levels/levelpack_v2.json', 'utf8'));
+  const levels = normalizeLevelPack(pack, { maxSize: RADIUS.length - 1 });
+  assert.equal(levels.length, 40);
+  assert.equal(levels[0].id, 'L1');
+  assert.equal(levels[39].id, 'L40');
+  assert.ok(levels[0].balls.length >= 1);
+});
+
 test('normalizeLevelPack rejects invalid format', () => {
   assert.throws(() => normalizeLevelPack({ version: 2, levels: [] }), /Invalid level pack format/);
 });

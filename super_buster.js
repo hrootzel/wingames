@@ -52,6 +52,11 @@ const WEAPON_TYPES = {
 };
 const POWERUP_TYPES = ['shield', 'sticky', 'double', 'gun', 'slow', 'freeze', 'dynamite', 'life', 'single', 'fruit'];
 const MODE_TYPES = ['campaign', 'endless'];
+const LEVEL_PACKS = {
+  v1: { id: 'v1', name: 'Classic Tour (v1)', path: './levels/levelpack_v1.json' },
+  v2: { id: 'v2', name: 'Curated 40 (v2)', path: './levels/levelpack_v2.json' },
+};
+const LEVEL_PACK_IDS = Object.keys(LEVEL_PACKS);
 const POWERUP_ALIAS = {
   'two ropes': 'double',
   tworopes: 'double',
@@ -80,6 +85,7 @@ const STORAGE = {
 };
 
 const DEFAULT_SETTINGS = {
+  levelPack: 'v1',
   mode: 'campaign',
   difficulty: 'normal',
   showGeometry: true,
@@ -170,6 +176,7 @@ const settingsApply = document.getElementById('settings-apply');
 const settingsCancel = document.getElementById('settings-cancel');
 const optDifficulty = document.getElementById('opt-difficulty');
 const optMode = document.getElementById('opt-mode');
+const optLevelPack = document.getElementById('opt-levelpack');
 const optGeometry = document.getElementById('opt-geometry');
 const optVolume = document.getElementById('opt-volume');
 
@@ -332,6 +339,7 @@ function loadSettings() {
     const raw = localStorage.getItem(STORAGE.settings);
     if (!raw) return { ...DEFAULT_SETTINGS };
     const parsed = JSON.parse(raw);
+    const levelPack = LEVEL_PACK_IDS.includes(parsed.levelPack) ? parsed.levelPack : DEFAULT_SETTINGS.levelPack;
     const mode = MODE_TYPES.includes(parsed.mode) ? parsed.mode : DEFAULT_SETTINGS.mode;
     const difficulty = Object.prototype.hasOwnProperty.call(DIFFICULTY_PRESETS, parsed.difficulty)
       ? parsed.difficulty
@@ -339,7 +347,7 @@ function loadSettings() {
     const showGeometry = parsed.showGeometry !== false;
     const volumeNum = Number(parsed.volume);
     const volume = Number.isFinite(volumeNum) ? clamp(volumeNum, 0, 1) : DEFAULT_SETTINGS.volume;
-    return { mode, difficulty, showGeometry, volume };
+    return { levelPack, mode, difficulty, showGeometry, volume };
   } catch (err) {
     return { ...DEFAULT_SETTINGS };
   }
@@ -378,6 +386,7 @@ function applySettingsToRuntime(previousSettings = null) {
 
 function openSettings() {
   if (!settingsModal) return;
+  optLevelPack.value = settings.levelPack;
   optMode.value = settings.mode;
   optDifficulty.value = settings.difficulty;
   optGeometry.checked = settings.showGeometry;
@@ -392,9 +401,10 @@ function closeSettings() {
   settingsToggle?.setAttribute('aria-expanded', 'false');
 }
 
-function applySettingsFromModal() {
+async function applySettingsFromModal() {
   const prev = { ...settings };
   settings = {
+    levelPack: LEVEL_PACK_IDS.includes(optLevelPack.value) ? optLevelPack.value : DEFAULT_SETTINGS.levelPack,
     mode: MODE_TYPES.includes(optMode.value) ? optMode.value : DEFAULT_SETTINGS.mode,
     difficulty: Object.prototype.hasOwnProperty.call(DIFFICULTY_PRESETS, optDifficulty.value)
       ? optDifficulty.value
@@ -404,9 +414,13 @@ function applySettingsFromModal() {
   };
   saveSettings(settings);
   applySettingsToRuntime(prev);
+  const levelPackChanged = prev.levelPack !== settings.levelPack;
   const modeChanged = prev.mode !== settings.mode;
-  game.status = `Settings applied (${settings.mode}, ${getPreset(settings.difficulty).name}).`;
-  if (modeChanged) {
+  if (levelPackChanged) {
+    await loadConfiguredLevelPack();
+  }
+  game.status = `Settings applied (${LEVEL_PACKS[settings.levelPack]?.name || settings.levelPack}, ${settings.mode}, ${getPreset(settings.difficulty).name}).`;
+  if (modeChanged || levelPackChanged) {
     newGame();
   }
   closeSettings();
@@ -471,9 +485,10 @@ function spawnEndlessWave() {
   game.status = `Endless wave ${wave}`;
 }
 
-async function tryLoadExternalLevelPack() {
+async function tryLoadExternalLevelPack(levelPackId = DEFAULT_SETTINGS.levelPack) {
+  const def = LEVEL_PACKS[levelPackId] || LEVEL_PACKS[DEFAULT_SETTINGS.levelPack];
   try {
-    const response = await fetch('./levels/levelpack_v1.json', { cache: 'no-store' });
+    const response = await fetch(def.path, { cache: 'no-store' });
     if (!response.ok) {
       return false;
     }
@@ -484,6 +499,19 @@ async function tryLoadExternalLevelPack() {
     console.warn('Failed to load external level pack, using defaults.', err);
     return false;
   }
+}
+
+async function loadConfiguredLevelPack() {
+  const requestedId = LEVEL_PACK_IDS.includes(settings.levelPack) ? settings.levelPack : DEFAULT_SETTINGS.levelPack;
+  if (await tryLoadExternalLevelPack(requestedId)) {
+    return true;
+  }
+  if (requestedId !== DEFAULT_SETTINGS.levelPack) {
+    settings = { ...settings, levelPack: DEFAULT_SETTINGS.levelPack };
+    saveSettings(settings);
+    return await tryLoadExternalLevelPack(DEFAULT_SETTINGS.levelPack);
+  }
+  return false;
 }
 
 function loadLevel() {
@@ -1402,7 +1430,7 @@ installDebugApi();
 
 async function start() {
   applySettingsToRuntime(null);
-  await tryLoadExternalLevelPack();
+  await loadConfiguredLevelPack();
   newGame();
   loop();
 }
