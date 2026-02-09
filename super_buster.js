@@ -26,6 +26,22 @@ const SCORE_ADD = [120, 80, 50, 30];
 const STARTING_LIVES = 3;
 const MOVE_SFX_INTERVAL = 0.09;
 const BALL_CAP_FACTOR = 1.08;
+const POWERUP_FALL_GRAVITY = 420;
+const POWERUP_LIFETIME = 9;
+const BULLET_SPEED = 560;
+const BULLET_COOLDOWN = 0.085;
+const POWERUP_DURATION = {
+  sticky: 16,
+  double: 14,
+  gun: 10,
+};
+const WEAPON_TYPES = {
+  single: 'single',
+  sticky: 'sticky',
+  double: 'double',
+  gun: 'gun',
+};
+const POWERUP_TYPES = ['shield', 'sticky', 'double', 'gun'];
 
 const STORAGE = {
   settings: 'super_buster:v1:settings',
@@ -38,10 +54,10 @@ const DEFAULT_SETTINGS = {
 };
 
 const DIFFICULTY_PRESETS = {
-  easy: { name: 'Easy', speedMul: 0.88, gravityMul: 0.9, timeMul: 1.12 },
-  normal: { name: 'Normal', speedMul: 1.0, gravityMul: 1.0, timeMul: 1.0 },
-  hard: { name: 'Hard', speedMul: 1.14, gravityMul: 1.07, timeMul: 0.9 },
-  nightmare: { name: 'Nightmare', speedMul: 1.28, gravityMul: 1.15, timeMul: 0.82 },
+  easy: { name: 'Easy', speedMul: 0.88, gravityMul: 0.9, timeMul: 1.12, bonusDropChance: 0.2 },
+  normal: { name: 'Normal', speedMul: 1.0, gravityMul: 1.0, timeMul: 1.0, bonusDropChance: 0.1 },
+  hard: { name: 'Hard', speedMul: 1.14, gravityMul: 1.07, timeMul: 0.9, bonusDropChance: 0.05 },
+  nightmare: { name: 'Nightmare', speedMul: 1.28, gravityMul: 1.15, timeMul: 0.82, bonusDropChance: 0.02 },
 };
 
 const GameState = {
@@ -131,6 +147,7 @@ const input = {
   right: false,
   up: false,
   down: false,
+  fireHeld: false,
   firePressed: false,
 };
 
@@ -150,17 +167,14 @@ const game = {
     vy: 0,
     facing: 1,
     shootTimer: 0,
+    weaponType: WEAPON_TYPES.single,
+    weaponTimer: 0,
+    shieldCharges: 0,
+    bulletCooldown: 0,
   },
-  harpoon: {
-    active: false,
-    x: 0,
-    yBottom: 0,
-    yTop: 0,
-    extendSpeed: 900,
-    stickTime: 0.15,
-    state: 'extend',
-    timer: 0,
-  },
+  harpoons: [],
+  bullets: [],
+  powerups: [],
   balls: [],
   geometry: { solids: [], ladders: [] },
   levelIndex: 0,
@@ -300,7 +314,9 @@ function loadLevel() {
   }));
   game.geometry = level.geometry || { solids: [], ladders: [] };
   game.levelTimeLeft = Math.max(1, (Number(level.timeLimitSec) || 60) * timeMul);
-  game.harpoon.active = false;
+  game.harpoons = [];
+  game.bullets = [];
+  game.powerups = [];
   game.player.x = WORLD_W * 0.5;
   game.player.y = FLOOR_Y;
   game.player.onLadder = false;
@@ -310,6 +326,10 @@ function loadLevel() {
   game.player.gapBridgeY = FLOOR_Y;
   game.player.facing = 1;
   game.player.shootTimer = 0;
+  game.player.weaponType = WEAPON_TYPES.single;
+  game.player.weaponTimer = 0;
+  game.player.shieldCharges = 0;
+  game.player.bulletCooldown = 0;
   game.state = GameState.PLAYING;
   game.stateTimer = 0;
   game.status = level.name;
@@ -322,7 +342,9 @@ function newGame() {
   game.balls = [];
   game.geometry = { solids: [], ladders: [] };
   game.levelTimeLeft = 0;
-  game.harpoon.active = false;
+  game.harpoons = [];
+  game.bullets = [];
+  game.powerups = [];
   game.player.y = FLOOR_Y;
   game.player.onLadder = false;
   game.player.ladderIndex = -1;
@@ -331,29 +353,133 @@ function newGame() {
   game.player.gapBridgeY = FLOOR_Y;
   game.player.facing = 1;
   game.player.shootTimer = 0;
+  game.player.weaponType = WEAPON_TYPES.single;
+  game.player.weaponTimer = 0;
+  game.player.shieldCharges = 0;
+  game.player.bulletCooldown = 0;
   game.moveSfxTimer = MOVE_SFX_INTERVAL;
   game.state = GameState.LEVEL_START;
   game.stateTimer = 0;
   game.status = 'Ready.';
 }
 
+function makeHarpoon(x) {
+  return {
+    active: true,
+    x,
+    yBottom: FLOOR_Y,
+    yTop: FLOOR_Y,
+    extendSpeed: 900,
+    stickTime: game.player.weaponType === WEAPON_TYPES.sticky ? 2.2 : 0.25,
+    state: 'extend',
+    timer: 0,
+  };
+}
+
 function fireHarpoon() {
-  const h = game.harpoon;
-  h.active = true;
-  h.x = game.player.x;
-  // Pang-style: rope is anchored at the ground with no bottom gap.
-  h.yBottom = FLOOR_Y;
-  h.yTop = h.yBottom;
-  h.state = 'extend';
-  h.timer = 0;
+  if (game.player.weaponType === WEAPON_TYPES.double && game.harpoons.length >= 2) return;
+  if (game.player.weaponType !== WEAPON_TYPES.double && game.harpoons.length >= 1) return;
+  game.harpoons.push(makeHarpoon(game.player.x));
   game.player.shootTimer = 0.13;
   sfx.play(BANK_SUPERBUSTER, 'shoot');
 }
 
-function updateHarpoon(dt) {
-  const result = advanceHarpoon(game.harpoon, dt, game.geometry.solids, 0);
-  if (result.stuck) {
-    sfx.play(BANK_SUPERBUSTER, 'harpoonTop');
+function fireGun() {
+  if (game.player.bulletCooldown > 0) return;
+  const y = game.player.y - game.player.h + 2;
+  game.bullets.push({ x: game.player.x - 3.5, y, vy: -BULLET_SPEED, r: 2.6 });
+  game.bullets.push({ x: game.player.x + 3.5, y, vy: -BULLET_SPEED, r: 2.6 });
+  game.player.bulletCooldown = BULLET_COOLDOWN;
+  game.player.shootTimer = 0.1;
+  sfx.play(BANK_SUPERBUSTER, 'shoot');
+}
+
+function updateHarpoons(dt) {
+  for (let i = game.harpoons.length - 1; i >= 0; i -= 1) {
+    const h = game.harpoons[i];
+    const result = advanceHarpoon(h, dt, game.geometry.solids, 0);
+    if (result.stuck) {
+      sfx.play(BANK_SUPERBUSTER, 'harpoonTop');
+    }
+    if (!h.active) {
+      game.harpoons.splice(i, 1);
+    }
+  }
+}
+
+function shouldDropPowerup(ballSize) {
+  if (ballSize <= 0) return false;
+  const tuning = game.tuning || buildTuning(settings);
+  const chance = tuning.preset.bonusDropChance || 0;
+  return Math.random() < chance;
+}
+
+function randomPowerupType() {
+  const r = Math.random();
+  if (r < 0.28) return 'shield';
+  if (r < 0.53) return 'sticky';
+  if (r < 0.77) return 'double';
+  return 'gun';
+}
+
+function maybeSpawnPowerupFromBall(ball) {
+  if (!shouldDropPowerup(ball.size)) return;
+  const type = randomPowerupType();
+  game.powerups.push({
+    type,
+    x: ball.x,
+    y: Math.max(12, ball.y - 8),
+    vy: -120,
+    ttl: POWERUP_LIFETIME,
+    r: 9,
+  });
+}
+
+function applyPowerup(type) {
+  if (type === 'shield') {
+    game.player.shieldCharges = 1;
+    game.status = 'Bubble shield acquired.';
+    return;
+  }
+  if (type === 'sticky' || type === 'double' || type === 'gun') {
+    game.player.weaponType = type;
+    game.player.weaponTimer = POWERUP_DURATION[type];
+    game.status = `${type} weapon online.`;
+  }
+}
+
+function updatePowerups(dt) {
+  for (let i = game.powerups.length - 1; i >= 0; i -= 1) {
+    const p = game.powerups[i];
+    p.ttl -= dt;
+    p.vy += POWERUP_FALL_GRAVITY * dt;
+    p.y += p.vy * dt;
+    const floorItemY = FLOOR_Y - p.r;
+    if (p.y > floorItemY) {
+      p.y = floorItemY;
+      p.vy = 0;
+    }
+    const dx = p.x - game.player.x;
+    const dy = p.y - (game.player.y - game.player.h * 0.55);
+    const rr = p.r + game.player.hitR * 0.8;
+    if (dx * dx + dy * dy <= rr * rr) {
+      applyPowerup(p.type);
+      game.powerups.splice(i, 1);
+      continue;
+    }
+    if (p.ttl <= 0) {
+      game.powerups.splice(i, 1);
+    }
+  }
+}
+
+function updateBullets(dt) {
+  for (let i = game.bullets.length - 1; i >= 0; i -= 1) {
+    const b = game.bullets[i];
+    b.y += b.vy * dt;
+    if (b.y < -8) {
+      game.bullets.splice(i, 1);
+    }
   }
 }
 
@@ -362,6 +488,7 @@ function splitBall(index) {
   const tuning = game.tuning || buildTuning(settings);
   const size = ball.size;
   game.balls.splice(index, 1);
+  maybeSpawnPowerupFromBall(ball);
   game.score += SCORE_ADD[size] || 10;
   const maxSize = RADIUS.length - 1;
   sfx.play(BANK_SUPERBUSTER, 'hit', { sizeIndex: size, maxSize });
@@ -407,27 +534,36 @@ function setPlayerHit() {
   game.stateTimer = 0.6;
   const lifeWord = game.lives === 1 ? 'life' : 'lives';
   game.status = `Hit! ${game.lives} ${lifeWord} left.`;
-  game.harpoon.active = false;
+  game.harpoons = [];
+  game.bullets = [];
 }
 
 function setLevelClear() {
   game.state = GameState.LEVEL_CLEAR;
   game.stateTimer = 0.8;
   game.status = 'Level clear!';
-  game.harpoon.active = false;
+  game.harpoons = [];
+  game.bullets = [];
   sfx.play(BANK_SUPERBUSTER, 'levelClear', { level: game.levelIndex + 1 });
 }
 
 function setGameOver(message, playSfx = true) {
   game.state = GameState.GAME_OVER;
   game.status = message || 'Game over. Press R to restart.';
-  game.harpoon.active = false;
+  game.harpoons = [];
+  game.bullets = [];
   if (playSfx) {
     sfx.play(BANK_SUPERBUSTER, 'gameOver');
   }
 }
 
 function handlePlayerHit() {
+  if (game.player.shieldCharges > 0) {
+    game.player.shieldCharges -= 1;
+    game.status = 'Shield absorbed the hit.';
+    sfx.play(BANK_SUPERBUSTER, 'pop');
+    return;
+  }
   game.lives = Math.max(0, game.lives - 1);
   sfx.play(BANK_SUPERBUSTER, 'playerHit');
   if (game.lives <= 0) {
@@ -440,6 +576,14 @@ function handlePlayerHit() {
 function updatePlaying(dt) {
   const tuning = game.tuning || buildTuning(settings);
   game.player.shootTimer = Math.max(0, game.player.shootTimer - dt);
+  game.player.bulletCooldown = Math.max(0, game.player.bulletCooldown - dt);
+  if (game.player.weaponType !== WEAPON_TYPES.single) {
+    game.player.weaponTimer = Math.max(0, game.player.weaponTimer - dt);
+    if (game.player.weaponTimer <= 0) {
+      game.player.weaponType = WEAPON_TYPES.single;
+      game.status = 'Weapon reverted to harpoon.';
+    }
+  }
   game.levelTimeLeft = Math.max(0, game.levelTimeLeft - dt);
   if (game.levelTimeLeft <= 0) {
     game.status = 'Time up!';
@@ -470,12 +614,18 @@ function updatePlaying(dt) {
     game.moveSfxTimer = MOVE_SFX_INTERVAL;
   }
 
-  if (input.firePressed && !game.harpoon.active) {
+  if (game.player.weaponType === WEAPON_TYPES.gun) {
+    if (input.fireHeld || input.firePressed) {
+      fireGun();
+    }
+  } else if (input.firePressed) {
     fireHarpoon();
   }
   input.firePressed = false;
 
-  updateHarpoon(dt);
+  updateHarpoons(dt);
+  updateBullets(dt);
+  updatePowerups(dt);
 
   for (const ball of game.balls) {
     updateBall(ball, dt, {
@@ -493,12 +643,41 @@ function updatePlaying(dt) {
     clampBallVelocity(ball, { jumpSpeed: tuning.jumpSpeed, vxMag: tuning.vxMag, capFactor: BALL_CAP_FACTOR });
   }
 
-  if (game.harpoon.active) {
-    for (let i = 0; i < game.balls.length; i++) {
-      if (harpoonHitsBall(game.harpoon, game.balls[i], RADIUS)) {
-        splitBall(i);
-        game.harpoon.active = false;
-        break;
+  if (game.harpoons.length) {
+    for (let hi = game.harpoons.length - 1; hi >= 0; hi -= 1) {
+      const h = game.harpoons[hi];
+      let hit = false;
+      for (let i = 0; i < game.balls.length; i += 1) {
+        if (harpoonHitsBall(h, game.balls[i], RADIUS)) {
+          splitBall(i);
+          h.active = false;
+          hit = true;
+          break;
+        }
+      }
+      if (hit) {
+        game.harpoons.splice(hi, 1);
+      }
+    }
+  }
+
+  if (game.bullets.length) {
+    for (let bi = game.bullets.length - 1; bi >= 0; bi -= 1) {
+      const bullet = game.bullets[bi];
+      let hit = false;
+      for (let i = 0; i < game.balls.length; i += 1) {
+        const ball = game.balls[i];
+        const rr = RADIUS[ball.size] + bullet.r;
+        const dx = ball.x - bullet.x;
+        const dy = ball.y - bullet.y;
+        if (dx * dx + dy * dy <= rr * rr) {
+          splitBall(i);
+          hit = true;
+          break;
+        }
+      }
+      if (hit) {
+        game.bullets.splice(bi, 1);
       }
     }
   }
@@ -583,11 +762,52 @@ function render() {
   if (settings.showGeometry) {
     drawGeometry(ctx, game.geometry);
   }
-  drawHarpoon(ctx, game.harpoon);
+  for (const h of game.harpoons) {
+    drawHarpoon(ctx, h);
+  }
+  for (const bullet of game.bullets) {
+    ctx.fillStyle = '#e2e8f0';
+    ctx.beginPath();
+    ctx.arc(bullet.x, bullet.y, bullet.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.55)';
+    ctx.fillRect(bullet.x - 0.8, bullet.y + bullet.r, 1.6, 5);
+  }
+  for (const p of game.powerups) {
+    const glow = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, p.r + 5);
+    glow.addColorStop(0, 'rgba(255,255,255,0.9)');
+    glow.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r + 4, 0, Math.PI * 2);
+    ctx.fill();
+    const colors = {
+      shield: '#67e8f9',
+      sticky: '#86efac',
+      double: '#fca5a5',
+      gun: '#fcd34d',
+    };
+    ctx.fillStyle = colors[p.type] || '#e2e8f0';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 9px monospace';
+    const glyph = p.type === 'shield' ? 'S' : (p.type === 'sticky' ? 'W' : (p.type === 'double' ? 'D' : 'G'));
+    ctx.fillText(glyph, p.x - 3, p.y + 3);
+  }
   for (const ball of game.balls) {
     drawBall(ctx, ball, RADIUS, BALL_COLORS);
   }
-  drawPlayer(ctx, game.player, FLOOR_Y, game.harpoon);
+  const primaryHarpoon = game.harpoons.length ? game.harpoons[0] : null;
+  drawPlayer(ctx, game.player, FLOOR_Y, primaryHarpoon);
+  if (game.player.shieldCharges > 0) {
+    ctx.strokeStyle = 'rgba(125, 211, 252, 0.68)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(game.player.x, game.player.y - game.player.h * 0.62, game.player.hitR + 6, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 }
 
 function updateHud() {
@@ -597,7 +817,10 @@ function updateHud() {
   if (timeEl) {
     timeEl.textContent = game.levelTimeLeft.toFixed(1);
   }
-  statusEl.textContent = game.status;
+  const weaponLabel = game.player.weaponType === WEAPON_TYPES.single ? 'harpoon' : game.player.weaponType;
+  const timerLabel = game.player.weaponTimer > 0 ? ` ${game.player.weaponTimer.toFixed(1)}s` : '';
+  const shieldLabel = game.player.shieldCharges > 0 ? ' shield' : '';
+  statusEl.textContent = `${game.status} | ${weaponLabel}${timerLabel}${shieldLabel}`;
 }
 
 function unlockAudio() {
@@ -649,6 +872,7 @@ function handleKeyDown(ev) {
     ev.preventDefault();
   }
   if (isFireKey(ev)) {
+    input.fireHeld = true;
     if (!ev.repeat) {
       input.firePressed = true;
     }
@@ -676,6 +900,10 @@ function handleKeyUp(ev) {
   }
   if (key === 'arrowdown' || key === 's') {
     input.down = false;
+    ev.preventDefault();
+  }
+  if (isFireKey(ev)) {
+    input.fireHeld = false;
     ev.preventDefault();
   }
 }
@@ -709,8 +937,13 @@ function installDebugApi() {
         status: game.status,
         levelIndex: game.levelIndex,
         levelTimeLeft: game.levelTimeLeft,
+        lives: game.lives,
+        score: game.score,
         player: clonePlain(game.player),
-        harpoon: clonePlain(game.harpoon),
+        harpoon: clonePlain(game.harpoons[0] || { active: false, x: 0, yBottom: FLOOR_Y, yTop: FLOOR_Y, state: 'extend', timer: 0 }),
+        harpoons: clonePlain(game.harpoons),
+        bullets: clonePlain(game.bullets),
+        powerups: clonePlain(game.powerups),
         balls: clonePlain(game.balls),
         geometry: clonePlain(game.geometry),
         settings: clonePlain(settings),
@@ -727,6 +960,20 @@ function installDebugApi() {
     },
     setPlayer(patch) {
       Object.assign(game.player, patch || {});
+    },
+    spawnPowerup(type, x, y) {
+      const t = POWERUP_TYPES.includes(type) ? type : 'shield';
+      game.powerups.push({
+        type: t,
+        x: clamp(Number(x), 6, WORLD_W - 6),
+        y: clamp(Number(y), 6, FLOOR_Y - 6),
+        vy: 0,
+        ttl: POWERUP_LIFETIME,
+        r: 9,
+      });
+    },
+    forcePlayerHit() {
+      handlePlayerHit();
     },
   };
 }

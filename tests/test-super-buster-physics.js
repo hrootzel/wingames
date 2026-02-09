@@ -354,3 +354,132 @@ test('super buster: harpoon is anchored at floor even when firing from platform'
   expect(Math.abs(state.yBottom - 336)).toBeLessThanOrEqual(0.6);
   expect(state.yTop).toBeLessThan(state.yBottom);
 });
+
+test('super buster: shield pickup absorbs one hit', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB9',
+    name: 'Shield Lab',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
+    balls: [{ size: 0, x: 40, y: 40, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Shield Lab');
+
+  await page.evaluate(() => {
+    const s = window.__superBusterDebug.getState();
+    const p = s.player;
+    window.__superBusterDebug.setBall(0, { x: 40, y: 40, vx: 0, vy: 0 });
+    window.__superBusterDebug.spawnPowerup('shield', p.x, p.y - 16);
+  });
+  await expect.poll(async () => (await page.evaluate(() => window.__superBusterDebug.getState().player.shieldCharges))).toBe(1);
+
+  await page.evaluate(async () => {
+    window.__superBusterDebug.forcePlayerHit();
+  });
+  await page.waitForTimeout(60);
+
+  const after = await page.evaluate(() => window.__superBusterDebug.getState());
+  expect(after.lives).toBe(3);
+  expect(after.player.shieldCharges).toBe(0);
+});
+
+test('super buster: sticky weapon keeps harpoon attached longer', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB10',
+    name: 'Sticky Lab',
+    timeLimitSec: 60,
+    geometry: { solids: [{ x: 260, y: 220, w: 120, h: 12 }], ladders: [] },
+    balls: [{ size: 0, x: 40, y: 40, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Sticky Lab');
+
+  await page.evaluate(() => {
+    const s = window.__superBusterDebug.getState();
+    window.__superBusterDebug.spawnPowerup('sticky', s.player.x, s.player.y - 16);
+  });
+  await page.waitForTimeout(120);
+
+  await page.keyboard.press('Space');
+  await expect.poll(async () => (await page.evaluate(() => window.__superBusterDebug.getState().harpoon.state))).toBe('stick');
+  await page.waitForTimeout(500);
+  const harpoon = await page.evaluate(() => window.__superBusterDebug.getState().harpoon);
+  expect(harpoon.active).toBe(true);
+});
+
+test('super buster: double weapon allows two simultaneous harpoons', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB11',
+    name: 'Double Lab',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
+    balls: [{ size: 0, x: 40, y: 40, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Double Lab');
+
+  await page.evaluate(() => {
+    const s = window.__superBusterDebug.getState();
+    window.__superBusterDebug.spawnPowerup('double', s.player.x, s.player.y - 16);
+  });
+  await page.waitForTimeout(120);
+
+  await page.keyboard.press('Space');
+  await page.waitForTimeout(30);
+  await page.keyboard.press('Space');
+
+  await expect.poll(async () => {
+    const s = await page.evaluate(() => window.__superBusterDebug.getState());
+    return s.harpoons.length;
+  }).toBeGreaterThan(1);
+});
+
+test('super buster: gun weapon fires bullets and can pop a ball', async ({ page }) => {
+  const pack = makePack({
+    id: 'LAB12',
+    name: 'Gun Lab',
+    timeLimitSec: 60,
+    geometry: { solids: [], ladders: [] },
+    balls: [{ size: 0, x: 320, y: 268, dir: 1 }],
+  });
+
+  await page.route('**/levels/levelpack_v1.json', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pack) });
+  });
+
+  await page.goto('/super_buster.html');
+  await expect.poll(async () => (await page.locator('#status').textContent())?.trim()).toContain('Gun Lab');
+
+  await page.evaluate(() => {
+    const s = window.__superBusterDebug.getState();
+    window.__superBusterDebug.setPlayerX(320);
+    window.__superBusterDebug.setBall(0, { x: 320, y: 268, vx: 0, vy: 0 });
+    window.__superBusterDebug.spawnPowerup('gun', s.player.x, s.player.y - 16);
+  });
+  await expect.poll(async () => (await page.evaluate(() => window.__superBusterDebug.getState().player.weaponType))).toBe('gun');
+
+  await page.keyboard.down('Space');
+  await page.waitForTimeout(260);
+  await page.keyboard.up('Space');
+
+  await expect.poll(async () => {
+    const s = await page.evaluate(() => window.__superBusterDebug.getState());
+    return s.balls.length;
+  }).toBe(0);
+});
