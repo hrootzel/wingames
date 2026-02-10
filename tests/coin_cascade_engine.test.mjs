@@ -166,12 +166,12 @@ test('minus token removes all coins matching tier found below it', () => {
 
 test('minus token compacts board after erase when no conversion follows', () => {
   const board = createBoard();
-  board[0][0] = CELL_MINUS;
-  board[1][0] = CELL_I;
+  board[1][0] = CELL_MINUS;
+  board[0][0] = CELL_I;
   board[2][0] = CELL_V;
   board[4][0] = CELL_X;
 
-  resolveBoard(board, { applyGravity: true, activeCells: [[0, 0]] });
+  resolveBoard(board, { applyGravity: true, activeCells: [[1, 0]] });
 
   assert.equal(board[0][0], CELL_V);
   assert.equal(board[1][0], CELL_X);

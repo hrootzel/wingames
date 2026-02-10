@@ -1,29 +1,39 @@
 import { SfxEngine } from './sfx_engine.js';
 import { BANK_COIN_CASCADE } from './sfx_bank_coin_cascade.js';
 import { initGameShell } from './game-shell.js';
+import {
+  COLS,
+  ROWS_VISIBLE,
+  ROWS_BUFFER,
+  ROWS,
+  VISIBLE_START,
+  CELL_EMPTY,
+  CELL_I,
+  CELL_V,
+  CELL_X,
+  CELL_L,
+  CELL_C,
+  CELL_D,
+  CELL_PLUS,
+  CELL_MINUS,
+  REQUIRE,
+  DENOM,
+  makeRng,
+  isCoin,
+  tierOf,
+  cellOfTier,
+  createBoard,
+  descentIntervalMs,
+  generateSpawnRow as engineGenerateSpawnRow,
+  countOccupied as engineCountOccupied,
+  findBottomOccupiedRow as engineFindBottomOccupiedRow,
+  findGroups as engineFindGroups,
+  selectUpgradeSpawn as engineSelectUpgradeSpawn,
+  applyScoreForStep as engineApplyScoreForStep,
+} from './coin_cascade_engine.mjs';
 
-const COLS = 6;
-const ROWS_VISIBLE = 12;
-const ROWS_BUFFER = 0;
-const ROWS = ROWS_VISIBLE + ROWS_BUFFER;
-const VISIBLE_START = ROWS - ROWS_VISIBLE;
-
-const CELL_EMPTY = 0;
-const CELL_I = 1;
-const CELL_V = 2;
-const CELL_X = 3;
-const CELL_L = 4;
-const CELL_C = 5;
-const CELL_D = 6;
-const CELL_PLUS = 7;
-const CELL_MINUS = 8;
-
-const REQUIRE = [5, 2, 5, 2, 5, 2];
-const DENOM = [1, 5, 10, 50, 100, 500];
 const ROMAN_NUMERALS = ['I', 'V', 'X', 'L', 'C', 'D'];
 const ARABIC_NUMERALS = ['1', '5', '10', '50', '100', '500'];
-const BASE_DESCENT_MS = { 1: 1950, 2: 1775, 3: 1600, 4: 1450, 5: 1325, 6: 1200, 7: 1125, 8: 1050 };
-const DIFF_LEVEL_SHIFT = { 1: -6, 2: -4, 3: -2, 4: 0, 5: 2, 6: 4, 7: 6, 8: 8 };
 const DIFF_PROGRESS_MULT = { 1: 0.85, 2: 0.9, 3: 0.95, 4: 1, 5: 1.05, 6: 1.1, 7: 1.15, 8: 1.2 };
 
 const LEVEL_UP_THRESHOLD = 30;
@@ -94,22 +104,6 @@ const view = {
 const game = makeGame();
 let settings = loadSettings();
 
-function makeRng(seed) {
-  let t = seed >>> 0;
-  return {
-    next() {
-      t += 0x6d2b79f5;
-      let x = t;
-      x = Math.imul(x ^ (x >>> 15), x | 1);
-      x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
-      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
-    },
-    int(n) {
-      return Math.floor(this.next() * n);
-    },
-  };
-}
-
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -119,27 +113,11 @@ function toNumber(value, fallback) {
   return Number.isFinite(num) ? num : fallback;
 }
 
-function isCoin(cell) {
-  return cell >= CELL_I && cell <= CELL_D;
-}
-
-function tierOf(cell) {
-  return isCoin(cell) ? cell - 1 : null;
-}
-
-function cellOfTier(tier) {
-  return CELL_I + tier;
-}
-
-function makeBoard() {
-  return Array.from({ length: ROWS }, () => Array(COLS).fill(CELL_EMPTY));
-}
-
 function makeGame() {
   const seed = (Date.now() >>> 0) ^ ((Math.random() * 0xffffffff) >>> 0);
   return {
     rng: makeRng(seed),
-    board: makeBoard(),
+    board: createBoard(),
     hand: { col: 0, stack: [] },
     score: 0,
     level: 1,
@@ -224,58 +202,20 @@ function closeSettings() {
   settingsToggle.setAttribute('aria-expanded', 'false');
 }
 
-function descentIntervalMs(level, difficulty) {
-  const base = BASE_DESCENT_MS[difficulty];
-  const ms = base * Math.pow(0.97, level - 1);
-  return Math.max(260, Math.floor(ms));
-}
-
 function actionCooldownMs(level) {
   return Math.max(60, 140 - level * 2);
 }
 
-function sampleTier(weights) {
-  const r = game.rng.next();
-  let sum = 0;
-  for (let i = 0; i < weights.length; i++) {
-    sum += weights[i];
-    if (r <= sum) return i;
-  }
-  return weights.length - 1;
-}
-
 function generateSpawnRow(level, difficulty) {
-  const eff = level + DIFF_LEVEL_SHIFT[difficulty];
-  let weights;
-  if (eff <= 5) weights = [0.55, 0.25, 0.2, 0, 0, 0];
-  else if (eff <= 12) weights = [0.4, 0.25, 0.25, 0.1, 0, 0];
-  else if (eff <= 20) weights = [0.28, 0.22, 0.25, 0.18, 0.07, 0];
-  else weights = [0.2, 0.18, 0.22, 0.2, 0.14, 0.06];
-
-  const row = Array(COLS).fill(CELL_EMPTY);
-  for (let c = 0; c < COLS; c++) {
-    row[c] = cellOfTier(sampleTier(weights));
-  }
-
-  const pSpecial = Math.min(0.12, 0.03 + 0.002 * eff);
-  if (game.rng.next() < pSpecial) {
-    const col = game.rng.int(COLS);
-    row[col] = game.rng.next() < 0.52 ? CELL_PLUS : CELL_MINUS;
-  }
-  return row;
+  return engineGenerateSpawnRow({ rng: game.rng, level, difficulty });
 }
 
 function countOccupied(col) {
-  let n = 0;
-  for (let r = 0; r < ROWS; r++) if (game.board[r][col] !== CELL_EMPTY) n++;
-  return n;
+  return engineCountOccupied(game.board, col);
 }
 
 function findBottomOccupiedRow(col) {
-  for (let r = ROWS - 1; r >= 0; r--) {
-    if (game.board[r][col] !== CELL_EMPTY) return r;
-  }
-  return -1;
+  return engineFindBottomOccupiedRow(game.board, col);
 }
 
 function applyGravity() {
@@ -295,7 +235,7 @@ function applyGravity() {
 }
 
 function applyGravityWithMoves(activeSet = null) {
-  const next = makeBoard();
+  const next = createBoard();
   const moves = [];
   const nextActive = activeSet ? new Set() : null;
   for (let c = 0; c < COLS; c++) {
@@ -405,49 +345,11 @@ function activateSpecialsOnce(activeSet = null) {
 }
 
 function findGroups() {
-  const visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
-  const groups = [];
-
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      const cell = game.board[r][c];
-      if (!isCoin(cell) || visited[r][c]) continue;
-
-      const tier = tierOf(cell);
-      const stack = [[r, c]];
-      visited[r][c] = true;
-      const cells = [];
-
-      while (stack.length) {
-        const [rr, cc] = stack.pop();
-        cells.push([rr, cc]);
-        const neighbors = [
-          [rr - 1, cc],
-          [rr + 1, cc],
-          [rr, cc - 1],
-          [rr, cc + 1],
-        ];
-        for (const [nr, nc] of neighbors) {
-          if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
-          if (visited[nr][nc]) continue;
-          if (game.board[nr][nc] === cell) {
-            visited[nr][nc] = true;
-            stack.push([nr, nc]);
-          }
-        }
-      }
-      groups.push({ tier, cells });
-    }
-  }
-  return groups;
+  return engineFindGroups(game.board);
 }
 
 function selectUpgradeSpawn(cells) {
-  let best = cells[0];
-  for (const [r, c] of cells) {
-    if (r > best[0] || (r === best[0] && c > best[1])) best = [r, c];
-  }
-  return best;
+  return engineSelectUpgradeSpawn(cells);
 }
 
 function findTopFreeRow(col) {
@@ -458,18 +360,7 @@ function findTopFreeRow(col) {
 }
 
 function applyScoreForStep(conversions, chainStep) {
-  const chainMult = 1 + 0.5 * (chainStep - 1);
-  let basePoints = 0;
-  let anyDClear = false;
-
-  for (const conv of conversions) {
-    basePoints += DENOM[conv.tier] * conv.size;
-    if (conv.tier === 5) anyDClear = true;
-  }
-
-  let stepPoints = Math.floor(basePoints * chainMult);
-  if (anyDClear) stepPoints += 1000;
-  return stepPoints;
+  return engineApplyScoreForStep(conversions, chainStep);
 }
 
 function addBanner(text) {
