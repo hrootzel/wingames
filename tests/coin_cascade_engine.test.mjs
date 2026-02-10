@@ -117,31 +117,31 @@ test('two connected V coins convert into one X', () => {
   assert.equal(countCell(board, CELL_V), 0);
 });
 
-test('six connected I coins produce one V and leave one I remainder', () => {
+test('six connected I coins clear as one group and produce one V', () => {
   const board = createBoard();
   for (let c = 0; c < 6; c++) board[ROWS - 2][c] = CELL_I;
   resolveBoard(board);
 
   assert.equal(countCell(board, CELL_V), 1);
-  assert.equal(countCell(board, CELL_I), 1);
+  assert.equal(countCell(board, CELL_I), 0);
 });
 
-test('ten connected I coins create two V outputs which then chain into an X', () => {
+test('ten connected I coins clear as one group and produce one V', () => {
   const board = createBoard();
   for (let c = 0; c < 5; c++) board[ROWS - 2][c] = CELL_I;
   for (let c = 0; c < 5; c++) board[ROWS - 3][c] = CELL_I;
 
   const out = resolveBoard(board);
 
-  assert.equal(out.chain, 2);
-  assert.equal(countCell(board, CELL_X), 1);
+  assert.equal(out.chain, 1);
+  assert.equal(countCell(board, CELL_V), 1);
   assert.equal(countCell(board, CELL_I), 0);
 });
 
 test('plus token upgrades all coins matching tier found below it', () => {
   const board = createBoard();
-  board[ROWS - 6][0] = CELL_PLUS;
-  board[ROWS - 5][0] = CELL_V;
+  board[ROWS - 5][0] = CELL_PLUS;
+  board[ROWS - 6][0] = CELL_V;
   board[ROWS - 4][3] = CELL_V;
   board[ROWS - 3][5] = CELL_V;
   resolveBoard(board);
@@ -151,8 +151,8 @@ test('plus token upgrades all coins matching tier found below it', () => {
 
 test('minus token removes all coins matching tier found below it', () => {
   const board = createBoard();
-  board[ROWS - 6][0] = CELL_MINUS;
-  board[ROWS - 5][0] = CELL_I;
+  board[ROWS - 5][0] = CELL_MINUS;
+  board[ROWS - 6][0] = CELL_I;
   board[ROWS - 4][2] = CELL_I;
   board[ROWS - 3][4] = CELL_I;
   resolveBoard(board);
@@ -166,11 +166,11 @@ test('minus token removes all coins matching tier found below it', () => {
 
 test('plus token in active set still activates after gravity remap', () => {
   const board = createBoard();
-  board[ROWS - 3][0] = CELL_PLUS;
-  board[ROWS - 1][0] = CELL_V;
+  board[ROWS - 2][0] = CELL_PLUS;
+  board[ROWS - 3][0] = CELL_V;
   board[ROWS - 2][4] = CELL_V;
 
-  const out = resolveBoard(board, { activeCells: [[ROWS - 3, 0]] });
+  const out = resolveBoard(board, { activeCells: [[ROWS - 2, 0]] });
 
   assert.equal(countCell(board, CELL_PLUS), 0);
   assert.equal(countCell(board, CELL_V), 0);
@@ -180,12 +180,12 @@ test('plus token in active set still activates after gravity remap', () => {
 
 test('minus token in active set still activates after gravity remap', () => {
   const board = createBoard();
-  board[ROWS - 3][1] = CELL_MINUS;
-  board[ROWS - 1][1] = CELL_I;
+  board[ROWS - 2][1] = CELL_MINUS;
+  board[ROWS - 3][1] = CELL_I;
   board[ROWS - 2][3] = CELL_I;
   board[ROWS - 4][5] = CELL_I;
 
-  const out = resolveBoard(board, { activeCells: [[ROWS - 3, 1]] });
+  const out = resolveBoard(board, { activeCells: [[ROWS - 2, 1]] });
 
   assert.equal(countCell(board, CELL_MINUS), 0);
   assert.equal(countCell(board, CELL_I), 0);
@@ -193,18 +193,50 @@ test('minus token in active set still activates after gravity remap', () => {
   assert.equal(out.clearedInResolve, 3);
 });
 
-test('active minus token fizzles when no coin exists below in same column', () => {
+test('active minus token fizzles when no coin exists above in same column', () => {
   const board = createBoard();
-  board[ROWS - 2][2] = CELL_MINUS;
+  board[1][2] = CELL_MINUS;
   board[ROWS - 1][0] = CELL_I;
   board[ROWS - 1][4] = CELL_V;
 
-  const out = resolveBoard(board, { activeCells: [[ROWS - 2, 2]] });
+  const out = resolveBoard(board, { activeCells: [[1, 2]] });
 
   assert.equal(countCell(board, CELL_MINUS), 0);
   assert.equal(countCell(board, CELL_I), 1);
   assert.equal(countCell(board, CELL_V), 1);
   assert.equal(out.scoreDelta, 0);
+});
+
+test('throwing a plus gem into a column upgrades the denomination above it', () => {
+  const board = createBoard();
+  board[0][0] = CELL_V;
+  board[1][0] = CELL_V;
+  const hand = [CELL_PLUS];
+
+  const thrown = throwToColumn(board, hand, 0);
+  assert.equal(thrown.ok, true);
+  const out = resolveBoard(board, { activeCells: thrown.placed });
+
+  assert.equal(out.specialsInResolve, 1);
+  assert.equal(countCell(board, CELL_PLUS), 0);
+  assert.equal(countCell(board, CELL_V), 0);
+  assert.equal(countCell(board, CELL_X), 2);
+});
+
+test('throwing a minus gem into a column removes matching denomination above it', () => {
+  const board = createBoard();
+  board[0][2] = CELL_I;
+  board[1][2] = CELL_I;
+  board[0][4] = CELL_I;
+  const hand = [CELL_MINUS];
+
+  const thrown = throwToColumn(board, hand, 2);
+  assert.equal(thrown.ok, true);
+  const out = resolveBoard(board, { activeCells: thrown.placed });
+
+  assert.equal(out.specialsInResolve, 1);
+  assert.equal(countCell(board, CELL_MINUS), 0);
+  assert.equal(countCell(board, CELL_I), 0);
 });
 
 test('D pair clear awards +1000 bonus once in the step', () => {
@@ -316,4 +348,32 @@ test('only newly formed coins can trigger the next match step in a chain', () =>
   assert.equal(out.chain, 1);
   assert.equal(countCell(board, CELL_X), 1);
   assert.equal(countCell(board, CELL_I), 5);
+});
+
+test('conversion output anchors to the active/thrown coin position', () => {
+  const board = createBoard();
+  board[0][0] = CELL_V;
+  board[0][1] = CELL_V;
+
+  const out = resolveBoard(board, { applyGravity: false, activeCells: [[0, 0]] });
+
+  assert.equal(out.chain, 1);
+  assert.equal(board[0][0], CELL_X);
+  assert.equal(board[0][1], CELL_EMPTY);
+});
+
+test('chain follow-up output anchors where previous coin was created', () => {
+  const board = createBoard();
+  board[1][2] = CELL_I;
+  board[1][1] = CELL_I;
+  board[1][0] = CELL_I;
+  board[0][1] = CELL_I;
+  board[2][1] = CELL_I;
+  board[1][3] = CELL_V;
+
+  const out = resolveBoard(board, { applyGravity: false, activeCells: [[1, 2]] });
+
+  assert.equal(out.chain, 2);
+  assert.equal(board[1][2], CELL_X);
+  assert.equal(board[1][3], CELL_EMPTY);
 });

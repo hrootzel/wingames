@@ -190,10 +190,10 @@ export function activateSpecialsOnce(board, activeSet = null) {
       if (cell !== CELL_PLUS && cell !== CELL_MINUS) continue;
       if (activeSet && !activeSet.has(cellKey(r, c))) continue;
 
-      let rr = r + 1;
-      while (rr < ROWS && board[rr][c] === CELL_EMPTY) rr++;
+      let rr = r - 1;
+      while (rr >= 0 && board[rr][c] === CELL_EMPTY) rr--;
 
-      if (rr < ROWS && isCoin(board[rr][c])) {
+      if (rr >= 0 && isCoin(board[rr][c])) {
         const tier = tierOf(board[rr][c]);
         let affected = 0;
         if (cell === CELL_PLUS) {
@@ -304,9 +304,8 @@ export function resolveBoard(board, options = {}) {
       .map((g) => ({
         ...g,
         setSize: REQUIRE[g.tier],
-        setCount: Math.floor(g.cells.length / REQUIRE[g.tier]),
       }))
-      .filter((g) => g.setCount > 0 && groupTouchesActive(g, activeSet));
+      .filter((g) => g.cells.length >= g.setSize && groupTouchesActive(g, activeSet));
     if (toConvert.length === 0) break;
     chain++;
 
@@ -319,20 +318,19 @@ export function resolveBoard(board, options = {}) {
         if (a[0] !== b[0]) return b[0] - a[0];
         return b[1] - a[1];
       });
-      const consumeCount = group.setCount * group.setSize;
-      const consumed = sorted.slice(0, consumeCount);
+      const activeInGroup = activeSet
+        ? group.cells
+            .filter(([r, c]) => activeSet.has(cellKey(r, c)))
+            .sort((a, b) => (a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]))
+        : [];
+      const consumed = sorted;
       for (const [r, c] of consumed) clearMask[r][c] = true;
 
       if (group.tier < 5) {
-        for (let i = 0; i < group.setCount; i++) {
-          const chunkStart = i * group.setSize;
-          const chunk = consumed.slice(chunkStart, chunkStart + group.setSize);
-          if (chunk.length === 0) continue;
-          const spawnAt = selectUpgradeSpawn(chunk);
-          spawns.push({ c: spawnAt[1], cell: cellOfTier(group.tier + 1) });
-        }
+        const anchor = activeInGroup[0] ?? selectUpgradeSpawn(consumed);
+        spawns.push({ r: anchor[0], c: anchor[1], cell: cellOfTier(group.tier + 1) });
       }
-      conversions.push({ tier: group.tier, size: consumeCount });
+      conversions.push({ tier: group.tier, size: consumed.length });
     }
 
     let removedCount = 0;
@@ -347,7 +345,8 @@ export function resolveBoard(board, options = {}) {
     clearedInResolve += removedCount;
     const placedSpawns = [];
     for (const spawn of spawns) {
-      const r = findTopFreeRow(board, spawn.c);
+      let r = spawn.r;
+      if (r < 0 || r >= ROWS || board[r][spawn.c] !== CELL_EMPTY) r = findTopFreeRow(board, spawn.c);
       if (r < 0) continue;
       board[r][spawn.c] = spawn.cell;
       placedSpawns.push([r, spawn.c]);
