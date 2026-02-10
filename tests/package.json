@@ -6,6 +6,7 @@
     "test": "playwright test",
     "test:games": "playwright test test-game-shell.js",
     "test:generic": "playwright test test-generic-shell.js",
+    "test:coin-cascade": "node --test coin_cascade_engine.test.mjs",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui"
   },

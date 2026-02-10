@@ -4,7 +4,7 @@ import { initGameShell } from './game-shell.js';
 
 const COLS = 6;
 const ROWS_VISIBLE = 12;
-const ROWS_BUFFER = 6;
+const ROWS_BUFFER = 0;
 const ROWS = ROWS_VISIBLE + ROWS_BUFFER;
 const VISIBLE_START = ROWS - ROWS_VISIBLE;
 
@@ -20,7 +20,8 @@ const CELL_MINUS = 8;
 
 const REQUIRE = [5, 2, 5, 2, 5, 2];
 const DENOM = [1, 5, 10, 50, 100, 500];
-const ROMAN = ['I', 'V', 'X', 'L', 'C', 'D'];
+const ROMAN_NUMERALS = ['I', 'V', 'X', 'L', 'C', 'D'];
+const ARABIC_NUMERALS = ['1', '5', '10', '50', '100', '500'];
 const BASE_DESCENT_MS = { 1: 1600, 2: 1450, 3: 1325, 4: 1200, 5: 1100, 6: 1000, 7: 925, 8: 850 };
 const DIFF_LEVEL_SHIFT = { 1: -6, 2: -4, 3: -2, 4: 0, 5: 2, 6: 4, 7: 6, 8: 8 };
 const DIFF_PROGRESS_MULT = { 1: 0.85, 2: 0.9, 3: 0.95, 4: 1, 5: 1.05, 6: 1.1, 7: 1.15, 8: 1.2 };
@@ -34,11 +35,13 @@ const FIXED_DT = 1000 / 60;
 const STORAGE = {
   difficulty: 'coin_cascade.difficulty',
   audioEnabled: 'coin_cascade.audioEnabled',
+  numeralMode: 'coin_cascade.numeralMode',
 };
 
 const DEFAULT_SETTINGS = {
   difficulty: 4,
   audioEnabled: true,
+  numeralMode: 'roman',
 };
 
 const COIN_STYLE = [
@@ -69,6 +72,7 @@ const settingsClose = document.getElementById('settings-close');
 const settingsApply = document.getElementById('settings-apply');
 const settingsCancel = document.getElementById('settings-cancel');
 const difficultyInput = document.getElementById('difficulty');
+const numeralModeSelect = document.getElementById('numeral-mode');
 const audioEnabledSelect = document.getElementById('audio-enabled');
 
 const sfx = new SfxEngine({ master: 0.62 });
@@ -158,31 +162,37 @@ function makeGame() {
 }
 
 function sanitizeSettings(next) {
+  const numeralMode = next.numeralMode === 'arabic' ? 'arabic' : 'roman';
   return {
     difficulty: clamp(Math.round(toNumber(next.difficulty, DEFAULT_SETTINGS.difficulty)), 1, 8),
     audioEnabled: next.audioEnabled !== false,
+    numeralMode,
   };
 }
 
 function loadSettings() {
   const difficulty = toNumber(localStorage.getItem(STORAGE.difficulty), DEFAULT_SETTINGS.difficulty);
   const audioEnabled = localStorage.getItem(STORAGE.audioEnabled) !== 'false';
-  return sanitizeSettings({ difficulty, audioEnabled });
+  const numeralMode = localStorage.getItem(STORAGE.numeralMode) ?? DEFAULT_SETTINGS.numeralMode;
+  return sanitizeSettings({ difficulty, audioEnabled, numeralMode });
 }
 
 function saveSettings(next) {
   localStorage.setItem(STORAGE.difficulty, String(next.difficulty));
   localStorage.setItem(STORAGE.audioEnabled, next.audioEnabled ? 'true' : 'false');
+  localStorage.setItem(STORAGE.numeralMode, next.numeralMode);
 }
 
 function syncSettingsUI(next) {
   if (difficultyInput) difficultyInput.value = String(next.difficulty);
+  if (numeralModeSelect) numeralModeSelect.value = next.numeralMode;
   if (audioEnabledSelect) audioEnabledSelect.value = next.audioEnabled ? 'on' : 'off';
 }
 
 function applySettingsFromUI() {
   const next = sanitizeSettings({
     difficulty: difficultyInput.value,
+    numeralMode: numeralModeSelect.value,
     audioEnabled: audioEnabledSelect.value === 'on',
   });
   settings = next;
@@ -263,15 +273,15 @@ function findBottomOccupiedRow(col) {
 
 function applyGravity() {
   for (let c = 0; c < COLS; c++) {
-    let write = ROWS - 1;
-    for (let r = ROWS - 1; r >= 0; r--) {
+    let write = 0;
+    for (let r = 0; r < ROWS; r++) {
       const cell = game.board[r][c];
       if (cell !== CELL_EMPTY) {
         if (write !== r) {
           game.board[write][c] = cell;
           game.board[r][c] = CELL_EMPTY;
         }
-        write--;
+        write++;
       }
     }
   }
@@ -425,7 +435,8 @@ function maybeLevelUp() {
   }
 }
 
-function resolveBoard() {
+function resolveBoard(options = {}) {
+  const useGravity = options.applyGravity !== false;
   game.resolving = true;
   let chain = 0;
   let guard = 0;
@@ -433,7 +444,7 @@ function resolveBoard() {
   let specialsInResolve = 0;
 
   while (guard++ < 64) {
-    applyGravity();
+    if (useGravity) applyGravity();
     const specialResult = activateSpecialsOnce();
     if (specialResult.scoreDelta > 0) game.score += specialResult.scoreDelta;
     clearedInResolve += specialResult.cleared;
@@ -514,7 +525,6 @@ function descentStep() {
   for (let c = 0; c < COLS; c++) game.board[0][c] = row[c];
 
   playSfx('tick');
-  resolveBoard();
 }
 
 function grabFromColumn(col) {
@@ -595,11 +605,11 @@ function togglePause() {
   }
 }
 
-function highestOccupiedRow() {
-  for (let r = 0; r < ROWS; r++) {
+function lowestOccupiedRow() {
+  for (let r = ROWS - 1; r >= 0; r--) {
     for (let c = 0; c < COLS; c++) if (game.board[r][c] !== CELL_EMPTY) return r;
   }
-  return ROWS;
+  return -1;
 }
 
 function updateHud() {
@@ -620,13 +630,12 @@ function resetBoard() {
 }
 
 function seedInitialRows() {
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 2; i++) {
     const row = generateSpawnRow(1, settings.difficulty);
     for (let c = 0; c < COLS; c++) {
-      game.board[ROWS - 1 - i][c] = row[c];
+      game.board[i][c] = row[c];
     }
   }
-  resolveBoard();
 }
 
 function resetGameState() {
@@ -739,7 +748,8 @@ function drawCoin(x, y, size, tier) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = `700 ${Math.floor(size * 0.35)}px "Trebuchet MS", "Segoe UI", sans-serif`;
-  const numeral = ROMAN[tier];
+  const numeralTable = settings.numeralMode === 'arabic' ? ARABIC_NUMERALS : ROMAN_NUMERALS;
+  const numeral = numeralTable[tier];
   ctx.fillStyle = 'rgba(0,0,0,0.52)';
   ctx.fillText(numeral, cx + 1.4, cy + 1.8);
   ctx.fillStyle = 'rgba(255,255,255,0.7)';
@@ -955,8 +965,8 @@ function stepGame(dt) {
   }
 
   game.timers.dangerCooldown -= dt;
-  const highest = highestOccupiedRow();
-  if (highest <= VISIBLE_START + 1 && game.timers.dangerCooldown <= 0) {
+  const lowest = lowestOccupiedRow();
+  if (lowest >= ROWS - 2 && game.timers.dangerCooldown <= 0) {
     playSfx('danger');
     game.timers.dangerCooldown = 1000;
     game.status = 'Danger!';

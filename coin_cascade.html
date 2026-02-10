@@ -13,7 +13,7 @@
     <header class="app-header compact-header">
       <div>
         <h1>Coin Cascade</h1>
-        <p class="subtitle">Arcade coin chaining inspired by Money Puzzle Exchanger.</p>
+        <p class="subtitle">Arcade coin chaining.</p>
       </div>
       <div class="settings">
         <button id="settings-toggle" class="icon-button" aria-expanded="false" aria-controls="settings-modal" aria-label="Settings" title="Settings">Settings</button>
@@ -94,6 +94,13 @@
           <label class="ms-field">
             <span>Difficulty</span>
             <input id="difficulty" type="number" min="1" max="8" value="4">
+          </label>
+          <label class="ms-field">
+            <span>Numerals</span>
+            <select id="numeral-mode">
+              <option value="roman">Roman</option>
+              <option value="arabic">Arabic</option>
+            </select>
           </label>
           <label class="ms-field">
             <span>Audio</span>
