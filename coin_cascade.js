@@ -459,16 +459,15 @@ function findTopFreeRow(col) {
 
 function applyScoreForStep(conversions, chainStep) {
   const chainMult = 1 + 0.5 * (chainStep - 1);
-  const comboMult = 1 + 0.25 * (conversions.length - 1);
-  let stepPoints = 0;
+  let basePoints = 0;
   let anyDClear = false;
 
   for (const conv of conversions) {
-    stepPoints += DENOM[conv.tier] * conv.size * 10;
+    basePoints += DENOM[conv.tier] * conv.size;
     if (conv.tier === 5) anyDClear = true;
   }
 
-  stepPoints = Math.floor(stepPoints * chainMult * comboMult);
+  let stepPoints = Math.floor(basePoints * chainMult);
   if (anyDClear) stepPoints += 1000;
   return stepPoints;
 }

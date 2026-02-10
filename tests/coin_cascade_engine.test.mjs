@@ -213,7 +213,7 @@ test('D pair clear awards +1000 bonus once in the step', () => {
   board[ROWS - 2][1] = CELL_D;
   const out = resolveBoard(board);
   assert.equal(out.chain, 1);
-  assert.equal(out.scoreDelta, 11000);
+  assert.equal(out.scoreDelta, 2000);
 });
 
 test('grab takes bottom contiguous run and throw places stack starting at top of target column', () => {
@@ -298,7 +298,7 @@ test('combo spawn placement supports compaction-driven chain reactions', () => {
 
   const out = resolveBoard(board);
   assert.equal(out.chain, 2);
-  assert.equal(out.scoreDelta, 200);
+  assert.equal(out.scoreDelta, 20);
   assert.equal(board[0][2], CELL_X);
   assert.equal(countCell(board, CELL_V), 0);
   assert.equal(countCell(board, CELL_I), 0);
