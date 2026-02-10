@@ -22,7 +22,7 @@ const REQUIRE = [5, 2, 5, 2, 5, 2];
 const DENOM = [1, 5, 10, 50, 100, 500];
 const ROMAN_NUMERALS = ['I', 'V', 'X', 'L', 'C', 'D'];
 const ARABIC_NUMERALS = ['1', '5', '10', '50', '100', '500'];
-const BASE_DESCENT_MS = { 1: 1600, 2: 1450, 3: 1325, 4: 1200, 5: 1100, 6: 1000, 7: 925, 8: 850 };
+const BASE_DESCENT_MS = { 1: 1950, 2: 1775, 3: 1600, 4: 1450, 5: 1325, 6: 1200, 7: 1125, 8: 1050 };
 const DIFF_LEVEL_SHIFT = { 1: -6, 2: -4, 3: -2, 4: 0, 5: 2, 6: 4, 7: 6, 8: 8 };
 const DIFF_PROGRESS_MULT = { 1: 0.85, 2: 0.9, 3: 0.95, 4: 1, 5: 1.05, 6: 1.1, 7: 1.15, 8: 1.2 };
 
@@ -558,6 +558,7 @@ function processResolveStep() {
     }))
     .filter((g) => g.cells.length >= g.setSize && groupTouchesActive(g, resolve.activeSet));
   if (toConvert.length === 0) {
+    if (resolve.useGravity && specialResult.changed) applyGravity();
     finalizeResolve();
     return;
   }
@@ -577,7 +578,7 @@ function processResolveStep() {
     const activeInGroup = resolve.activeSet
       ? group.cells
           .filter(([r, c]) => resolve.activeSet.has(cellKey(r, c)))
-          .sort((a, b) => (a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]))
+          .sort((a, b) => (a[0] !== b[0] ? b[0] - a[0] : b[1] - a[1]))
       : [];
     const consumed = sorted;
     for (const [r, c] of consumed) {

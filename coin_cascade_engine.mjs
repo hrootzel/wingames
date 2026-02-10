@@ -16,7 +16,7 @@ export const CELL_MINUS = 8;
 
 export const REQUIRE = [5, 2, 5, 2, 5, 2];
 export const DENOM = [1, 5, 10, 50, 100, 500];
-export const BASE_DESCENT_MS = { 1: 1600, 2: 1450, 3: 1325, 4: 1200, 5: 1100, 6: 1000, 7: 925, 8: 850 };
+export const BASE_DESCENT_MS = { 1: 1950, 2: 1775, 3: 1600, 4: 1450, 5: 1325, 6: 1200, 7: 1125, 8: 1050 };
 export const DIFF_LEVEL_SHIFT = { 1: -6, 2: -4, 3: -2, 4: 0, 5: 2, 6: 4, 7: 6, 8: 8 };
 
 export function makeRng(seed) {
@@ -306,7 +306,10 @@ export function resolveBoard(board, options = {}) {
         setSize: REQUIRE[g.tier],
       }))
       .filter((g) => g.cells.length >= g.setSize && groupTouchesActive(g, activeSet));
-    if (toConvert.length === 0) break;
+    if (toConvert.length === 0) {
+      if (useGravity && specialResult.changed) applyGravity(board);
+      break;
+    }
     chain++;
 
     const clearMask = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
@@ -321,7 +324,7 @@ export function resolveBoard(board, options = {}) {
       const activeInGroup = activeSet
         ? group.cells
             .filter(([r, c]) => activeSet.has(cellKey(r, c)))
-            .sort((a, b) => (a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]))
+            .sort((a, b) => (a[0] !== b[0] ? b[0] - a[0] : b[1] - a[1]))
         : [];
       const consumed = sorted;
       for (const [r, c] of consumed) clearMask[r][c] = true;
