@@ -31,6 +31,10 @@ const TIME_RATE = 1;
 const CLEAR_RATE = 0.1;
 const SPECIAL_RATE = 2;
 const FIXED_DT = 1000 / 60;
+const RESOLVE_STEP_MS = 120;
+const MATCH_ANIM_MS = 220;
+const POPUP_TTL_MS = 900;
+const BANNER_TTL_MS = 820;
 
 const STORAGE = {
   difficulty: 'coin_cascade.difficulty',
@@ -147,6 +151,7 @@ function makeGame() {
     paused: false,
     gameOver: false,
     resolving: false,
+    resolve: null,
     status: 'Ready.',
     statusBeforePause: 'Ready.',
     timers: {
@@ -157,6 +162,8 @@ function makeGame() {
     fx: {
       phase: 0,
       pulse: 0,
+      banners: [],
+      scorePopups: [],
     },
   };
 }
@@ -287,6 +294,47 @@ function applyGravity() {
   }
 }
 
+function applyGravityWithMoves() {
+  const next = makeBoard();
+  const moves = [];
+  for (let c = 0; c < COLS; c++) {
+    let write = 0;
+    for (let r = 0; r < ROWS; r++) {
+      const cell = game.board[r][c];
+      if (cell === CELL_EMPTY) continue;
+      next[write][c] = cell;
+      if (write !== r) moves.push({ cell, fromR: r, toR: write, c });
+      write++;
+    }
+  }
+  game.board = next;
+  return moves;
+}
+
+function cellKey(r, c) {
+  return `${r},${c}`;
+}
+
+function makeActiveSet(activeCells) {
+  if (!Array.isArray(activeCells) || activeCells.length === 0) return null;
+  const active = new Set();
+  for (const cell of activeCells) {
+    if (!Array.isArray(cell) || cell.length !== 2) continue;
+    const [r, c] = cell;
+    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) continue;
+    active.add(cellKey(r, c));
+  }
+  return active.size > 0 ? active : null;
+}
+
+function groupTouchesActive(group, activeSet) {
+  if (!activeSet) return true;
+  for (const [r, c] of group.cells) {
+    if (activeSet.has(cellKey(r, c))) return true;
+  }
+  return false;
+}
+
 function rankUpAllOfTier(tier) {
   let count = 0;
   for (let r = 0; r < ROWS; r++) {
@@ -314,7 +362,7 @@ function eraseAllOfTier(tier) {
   return count;
 }
 
-function activateSpecialsOnce() {
+function activateSpecialsOnce(activeSet = null) {
   let changed = false;
   let scoreDelta = 0;
   let cleared = 0;
@@ -324,6 +372,7 @@ function activateSpecialsOnce() {
     for (let c = 0; c < COLS; c++) {
       const cell = game.board[r][c];
       if (cell !== CELL_PLUS && cell !== CELL_MINUS) continue;
+      if (activeSet && !activeSet.has(cellKey(r, c))) continue;
 
       let rr = r + 1;
       while (rr < ROWS && game.board[rr][c] === CELL_EMPTY) rr++;
@@ -399,6 +448,13 @@ function selectUpgradeSpawn(cells) {
   return best;
 }
 
+function findTopFreeRow(col) {
+  for (let r = 0; r < ROWS; r++) {
+    if (game.board[r][col] === CELL_EMPTY) return r;
+  }
+  return -1;
+}
+
 function applyScoreForStep(conversions, chainStep) {
   const chainMult = 1 + 0.5 * (chainStep - 1);
   const comboMult = 1 + 0.25 * (conversions.length - 1);
@@ -412,7 +468,22 @@ function applyScoreForStep(conversions, chainStep) {
 
   stepPoints = Math.floor(stepPoints * chainMult * comboMult);
   if (anyDClear) stepPoints += 1000;
-  game.score += stepPoints;
+  return stepPoints;
+}
+
+function addBanner(text) {
+  game.fx.banners.push({ text, life: BANNER_TTL_MS, ttl: BANNER_TTL_MS });
+}
+
+function addScorePopup(text, px, py) {
+  game.fx.scorePopups.push({
+    text,
+    x: px,
+    y: py,
+    vy: -26,
+    life: POPUP_TTL_MS,
+    ttl: POPUP_TTL_MS,
+  });
 }
 
 function updateProgressFromClear(coinCount, specialCount) {
@@ -435,67 +506,180 @@ function maybeLevelUp() {
   }
 }
 
-function resolveBoard(options = {}) {
-  const useGravity = options.applyGravity !== false;
-  game.resolving = true;
-  let chain = 0;
-  let guard = 0;
-  let clearedInResolve = 0;
-  let specialsInResolve = 0;
+function finalizeResolve() {
+  const resolve = game.resolve;
+  if (!resolve) return;
+  game.lastChain = resolve.chain;
+  if (resolve.chain > 0) game.status = `Chain ${resolve.chain}!`;
+  updateProgressFromClear(resolve.clearedInResolve, resolve.specialsInResolve);
+  maybeLevelUp();
+  game.resolve = null;
+  game.resolving = false;
+}
 
-  while (guard++ < 64) {
-    if (useGravity) applyGravity();
-    const specialResult = activateSpecialsOnce();
-    if (specialResult.scoreDelta > 0) game.score += specialResult.scoreDelta;
-    clearedInResolve += specialResult.cleared;
-    specialsInResolve += specialResult.specialActivations;
-
-    const groups = findGroups();
-    const toConvert = groups.filter((g) => g.cells.length >= REQUIRE[g.tier]);
-    if (toConvert.length === 0 && !specialResult.changed) break;
-
-    if (toConvert.length === 0) continue;
-    chain++;
-
-    const clearMask = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
-    const spawns = [];
-    const conversions = [];
-
-    for (const group of toConvert) {
-      for (const [r, c] of group.cells) clearMask[r][c] = true;
-      const spawnAt = selectUpgradeSpawn(group.cells);
-      if (group.tier < 5) spawns.push({ r: spawnAt[0], c: spawnAt[1], cell: cellOfTier(group.tier + 1) });
-      conversions.push({ tier: group.tier, size: group.cells.length });
-    }
-
-    let removedCount = 0;
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        if (clearMask[r][c]) {
-          game.board[r][c] = CELL_EMPTY;
-          removedCount++;
-        }
-      }
-    }
-    clearedInResolve += removedCount;
-    game.coinsCleared += removedCount;
-
-    for (const spawn of spawns) {
-      game.board[spawn.r][spawn.c] = spawn.cell;
-    }
-
-    applyScoreForStep(conversions, chain);
-    playSfx(chain >= 2 || conversions.length >= 2 ? 'convertBig' : 'convertSmall');
-    playSfx('chainStep', { chain, groups: conversions.length });
-    game.maxChain = Math.max(game.maxChain, chain);
-    game.chainsTotal += 1;
+function processResolveStep() {
+  const resolve = game.resolve;
+  if (!resolve) return;
+  if (resolve.anim) return;
+  if (resolve.guard++ >= 64) {
+    finalizeResolve();
+    return;
   }
 
-  game.lastChain = chain;
-  if (chain > 0) game.status = `Chain ${chain}!`;
-  updateProgressFromClear(clearedInResolve, specialsInResolve);
-  maybeLevelUp();
-  game.resolving = false;
+  if (resolve.useGravity) {
+    const moves = applyGravityWithMoves();
+    if (moves.length > 0) {
+      resolve.anim = {
+        kind: 'gravity',
+        moves,
+        elapsed: 0,
+        duration: RESOLVE_STEP_MS,
+        targetSet: new Set(moves.map((m) => cellKey(m.toR, m.c))),
+      };
+      return;
+    }
+  }
+  const specialResult = activateSpecialsOnce(resolve.activeSet);
+  if (specialResult.scoreDelta > 0) {
+    game.score += specialResult.scoreDelta;
+    addScorePopup(`+${specialResult.scoreDelta}`, view.originX + view.fieldW * 0.5, view.originY + view.fieldH * 0.35);
+  }
+  resolve.clearedInResolve += specialResult.cleared;
+  resolve.specialsInResolve += specialResult.specialActivations;
+
+  const groups = findGroups();
+  const toConvert = groups
+    .map((g) => ({
+      ...g,
+      setSize: REQUIRE[g.tier],
+      setCount: Math.floor(g.cells.length / REQUIRE[g.tier]),
+    }))
+    .filter((g) => g.setCount > 0 && groupTouchesActive(g, resolve.activeSet));
+  if (toConvert.length === 0) {
+    finalizeResolve();
+    return;
+  }
+
+  resolve.chain++;
+  game.lastChain = resolve.chain;
+  const clearMask = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+  const spawns = [];
+  const conversions = [];
+  const removedCells = [];
+
+  for (const group of toConvert) {
+    const sorted = group.cells.slice().sort((a, b) => {
+      if (a[0] !== b[0]) return b[0] - a[0];
+      return b[1] - a[1];
+    });
+    const consumeCount = group.setCount * group.setSize;
+    const consumed = sorted.slice(0, consumeCount);
+    for (const [r, c] of consumed) {
+      clearMask[r][c] = true;
+      removedCells.push([r, c]);
+    }
+
+    if (group.tier < 5) {
+      for (let i = 0; i < group.setCount; i++) {
+        const chunkStart = i * group.setSize;
+        const chunk = consumed.slice(chunkStart, chunkStart + group.setSize);
+        if (chunk.length === 0) continue;
+        const spawnAt = selectUpgradeSpawn(chunk);
+        spawns.push({ c: spawnAt[1], cell: cellOfTier(group.tier + 1), sources: chunk });
+      }
+    }
+    conversions.push({ tier: group.tier, size: consumeCount });
+  }
+
+  let removedCount = 0;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (clearMask[r][c]) {
+        game.board[r][c] = CELL_EMPTY;
+        removedCount++;
+      }
+    }
+  }
+  resolve.clearedInResolve += removedCount;
+  game.coinsCleared += removedCount;
+
+  const placedSpawns = [];
+  for (const spawn of spawns) {
+    const r = findTopFreeRow(spawn.c);
+    if (r < 0) continue;
+    game.board[r][spawn.c] = spawn.cell;
+    placedSpawns.push({ r, c: spawn.c, cell: spawn.cell, sources: spawn.sources ?? [] });
+  }
+  if (resolve.activeSet) {
+    resolve.activeSet = new Set(placedSpawns.map((s) => cellKey(s.r, s.c)));
+    if (resolve.activeSet.size === 0) {
+      finalizeResolve();
+      return;
+    }
+  }
+
+  const stepPoints = applyScoreForStep(conversions, resolve.chain);
+  game.score += stepPoints;
+  if (removedCells.length > 0) {
+    let sumX = 0;
+    let sumY = 0;
+    for (const [r, c] of removedCells) {
+      const p = gridToPx(r, c);
+      sumX += p.x + view.cellSize * 0.5;
+      sumY += p.y + view.cellSize * 0.5;
+    }
+    addScorePopup(`+${stepPoints}`, sumX / removedCells.length, sumY / removedCells.length);
+  }
+  if (resolve.chain >= 2) addBanner(`${resolve.chain} CHAIN`);
+  game.status = `Chain ${resolve.chain}! +${stepPoints}`;
+  playSfx(resolve.chain >= 2 || conversions.length >= 2 ? 'convertBig' : 'convertSmall');
+  playSfx('chainStep', { chain: resolve.chain, groups: conversions.length });
+  game.maxChain = Math.max(game.maxChain, resolve.chain);
+  game.chainsTotal += 1;
+
+  if (placedSpawns.length > 0 && removedCells.length > 0) {
+    const fly = [];
+    const hideSet = new Set();
+    const particles = [];
+    for (const spawn of placedSpawns) {
+      const to = gridToPx(spawn.r, spawn.c);
+      const toX = to.x + view.cellSize * 0.5;
+      const toY = to.y + view.cellSize * 0.5;
+      hideSet.add(cellKey(spawn.r, spawn.c));
+      for (const [sr, sc] of spawn.sources) {
+        const from = gridToPx(sr, sc);
+        fly.push({
+          cell: game.board[spawn.r][spawn.c],
+          fromX: from.x + view.cellSize * 0.5,
+          fromY: from.y + view.cellSize * 0.5,
+          toX,
+          toY,
+        });
+      }
+      const pCount = 12;
+      for (let i = 0; i < pCount; i++) {
+        const a = (Math.PI * 2 * i) / pCount + game.rng.next() * 0.28;
+        const speed = 16 + game.rng.next() * 44;
+        particles.push({ x: toX, y: toY, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, life: 1 });
+      }
+    }
+    resolve.anim = { kind: 'match', elapsed: 0, duration: MATCH_ANIM_MS, fly, hideSet, particles };
+  }
+}
+
+function resolveBoard(options = {}) {
+  if (game.resolving || game.gameOver) return;
+  game.resolve = {
+    useGravity: options.applyGravity !== false,
+    activeSet: makeActiveSet(options.activeCells),
+    chain: 0,
+    guard: 0,
+    delay: 0,
+    anim: null,
+    clearedInResolve: 0,
+    specialsInResolve: 0,
+  };
+  game.resolving = true;
 }
 
 function gameOver() {
@@ -550,22 +734,25 @@ function grabFromColumn(col) {
 
 function throwToColumn(col) {
   if (game.hand.stack.length === 0) return false;
+  applyGravity();
   const height = countOccupied(col);
-  const startRow = ROWS - 1 - height;
-  if (startRow - (game.hand.stack.length - 1) < 0) {
+  const startRow = height;
+  if (startRow + game.hand.stack.length > ROWS) {
     gameOver();
     return false;
   }
 
+  const placed = [];
   for (let i = 0; i < game.hand.stack.length; i++) {
-    const r = startRow - i;
+    const r = startRow + i;
     game.board[r][col] = game.hand.stack[i];
+    placed.push([r, col]);
   }
   game.hand.stack.length = 0;
   game.status = 'Thrown';
   playSfx('throw');
   playSfx('land');
-  resolveBoard();
+  resolveBoard({ activeCells: placed });
   return true;
 }
 
@@ -654,6 +841,7 @@ function resetGameState() {
   game.paused = false;
   game.gameOver = false;
   game.resolving = false;
+  game.resolve = null;
   game.status = 'Ready.';
   game.statusBeforePause = 'Ready.';
   game.timers.descentElapsed = 0;
@@ -661,6 +849,8 @@ function resetGameState() {
   game.timers.dangerCooldown = 0;
   game.fx.phase = 0;
   game.fx.pulse = 0;
+  game.fx.banners.length = 0;
+  game.fx.scorePopups.length = 0;
   pauseBtn.textContent = 'Pause';
   seedInitialRows();
 }
@@ -800,6 +990,45 @@ function drawCell(r, c, cell) {
   else if (isCoin(cell)) drawCoin(p.x, p.y, view.cellSize, tierOf(cell));
 }
 
+function drawResolveAnimations() {
+  const anim = game.resolve?.anim;
+  if (!anim) return;
+  const t = Math.max(0, Math.min(1, anim.elapsed / anim.duration));
+
+  if (anim.kind === 'gravity') {
+    const ease = 1 - (1 - t) * (1 - t);
+    for (const m of anim.moves) {
+      const rr = m.fromR + (m.toR - m.fromR) * ease;
+      const p = gridToPx(rr, m.c);
+      if (m.cell === CELL_PLUS) drawGem(p.x, p.y, view.cellSize, true);
+      else if (m.cell === CELL_MINUS) drawGem(p.x, p.y, view.cellSize, false);
+      else if (isCoin(m.cell)) drawCoin(p.x, p.y, view.cellSize, tierOf(m.cell));
+    }
+    return;
+  }
+
+  if (anim.kind === 'match') {
+    const ease = 1 - Math.pow(1 - t, 3);
+    for (const f of anim.fly) {
+      const x = f.fromX + (f.toX - f.fromX) * ease - view.cellSize * 0.5;
+      const y = f.fromY + (f.toY - f.fromY) * ease - view.cellSize * 0.5;
+      ctx.globalAlpha = 1 - t * 0.9;
+      if (f.cell === CELL_PLUS) drawGem(x, y, view.cellSize, true);
+      else if (f.cell === CELL_MINUS) drawGem(x, y, view.cellSize, false);
+      else if (isCoin(f.cell)) drawCoin(x, y, view.cellSize, tierOf(f.cell));
+      ctx.globalAlpha = 1;
+    }
+    for (const p of anim.particles) {
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = 'rgba(253,230,138,0.9)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
 function drawBackground() {
   const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
   g.addColorStop(0, '#081b31');
@@ -862,10 +1091,10 @@ function drawColumnHighlight() {
 
   if (game.hand.stack.length > 0) {
     const height = countOccupied(game.hand.col);
-    const startRow = ROWS - 1 - height;
-    if (startRow - (game.hand.stack.length - 1) >= 0) {
+    const startRow = height;
+    if (startRow + game.hand.stack.length <= ROWS) {
       for (let i = 0; i < game.hand.stack.length; i++) {
-        const r = startRow - i;
+        const r = startRow + i;
         if (r < VISIBLE_START) continue;
         const p = gridToPx(r, game.hand.col);
         ctx.fillStyle = 'rgba(147,197,253,0.11)';
@@ -928,18 +1157,51 @@ function drawTextOverlay() {
     ctx.font = '700 18px "Trebuchet MS", "Segoe UI", sans-serif';
     ctx.fillText('Press R to restart', canvas.width * 0.5, canvas.height * 0.52);
   }
+
+  for (const b of game.fx.banners) {
+    const t = b.life / b.ttl;
+    ctx.globalAlpha = Math.max(0, Math.min(1, t));
+    ctx.fillStyle = 'rgba(148,223,255,0.92)';
+    ctx.strokeStyle = 'rgba(8,30,46,0.88)';
+    ctx.lineWidth = 5;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 30px "Trebuchet MS", "Segoe UI", sans-serif';
+    const y = view.originY - 20 + (1 - t) * 14;
+    ctx.strokeText(b.text, canvas.width * 0.5, y);
+    ctx.fillText(b.text, canvas.width * 0.5, y);
+    ctx.globalAlpha = 1;
+  }
+
+  for (const sp of game.fx.scorePopups) {
+    const t = sp.life / sp.ttl;
+    ctx.globalAlpha = Math.max(0, Math.min(1, t));
+    ctx.fillStyle = 'rgba(255,243,180,0.95)';
+    ctx.strokeStyle = 'rgba(40,24,6,0.9)';
+    ctx.lineWidth = 4;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '800 24px "Trebuchet MS", "Segoe UI", sans-serif';
+    ctx.strokeText(sp.text, sp.x, sp.y);
+    ctx.fillText(sp.text, sp.x, sp.y);
+    ctx.globalAlpha = 1;
+  }
 }
 
 function draw() {
   drawBackground();
   drawField();
   drawColumnHighlight();
+  const anim = game.resolve?.anim ?? null;
+  const animTargets = anim?.kind === 'gravity' ? anim.targetSet : anim?.kind === 'match' ? anim.hideSet : null;
   for (let r = VISIBLE_START; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
+      if (animTargets && animTargets.has(cellKey(r, c))) continue;
       const cell = game.board[r][c];
       if (cell !== CELL_EMPTY) drawCell(r, c, cell);
     }
   }
+  drawResolveAnimations();
   drawHandAndLauncher();
   drawTextOverlay();
 }
@@ -948,8 +1210,50 @@ function stepGame(dt) {
   if (game.timers.actionCooldown > 0) game.timers.actionCooldown -= dt;
   game.fx.phase += dt / 1000;
   game.fx.pulse = Math.max(0, game.fx.pulse - dt / 260);
+  for (let i = game.fx.banners.length - 1; i >= 0; i--) {
+    const b = game.fx.banners[i];
+    b.life -= dt;
+    if (b.life <= 0) game.fx.banners.splice(i, 1);
+  }
+  for (let i = game.fx.scorePopups.length - 1; i >= 0; i--) {
+    const sp = game.fx.scorePopups[i];
+    sp.life -= dt;
+    sp.y += (sp.vy * dt) / 1000;
+    if (sp.life <= 0) game.fx.scorePopups.splice(i, 1);
+  }
 
   if (game.paused || game.gameOver || isSettingsOpen()) return;
+  if (game.resolving) {
+    if (!game.resolve) {
+      game.resolving = false;
+      return;
+    }
+    if (game.resolve.anim) {
+      const anim = game.resolve.anim;
+      anim.elapsed += dt;
+      if (anim.kind === 'match') {
+        const decay = dt / anim.duration;
+        for (const p of anim.particles) {
+          p.x += (p.vx * dt) / 1000;
+          p.y += (p.vy * dt) / 1000;
+          p.vx *= 0.97;
+          p.vy *= 0.97;
+          p.life -= decay;
+        }
+      }
+      if (anim.elapsed >= anim.duration) {
+        game.resolve.anim = null;
+        game.resolve.delay = 0;
+      }
+      return;
+    }
+    game.resolve.delay -= dt;
+    if (game.resolve.delay <= 0) {
+      processResolveStep();
+      if (game.resolve) game.resolve.delay = RESOLVE_STEP_MS;
+    }
+    return;
+  }
 
   const mult = DIFF_PROGRESS_MULT[settings.difficulty];
   game.levelProgress += (dt / 1000) * TIME_RATE * mult;

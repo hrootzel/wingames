@@ -121,6 +121,30 @@ export function applyGravity(board) {
   }
 }
 
+function cellKey(r, c) {
+  return `${r},${c}`;
+}
+
+function makeActiveSet(activeCells) {
+  if (!Array.isArray(activeCells) || activeCells.length === 0) return null;
+  const active = new Set();
+  for (const cell of activeCells) {
+    if (!Array.isArray(cell) || cell.length !== 2) continue;
+    const [r, c] = cell;
+    if (r < 0 || r >= ROWS || c < 0 || c >= COLS) continue;
+    active.add(cellKey(r, c));
+  }
+  return active.size > 0 ? active : null;
+}
+
+function groupTouchesActive(group, activeSet) {
+  if (!activeSet) return true;
+  for (const [r, c] of group.cells) {
+    if (activeSet.has(cellKey(r, c))) return true;
+  }
+  return false;
+}
+
 function rankUpAllOfTier(board, tier) {
   let count = 0;
   for (let r = 0; r < ROWS; r++) {
@@ -147,7 +171,7 @@ function eraseAllOfTier(board, tier) {
   return count;
 }
 
-export function activateSpecialsOnce(board) {
+export function activateSpecialsOnce(board, activeSet = null) {
   let changed = false;
   let scoreDelta = 0;
   let cleared = 0;
@@ -157,6 +181,7 @@ export function activateSpecialsOnce(board) {
     for (let c = 0; c < COLS; c++) {
       const cell = board[r][c];
       if (cell !== CELL_PLUS && cell !== CELL_MINUS) continue;
+      if (activeSet && !activeSet.has(cellKey(r, c))) continue;
 
       let rr = r + 1;
       while (rr < ROWS && board[rr][c] === CELL_EMPTY) rr++;
@@ -228,6 +253,13 @@ export function selectUpgradeSpawn(cells) {
   return best;
 }
 
+function findTopFreeRow(board, col) {
+  for (let r = 0; r < ROWS; r++) {
+    if (board[r][col] === CELL_EMPTY) return r;
+  }
+  return -1;
+}
+
 export function applyScoreForStep(conversions, chainStep) {
   const chainMult = 1 + 0.5 * (chainStep - 1);
   const comboMult = 1 + 0.25 * (conversions.length - 1);
@@ -246,6 +278,7 @@ export function applyScoreForStep(conversions, chainStep) {
 
 export function resolveBoard(board, options = {}) {
   const useGravity = options.applyGravity !== false;
+  let activeSet = makeActiveSet(options.activeCells);
   let chain = 0;
   let guard = 0;
   let clearedInResolve = 0;
@@ -254,15 +287,20 @@ export function resolveBoard(board, options = {}) {
 
   while (guard++ < 64) {
     if (useGravity) applyGravity(board);
-    const specialResult = activateSpecialsOnce(board);
+    const specialResult = activateSpecialsOnce(board, activeSet);
     scoreDelta += specialResult.scoreDelta;
     clearedInResolve += specialResult.cleared;
     specialsInResolve += specialResult.specialActivations;
 
     const groups = findGroups(board);
-    const toConvert = groups.filter((g) => g.cells.length >= REQUIRE[g.tier]);
-    if (toConvert.length === 0 && !specialResult.changed) break;
-    if (toConvert.length === 0) continue;
+    const toConvert = groups
+      .map((g) => ({
+        ...g,
+        setSize: REQUIRE[g.tier],
+        setCount: Math.floor(g.cells.length / REQUIRE[g.tier]),
+      }))
+      .filter((g) => g.setCount > 0 && groupTouchesActive(g, activeSet));
+    if (toConvert.length === 0) break;
     chain++;
 
     const clearMask = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
@@ -270,10 +308,24 @@ export function resolveBoard(board, options = {}) {
     const conversions = [];
 
     for (const group of toConvert) {
-      for (const [r, c] of group.cells) clearMask[r][c] = true;
-      const spawnAt = selectUpgradeSpawn(group.cells);
-      if (group.tier < 5) spawns.push({ r: spawnAt[0], c: spawnAt[1], cell: cellOfTier(group.tier + 1) });
-      conversions.push({ tier: group.tier, size: group.cells.length });
+      const sorted = group.cells.slice().sort((a, b) => {
+        if (a[0] !== b[0]) return b[0] - a[0];
+        return b[1] - a[1];
+      });
+      const consumeCount = group.setCount * group.setSize;
+      const consumed = sorted.slice(0, consumeCount);
+      for (const [r, c] of consumed) clearMask[r][c] = true;
+
+      if (group.tier < 5) {
+        for (let i = 0; i < group.setCount; i++) {
+          const chunkStart = i * group.setSize;
+          const chunk = consumed.slice(chunkStart, chunkStart + group.setSize);
+          if (chunk.length === 0) continue;
+          const spawnAt = selectUpgradeSpawn(chunk);
+          spawns.push({ c: spawnAt[1], cell: cellOfTier(group.tier + 1) });
+        }
+      }
+      conversions.push({ tier: group.tier, size: consumeCount });
     }
 
     let removedCount = 0;
@@ -286,7 +338,17 @@ export function resolveBoard(board, options = {}) {
       }
     }
     clearedInResolve += removedCount;
-    for (const spawn of spawns) board[spawn.r][spawn.c] = spawn.cell;
+    const placedSpawns = [];
+    for (const spawn of spawns) {
+      const r = findTopFreeRow(board, spawn.c);
+      if (r < 0) continue;
+      board[r][spawn.c] = spawn.cell;
+      placedSpawns.push([r, spawn.c]);
+    }
+    if (activeSet) {
+      activeSet = new Set(placedSpawns.map(([r, c]) => cellKey(r, c)));
+      if (activeSet.size === 0) break;
+    }
     scoreDelta += applyScoreForStep(conversions, chain);
   }
 
@@ -311,12 +373,18 @@ export function grabFromColumn(board, handStack, col) {
 
 export function throwToColumn(board, handStack, col) {
   if (handStack.length === 0) return { ok: false, overflow: false };
+  applyGravity(board);
   const height = countOccupied(board, col);
-  const startRow = ROWS - 1 - height;
-  if (startRow - (handStack.length - 1) < 0) return { ok: false, overflow: true };
-  for (let i = 0; i < handStack.length; i++) board[startRow - i][col] = handStack[i];
+  const startRow = height;
+  if (startRow + handStack.length > ROWS) return { ok: false, overflow: true };
+  const placed = [];
+  for (let i = 0; i < handStack.length; i++) {
+    const r = startRow + i;
+    board[r][col] = handStack[i];
+    placed.push([r, col]);
+  }
   handStack.length = 0;
-  return { ok: true, overflow: false };
+  return { ok: true, overflow: false, placed };
 }
 
 export function descentStep(board, { rng, level, difficulty, spawnRow = null, resolve = false, applyGravityOnResolve = false } = {}) {

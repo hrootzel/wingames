@@ -29,6 +29,15 @@ function countCell(board, target) {
   return n;
 }
 
+function assertColumnCompactedTop(board, col) {
+  let seenEmpty = false;
+  for (let r = 0; r < ROWS; r++) {
+    const cell = board[r][col];
+    if (cell === CELL_EMPTY) seenEmpty = true;
+    else assert.equal(seenEmpty, false, `column ${col} has a gap before row ${r}`);
+  }
+}
+
 test('descent inserts new row at top and shifts board down by one', () => {
   const board = createBoard();
   board[2][0] = CELL_I;
@@ -81,7 +90,7 @@ test('gravity compacts coins upward to the top of the board', () => {
   assert.equal(board[ROWS - 1][0], CELL_EMPTY);
 });
 
-test('five connected I coins convert into one V at bottom-right of group', () => {
+test('five connected I coins convert into one V at highest free spot of chosen column', () => {
   const board = createBoard();
   board[ROWS - 2][0] = CELL_I;
   board[ROWS - 2][1] = CELL_I;
@@ -91,7 +100,7 @@ test('five connected I coins convert into one V at bottom-right of group', () =>
 
   const out = resolveBoard(board);
   assert.equal(out.chain, 1);
-  assert.equal(countCell(board, CELL_V), 1);
+  assert.equal(board[0][2], CELL_V);
   assert.equal(countCell(board, CELL_I), 0);
 
   let nonEmpty = 0;
@@ -108,14 +117,25 @@ test('two connected V coins convert into one X', () => {
   assert.equal(countCell(board, CELL_V), 0);
 });
 
-test('six connected I coins still produce only one V (extras vanish)', () => {
+test('six connected I coins produce one V and leave one I remainder', () => {
   const board = createBoard();
   for (let c = 0; c < 6; c++) board[ROWS - 2][c] = CELL_I;
   resolveBoard(board);
 
-  let nonEmpty = 0;
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (board[r][c] !== CELL_EMPTY) nonEmpty++;
-  assert.equal(nonEmpty, 1);
+  assert.equal(countCell(board, CELL_V), 1);
+  assert.equal(countCell(board, CELL_I), 1);
+});
+
+test('ten connected I coins create two V outputs which then chain into an X', () => {
+  const board = createBoard();
+  for (let c = 0; c < 5; c++) board[ROWS - 2][c] = CELL_I;
+  for (let c = 0; c < 5; c++) board[ROWS - 3][c] = CELL_I;
+
+  const out = resolveBoard(board);
+
+  assert.equal(out.chain, 2);
+  assert.equal(countCell(board, CELL_X), 1);
+  assert.equal(countCell(board, CELL_I), 0);
 });
 
 test('plus token upgrades all coins matching tier found below it', () => {
@@ -153,7 +173,7 @@ test('D pair clear awards +1000 bonus once in the step', () => {
   assert.equal(out.scoreDelta, 11000);
 });
 
-test('grab takes bottom contiguous run and throw places stack on column top', () => {
+test('grab takes bottom contiguous run and throw places stack starting at top of target column', () => {
   const board = createBoard();
   board[ROWS - 1][0] = CELL_I;
   board[ROWS - 2][0] = CELL_I;
@@ -166,9 +186,9 @@ test('grab takes bottom contiguous run and throw places stack on column top', ()
 
   const throwResult = throwToColumn(board, hand, 1);
   assert.equal(throwResult.ok, true);
-  assert.equal(board[ROWS - 1][1], CELL_I);
-  assert.equal(board[ROWS - 2][1], CELL_I);
-  assert.equal(board[ROWS - 3][1], CELL_I);
+  assert.equal(board[0][1], CELL_I);
+  assert.equal(board[1][1], CELL_I);
+  assert.equal(board[2][1], CELL_I);
 });
 
 test('spawn generator is deterministic with fixed RNG seed', () => {
@@ -179,4 +199,78 @@ test('spawn generator is deterministic with fixed RNG seed', () => {
   const a = descentStep(boardA, { rng: rngA, level: 1, difficulty: 4, resolve: false }).row;
   const b = descentStep(boardB, { rng: rngB, level: 1, difficulty: 4, resolve: false }).row;
   assert.deepEqual(a, b);
+});
+
+test('targeted resolve does not clear unrelated matches on the board', () => {
+  const board = createBoard();
+  board[0][0] = CELL_V;
+  board[0][4] = CELL_V;
+  board[0][5] = CELL_V;
+  const hand = [CELL_V];
+
+  const throwResult = throwToColumn(board, hand, 0);
+  assert.equal(throwResult.ok, true);
+  assert.equal(Array.isArray(throwResult.placed), true);
+
+  const out = resolveBoard(board, { applyGravity: false, activeCells: throwResult.placed });
+  assert.equal(out.chain, 1);
+  assert.equal(countCell(board, CELL_X), 1);
+  assert.equal(countCell(board, CELL_V), 2);
+});
+
+test('throw uses highest available free slot after compacting column', () => {
+  const board = createBoard();
+  board[0][2] = CELL_I;
+  board[2][2] = CELL_V;
+  const hand = [CELL_X];
+
+  const throwResult = throwToColumn(board, hand, 2);
+  assert.equal(throwResult.ok, true);
+  assert.equal(board[0][2], CELL_I);
+  assert.equal(board[1][2], CELL_V);
+  assert.equal(board[2][2], CELL_X);
+  assertColumnCompactedTop(board, 2);
+});
+
+test('resolve with gravity compacts columns with no in-between gaps', () => {
+  const board = createBoard();
+  board[0][3] = CELL_I;
+  board[3][3] = CELL_V;
+
+  resolveBoard(board, { applyGravity: true, activeCells: [[3, 3]] });
+
+  assert.equal(board[0][3], CELL_I);
+  assert.equal(board[1][3], CELL_V);
+  assertColumnCompactedTop(board, 3);
+});
+
+test('combo spawn placement supports compaction-driven chain reactions', () => {
+  const board = createBoard();
+  board[0][2] = CELL_V;
+  board[1][2] = CELL_I;
+  board[2][2] = CELL_I;
+  board[3][2] = CELL_I;
+  board[4][2] = CELL_I;
+  board[5][2] = CELL_I;
+
+  const out = resolveBoard(board);
+  assert.equal(out.chain, 2);
+  assert.equal(out.scoreDelta, 200);
+  assert.equal(board[0][2], CELL_X);
+  assert.equal(countCell(board, CELL_V), 0);
+  assert.equal(countCell(board, CELL_I), 0);
+  assertColumnCompactedTop(board, 2);
+});
+
+test('only newly formed coins can trigger the next match step in a chain', () => {
+  const board = createBoard();
+  board[0][0] = CELL_V;
+  board[1][0] = CELL_V;
+  for (let c = 1; c <= 5; c++) board[0][c] = CELL_I;
+
+  const out = resolveBoard(board, { applyGravity: false, activeCells: [[0, 0], [1, 0]] });
+
+  assert.equal(out.chain, 1);
+  assert.equal(countCell(board, CELL_X), 1);
+  assert.equal(countCell(board, CELL_I), 5);
 });
