@@ -106,11 +106,17 @@ export function findBottomOccupiedRow(board, col) {
 }
 
 export function applyGravity(board) {
+  applyGravityAndRemapActive(board, null);
+}
+
+function applyGravityAndRemapActive(board, activeSet) {
+  let nextActive = activeSet ? new Set() : null;
   for (let c = 0; c < COLS; c++) {
     let write = 0;
     for (let r = 0; r < ROWS; r++) {
       const cell = board[r][c];
       if (cell !== CELL_EMPTY) {
+        if (nextActive && activeSet.has(cellKey(r, c))) nextActive.add(cellKey(write, c));
         if (write !== r) {
           board[write][c] = cell;
           board[r][c] = CELL_EMPTY;
@@ -119,6 +125,7 @@ export function applyGravity(board) {
       }
     }
   }
+  return nextActive;
 }
 
 function cellKey(r, c) {
@@ -286,7 +293,8 @@ export function resolveBoard(board, options = {}) {
   let scoreDelta = 0;
 
   while (guard++ < 64) {
-    if (useGravity) applyGravity(board);
+    if (useGravity && activeSet) activeSet = applyGravityAndRemapActive(board, activeSet);
+    else if (useGravity) applyGravity(board);
     const specialResult = activateSpecialsOnce(board, activeSet);
     scoreDelta += specialResult.scoreDelta;
     clearedInResolve += specialResult.cleared;

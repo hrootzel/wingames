@@ -294,21 +294,23 @@ function applyGravity() {
   }
 }
 
-function applyGravityWithMoves() {
+function applyGravityWithMoves(activeSet = null) {
   const next = makeBoard();
   const moves = [];
+  const nextActive = activeSet ? new Set() : null;
   for (let c = 0; c < COLS; c++) {
     let write = 0;
     for (let r = 0; r < ROWS; r++) {
       const cell = game.board[r][c];
       if (cell === CELL_EMPTY) continue;
+      if (nextActive && activeSet.has(cellKey(r, c))) nextActive.add(cellKey(write, c));
       next[write][c] = cell;
       if (write !== r) moves.push({ cell, fromR: r, toR: write, c });
       write++;
     }
   }
   game.board = next;
-  return moves;
+  return { moves, activeSet: nextActive };
 }
 
 function cellKey(r, c) {
@@ -527,7 +529,9 @@ function processResolveStep() {
   }
 
   if (resolve.useGravity) {
-    const moves = applyGravityWithMoves();
+    const grav = applyGravityWithMoves(resolve.activeSet);
+    if (resolve.activeSet) resolve.activeSet = grav.activeSet;
+    const moves = grav.moves;
     if (moves.length > 0) {
       resolve.anim = {
         kind: 'gravity',

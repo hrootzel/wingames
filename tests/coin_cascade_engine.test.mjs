@@ -164,6 +164,49 @@ test('minus token removes all coins matching tier found below it', () => {
   }
 });
 
+test('plus token in active set still activates after gravity remap', () => {
+  const board = createBoard();
+  board[ROWS - 3][0] = CELL_PLUS;
+  board[ROWS - 1][0] = CELL_V;
+  board[ROWS - 2][4] = CELL_V;
+
+  const out = resolveBoard(board, { activeCells: [[ROWS - 3, 0]] });
+
+  assert.equal(countCell(board, CELL_PLUS), 0);
+  assert.equal(countCell(board, CELL_V), 0);
+  assert.equal(countCell(board, CELL_X), 2);
+  assert.equal(out.scoreDelta, 60);
+});
+
+test('minus token in active set still activates after gravity remap', () => {
+  const board = createBoard();
+  board[ROWS - 3][1] = CELL_MINUS;
+  board[ROWS - 1][1] = CELL_I;
+  board[ROWS - 2][3] = CELL_I;
+  board[ROWS - 4][5] = CELL_I;
+
+  const out = resolveBoard(board, { activeCells: [[ROWS - 3, 1]] });
+
+  assert.equal(countCell(board, CELL_MINUS), 0);
+  assert.equal(countCell(board, CELL_I), 0);
+  assert.equal(out.scoreDelta, 24);
+  assert.equal(out.clearedInResolve, 3);
+});
+
+test('active minus token fizzles when no coin exists below in same column', () => {
+  const board = createBoard();
+  board[ROWS - 2][2] = CELL_MINUS;
+  board[ROWS - 1][0] = CELL_I;
+  board[ROWS - 1][4] = CELL_V;
+
+  const out = resolveBoard(board, { activeCells: [[ROWS - 2, 2]] });
+
+  assert.equal(countCell(board, CELL_MINUS), 0);
+  assert.equal(countCell(board, CELL_I), 1);
+  assert.equal(countCell(board, CELL_V), 1);
+  assert.equal(out.scoreDelta, 0);
+});
+
 test('D pair clear awards +1000 bonus once in the step', () => {
   const board = createBoard();
   board[ROWS - 2][0] = CELL_D;
