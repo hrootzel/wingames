@@ -1,0 +1,224 @@
+.coin-cascade {
+  --coin-panel: rgba(0, 0, 0, 0.24);
+  --coin-border: rgba(255, 255, 255, 0.12);
+  --coin-glow: rgba(34, 197, 94, 0.22);
+}
+
+.coin-cascade .cascade-board {
+  padding: 16px;
+}
+
+.coin-cascade .cascade-wrap {
+  --gs-gap: 12px;
+  --gs-hud-width: 210px;
+  --gs-snap-col-min: 140px;
+  min-width: 0;
+}
+
+.coin-cascade .cascade-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  background: var(--coin-panel);
+  border-radius: 12px;
+  border: 1px solid var(--coin-border);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+  min-width: 0;
+}
+
+.coin-cascade .cascade-surface {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.coin-cascade #cascade-canvas {
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.35), 0 0 24px var(--coin-glow);
+  background: #06121e;
+  touch-action: none;
+}
+
+.coin-cascade .cascade-side {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  min-width: 0;
+}
+
+.coin-cascade .panel-box {
+  background: var(--coin-panel);
+  border-radius: 12px;
+  border: 1px solid var(--coin-border);
+  padding: 12px;
+  min-width: 0;
+}
+
+.coin-cascade .panel-box h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.coin-cascade .cascade-stats {
+  text-align: left;
+}
+
+.coin-cascade .cascade-controls {
+  margin-top: 0;
+  flex-direction: column;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.coin-cascade .cascade-controls button {
+  width: 100%;
+}
+
+.coin-cascade .key-hints {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.coin-cascade .key-hints .key {
+  display: inline-block;
+  min-width: 96px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-weight: 700;
+  color: #93c5fd;
+  text-align: center;
+  margin-right: 6px;
+}
+
+.coin-cascade .cascade-footer {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.coin-cascade .cascade-footer .tips {
+  margin-top: 0;
+}
+
+.coin-cascade .footer-controls {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.coin-cascade .footer-controls h3 {
+  margin: 0;
+}
+
+.coin-cascade .footer-controls .key-hints {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.coin-cascade .settings {
+  margin-left: auto;
+}
+
+.coin-cascade .icon-button {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--coin-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+
+.coin-cascade .icon-button:hover {
+  transform: translateY(-1px);
+}
+
+.coin-cascade .hidden {
+  display: none !important;
+}
+
+.coin-cascade .settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.coin-cascade .ms-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 24, 0.65);
+  display: grid;
+  place-items: center;
+  z-index: 3000;
+}
+
+.coin-cascade .ms-modal-card {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  width: min(92vw, 420px);
+  padding: 16px;
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.45);
+}
+
+.coin-cascade .ms-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.coin-cascade .ms-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.coin-cascade .ms-form {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.coin-cascade .ms-field {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.coin-cascade .ms-field input,
+.coin-cascade .ms-field select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.7);
+  color: inherit;
+}
+
+.coin-cascade .ms-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.coin-cascade button.secondary {
+  background: transparent;
+  color: inherit;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  box-shadow: none;
+}

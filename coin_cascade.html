@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Coin Cascade</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="game-shell.css">
+  <link rel="stylesheet" href="coin_cascade.css">
+</head>
+<body class="coin-cascade">
+  <div id="app">
+    <header class="app-header compact-header">
+      <div>
+        <h1>Coin Cascade</h1>
+        <p class="subtitle">Arcade coin chaining inspired by Money Puzzle Exchanger.</p>
+      </div>
+      <div class="settings">
+        <button id="settings-toggle" class="icon-button" aria-expanded="false" aria-controls="settings-modal" aria-label="Settings" title="Settings">Settings</button>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="status-row">
+        <span id="status">Ready.</span>
+      </div>
+    </div>
+
+    <div class="board cascade-board">
+      <div class="cascade-wrap gs-shell" style="--game-ar: 21 / 38;">
+        <div class="cascade-stage gs-stage">
+          <div class="cascade-surface gs-surface" id="cascade-surface">
+            <canvas id="cascade-canvas" width="420" height="760" aria-label="Coin Cascade board"></canvas>
+          </div>
+        </div>
+
+        <div class="cascade-side gs-hud">
+          <div class="panel-box" data-gs-snap="top" data-gs-fit="required">
+            <h3>Scoreboard</h3>
+            <div class="quick-stats cascade-stats">
+              <div>Score: <span id="score">0</span></div>
+              <div>Level: <span id="level">1</span></div>
+              <div>Chain: <span id="chain">0</span></div>
+              <div>Max Chain: <span id="max-chain">0</span></div>
+            </div>
+          </div>
+
+          <div class="panel-box" data-gs-snap="top" data-gs-fit="required">
+            <h3>Run Info</h3>
+            <div class="quick-stats cascade-stats">
+              <div>Difficulty: <span id="difficulty-label">4</span></div>
+              <div>Descent: <span id="speed-label">1200 ms</span></div>
+              <div>Coins Cleared: <span id="cleared">0</span></div>
+            </div>
+          </div>
+
+          <div class="panel-box controls-box" data-gs-snap="bottom" data-gs-fit="optional">
+            <div class="control-group cascade-controls">
+              <button id="new-game">New Game</button>
+              <button id="pause">Pause</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="cascade-footer">
+      <div class="panel-box footer-controls">
+        <h3>Controls</h3>
+        <div class="key-hints">
+          <div><span class="key">Left / Right</span> Select column</div>
+          <div><span class="key">Space / Z</span> Grab or throw</div>
+          <div><span class="key">Mouse / Touch</span> Select and action</div>
+          <div><span class="key">P</span> Pause</div>
+          <div><span class="key">R</span> Restart</div>
+          <div><span class="key">M</span> Mute</div>
+        </div>
+      </div>
+      <p class="tips">
+        Match connected coin groups by tier requirements (5,2,5,2,5,2). Use blue '+' gems to rank up a tier and red '-' gems to erase one.
+      </p>
+    </footer>
+  </div>
+
+  <div id="settings-modal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="ms-modal-card">
+      <header class="ms-modal-header">
+        <h2 id="settings-title">Settings</h2>
+        <button id="settings-close" class="icon-button" aria-label="Close settings">X</button>
+      </header>
+
+      <div class="ms-form">
+        <div class="settings-grid">
+          <label class="ms-field">
+            <span>Difficulty</span>
+            <input id="difficulty" type="number" min="1" max="8" value="4">
+          </label>
+          <label class="ms-field">
+            <span>Audio</span>
+            <select id="audio-enabled">
+              <option value="on">On</option>
+              <option value="off">Off</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="ms-actions">
+        <button id="settings-apply">Apply / Restart</button>
+        <button id="settings-cancel" class="secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="coin_cascade.js"></script>
+</body>
+</html>

@@ -16,6 +16,7 @@ const GAMES_WITH_PREVIEWS = [
 
 const GAMES_WITHOUT_PREVIEWS = [
   { name: 'prismpulse', canvasId: 'pulse-canvas', logicalW: 400, logicalH: 280 },
+  { name: 'coin_cascade', canvasId: 'cascade-canvas', logicalW: 420, logicalH: 760 },
   { name: 'super_buster', canvasId: 'buster-canvas', logicalW: 640, logicalH: 360 },
   { name: 'paddle_royale', canvasId: 'paddle-canvas', logicalW: 480, logicalH: 640 }
 ];

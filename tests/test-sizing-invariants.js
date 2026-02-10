@@ -12,6 +12,7 @@ const GAMES = [
   { name: 'plop_plop', noZoom: true },
   { name: 'pill_popper' },
   { name: 'blocks' },
+  { name: 'coin_cascade' },
   { name: 'prismpulse' },
   { name: 'super_buster' },
   { name: 'paddle_royale' },
