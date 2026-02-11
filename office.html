@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Office Dude Generator</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="office.css">
+</head>
+<body class="office-dudes">
+  <div id="app">
+    <header class="app-header">
+      <div>
+        <h1>Office Dude Generator</h1>
+        <p class="subtitle">Procedural isometric worker sprites, baked at runtime.</p>
+      </div>
+      <div class="quick-stats">
+        <div id="office-status">Ready.</div>
+      </div>
+    </header>
+
+    <div class="board office-layout">
+      <section class="office-builder" aria-label="Character builder">
+        <h2>Builder</h2>
+
+        <label>Seed
+          <input id="office-seed" type="text" value="desk-001">
+        </label>
+
+        <div class="office-actions">
+          <button id="office-randomize" type="button">Randomize</button>
+          <button id="office-rebake" type="button">Rebake</button>
+        </div>
+
+        <label>Hair
+          <select id="office-hair-style"></select>
+        </label>
+        <label>Shirt
+          <select id="office-shirt-style"></select>
+        </label>
+        <label>Pants
+          <select id="office-pants-style"></select>
+        </label>
+        <label>Shoes
+          <select id="office-shoe-style"></select>
+        </label>
+
+        <h3 class="office-subhead">Face</h3>
+        <label>Eyes
+          <select id="office-face-eyes"></select>
+        </label>
+        <label>Mouth
+          <select id="office-face-mouth"></select>
+        </label>
+        <label>Brows
+          <select id="office-face-brows"></select>
+        </label>
+        <label>Nose
+          <select id="office-face-nose"></select>
+        </label>
+        <label>Facial Hair
+          <select id="office-face-facial-hair"></select>
+        </label>
+
+        <div class="office-toggles">
+          <label class="checkbox"><input id="office-glasses" type="checkbox">Glasses</label>
+          <label class="checkbox"><input id="office-tie" type="checkbox">Tie</label>
+          <label class="checkbox"><input id="office-badge" type="checkbox">Badge</label>
+          <label class="checkbox"><input id="office-jacket" type="checkbox">Jacket</label>
+          <label class="checkbox"><input id="office-skirt" type="checkbox">Skirt</label>
+          <label class="checkbox"><input id="office-carry" type="checkbox">Carry Mug</label>
+          <label class="checkbox"><input id="office-face-blush" type="checkbox">Blush</label>
+        </div>
+
+        <label>Skin
+          <input id="office-skin-color" type="color" value="#f0c3a3">
+        </label>
+        <label>Hair Color
+          <input id="office-hair-color" type="color" value="#1f2937">
+        </label>
+        <label>Shirt Color
+          <input id="office-shirt-color" type="color" value="#2c6db4">
+        </label>
+        <label>Pants Color
+          <input id="office-pants-color" type="color" value="#30445d">
+        </label>
+      </section>
+
+      <section class="office-stage-wrap" aria-label="Demo stage">
+        <canvas id="office-stage" width="960" height="540"></canvas>
+        <div class="office-debug" id="office-debug"></div>
+        <div class="office-touch" aria-label="Touch movement controls">
+          <button data-dir="up" type="button">Up</button>
+          <button data-dir="left" type="button">Left</button>
+          <button data-dir="down" type="button">Down</button>
+          <button data-dir="right" type="button">Right</button>
+        </div>
+      </section>
+    </div>
+
+    <p class="tips">Move with Arrow keys or touch controls. Stage directions: Up=NW, Right=NE, Down=SE, Left=SW.</p>
+  </div>
+
+  <script type="module" src="office.js"></script>
+</body>
+</html>
