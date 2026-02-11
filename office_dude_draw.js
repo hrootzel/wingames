@@ -152,8 +152,9 @@ const LAYER_Z = {
   tie: 34,
   badge: 36,
   head: 40,
+  headAccessory: 42,
   hair: 44,
-  glasses: 46,
+  eyewear: 46,
   nearLeg: 60,
   nearArm: 70,
   heldItem: 80,
@@ -309,37 +310,32 @@ function computeArmPose(rig, which, depth, m) {
 function drawLeg(ctx, spec, rig, pose) {
   const { which, depth, hipX: x, hipY, kneeX, kneeY, footX, footY } = pose;
   const isLeft = which === 'L';
-  const legTopY = hipY - 0.35;
-  const ankleY = footY - 3.55;
-  const upperW = spec.outfit.pantsStyle === 'slacks' ? 4.7 : 4.2;
-  const lowerW = spec.outfit.pantsStyle === 'slacks' ? 4.2 : 3.7;
-  const kneeShift = (kneeX - x) * 0.35;
+  const legTopY = hipY + 0.45;
+  const ankleY = footY - 3.65;
+  const legW = spec.outfit.pantsStyle === 'slacks' ? 4.35 : 3.95;
+  const legX = x * 0.58 + footX * 0.42;
+  const bend = kneeX - x;
 
-  // Clean tube-like leg silhouette with slight taper, close to casual-character references.
-  const leg = new Path2D();
-  leg.moveTo(x - upperW * 0.5, legTopY);
-  leg.lineTo(x + upperW * 0.5, legTopY);
-  leg.lineTo(footX + lowerW * 0.5 + kneeShift, ankleY);
-  leg.lineTo(footX - lowerW * 0.5 + kneeShift, ankleY);
-  leg.closePath();
-  fillAndStroke(ctx, leg, spec.palette.pants, primaryOutline(), 1, darken(spec.palette.pants, 0.12));
+  // Chunkier but cleaner "column leg" silhouette that reads like the reference samples.
+  const leg = roundedRectPath(legX - legW * 0.5, legTopY, legW, Math.max(3.8, ankleY - legTopY), 1.2);
+  fillAndStroke(ctx, leg, spec.palette.pants, primaryOutline(), 1, darken(spec.palette.pants, 0.1));
 
-  ctx.strokeStyle = darken(spec.palette.pants, 0.24);
-  ctx.lineWidth = 0.7;
+  ctx.strokeStyle = darken(spec.palette.pants, 0.22);
+  ctx.lineWidth = 0.55;
   ctx.beginPath();
-  ctx.moveTo(x, legTopY + 0.8);
-  ctx.lineTo(footX + kneeShift * 0.65, ankleY - 0.6);
+  ctx.moveTo(legX - bend * 0.08, legTopY + 0.6);
+  ctx.lineTo(legX + bend * 0.18, ankleY - 0.5);
   ctx.stroke();
 
   const shoeW = spec.outfit.shoeStyle === 'loafer' ? 8.2 : 9.1;
   const shoeH = spec.outfit.shoeStyle === 'heel' ? 4.2 : 5.2;
-  const shoe = roundedRectPath(footX - shoeW * 0.5, footY - shoeH, shoeW, shoeH, 2.2);
+  const shoe = ellipsePath(footX, footY - shoeH * 0.42, shoeW * 0.52, shoeH * 0.58);
   fillAndStroke(ctx, shoe, spec.palette.shoes, primaryOutline(), 1.05, darken(spec.palette.shoes, 0.2));
   paintLightPass(ctx, shoe, {
-    x: footX - shoeW * 0.5,
+    x: footX - shoeW * 0.52,
     y: footY - shoeH,
-    w: shoeW,
-    h: shoeH,
+    w: shoeW * 1.04,
+    h: shoeH * 0.95,
   }, { highlight: 0.2, shade: 0.28, specular: 0.2 });
 
   ctx.strokeStyle = darken(spec.palette.shoes, 0.35);
@@ -370,8 +366,8 @@ function drawLeg(ctx, spec, rig, pose) {
     ctx.strokeStyle = lighten(spec.palette.pants, 0.2);
     ctx.lineWidth = 0.55;
     ctx.beginPath();
-    ctx.moveTo(x - 0.9, legTopY + 0.2);
-    ctx.lineTo(footX - 1, ankleY - 0.5);
+    ctx.moveTo(legX - 0.8, legTopY + 0.35);
+    ctx.lineTo(legX - 0.55, ankleY - 0.5);
     ctx.stroke();
   }
   if (spec.outfit.pantsStyle === 'chinos') {
@@ -393,28 +389,36 @@ function drawLeg(ctx, spec, rig, pose) {
 }
 
 function drawArm(ctx, spec, rig, pose) {
-  const { elbowX, elbowY, shoulderX, shoulderY, wristX, wristY } = pose;
-  const upperW = rig.limbT * 1.22;
-  const lowerW = rig.limbT * 1.0;
+  const { elbowX, elbowY, shoulderX, shoulderY, wristX, wristY, which } = pose;
+  const bend = which === 'L' ? -1 : 1;
+  const outerW = clamp(rig.limbT * 2.45, 7.8, 10.8);
+  const innerW = outerW - 2.3;
 
-  const sleeve = ribbonPath(
-    [
-      { x: shoulderX, y: shoulderY },
-      { x: elbowX, y: elbowY },
-      { x: wristX, y: wristY - 0.2 },
-    ],
-    [upperW, upperW * 0.86, lowerW],
-  );
-  fillAndStroke(ctx, sleeve, darken(spec.palette.shirt, 0.01), primaryOutline(), 0.95, darken(spec.palette.shirt, 0.12));
+  // Hint-inspired curved limb: thick outlined spline for a cleaner cartoon arm silhouette.
+  ctx.strokeStyle = primaryOutline();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = outerW;
+  ctx.beginPath();
+  ctx.moveTo(shoulderX, shoulderY);
+  ctx.quadraticCurveTo(elbowX + bend * 1.05, elbowY + 0.75, wristX, wristY - 0.15);
+  ctx.stroke();
+
+  ctx.strokeStyle = darken(spec.palette.shirt, 0.01);
+  ctx.lineWidth = innerW;
+  ctx.beginPath();
+  ctx.moveTo(shoulderX, shoulderY);
+  ctx.quadraticCurveTo(elbowX + bend * 1.05, elbowY + 0.75, wristX, wristY - 0.15);
+  ctx.stroke();
 
   if (spec.outfit.sleevesRolled) {
-    const rolled = roundedRectPath(elbowX - 1.95, elbowY - 1.25, 3.9, 2.2, 0.9);
-    fillAndStroke(ctx, rolled, darken(spec.palette.shirt, 0.09), primaryOutline(), 0.7);
+    const roll = roundedRectPath(wristX - 2.15, wristY - 3.4, 4.3, 1.65, 0.65);
+    fillAndStroke(ctx, roll, darken(spec.palette.shirt, 0.12), primaryOutline(), 0.65);
   }
-  const cuff = roundedRectPath(wristX - 2.1, wristY - 1.75, 4.2, 1.65, 0.65);
-  fillAndStroke(ctx, cuff, darken(spec.palette.shirt, 0.12), primaryOutline(), 0.55);
-  const hand = roundedRectPath(wristX - 2.15, wristY - 0.9, 4.3, 2.25, 0.85);
-  fillAndStroke(ctx, hand, spec.palette.skin, primaryOutline(), 0.65);
+
+  const handR = 1.8;
+  const hand = ellipsePath(wristX, wristY + 0.35, handR * 1.12, handR);
+  fillAndStroke(ctx, hand, spec.palette.skin, primaryOutline(), 0.8);
 
   return { x: wristX, y: wristY };
 }
@@ -431,10 +435,12 @@ function buildLayerPlan(ctx, spec, rig, side, m, pose) {
 
   layers.push(
     { name: 'head', z: LAYER_Z.head, draw: () => drawHead(ctx, spec, rig) },
+    { name: 'headAccessory', z: LAYER_Z.headAccessory, draw: () => drawHeadAccessory(ctx, spec, rig, side) },
     { name: 'hair', z: LAYER_Z.hair, draw: () => drawHair(ctx, spec, rig, side) },
   );
 
-  if (spec.outfit.glasses) layers.push({ name: 'glasses', z: LAYER_Z.glasses, draw: () => drawGlasses(ctx, spec, rig) });
+  const eyewear = spec.outfit.eyewear || (spec.outfit.glasses ? 'round' : 'none');
+  if (eyewear !== 'none') layers.push({ name: 'eyewear', z: LAYER_Z.eyewear, draw: () => drawEyewear(ctx, spec, rig) });
 
   layers.push(
     { name: 'nearLeg', z: LAYER_Z.nearLeg, draw: () => drawLeg(ctx, spec, rig, pose.legNear) },
@@ -459,19 +465,19 @@ function drawTorso(ctx, spec, rig) {
   neck.closePath();
   fillAndStroke(ctx, neck, darken(spec.palette.skin, 0.03), primaryOutline(), 1, darken(spec.palette.skin, 0.14));
 
-  const shoulderW = rig.torsoW * 0.6;
-  const waistW = rig.torsoW * 0.48;
-  const hemW = rig.torsoW * 0.56;
-  const topY = rig.torsoTop + 0.7;
-  const botY = rig.hipY + 0.65;
+  const shoulderW = rig.torsoW * 0.53;
+  const waistW = rig.torsoW * 0.45;
+  const topY = rig.torsoTop + 0.55;
+  const botY = rig.hipY + 0.85;
+  const botInset = rig.torsoW * 0.1;
   const body = new Path2D();
-  body.moveTo(-shoulderW, topY + 0.2);
-  body.lineTo(shoulderW, topY + 0.2);
-  body.quadraticCurveTo(hemW + 0.8, rig.torsoTop + rig.torsoH * 0.48, hemW, botY - 0.8);
-  body.lineTo(waistW, botY + 0.8);
-  body.quadraticCurveTo(0, botY + 1.35, -waistW, botY + 0.8);
-  body.lineTo(-hemW, botY - 0.8);
-  body.quadraticCurveTo(-hemW - 0.8, rig.torsoTop + rig.torsoH * 0.48, -shoulderW, topY + 0.2);
+  body.moveTo(-shoulderW, topY);
+  body.quadraticCurveTo(0, topY + 1.65, shoulderW, topY);
+  body.lineTo(waistW + 0.4, botY - 0.8);
+  body.quadraticCurveTo(waistW - 0.25, botY + 0.2, waistW - botInset, botY + 0.55);
+  body.quadraticCurveTo(0, botY + 1.35, -waistW + botInset, botY + 0.55);
+  body.quadraticCurveTo(-waistW + 0.25, botY + 0.2, -waistW - 0.4, botY - 0.8);
+  body.lineTo(-shoulderW, topY);
   body.closePath();
   fillAndStroke(ctx, body, shirtBase, primaryOutline(), 1.45, darken(spec.palette.shirt, 0.14));
   paintLightPass(ctx, body, {
@@ -482,9 +488,9 @@ function drawTorso(ctx, spec, rig) {
   }, { highlight: 0.14, shade: 0.12, specular: 0.08 });
 
   // Pants top inspired by the reference samples: curved waistband band.
-  const waistbandTop = rig.hipY - 3.2;
-  const waistbandBottom = rig.hipY - 0.8;
-  const wbW = rig.torsoW * 0.82;
+  const waistbandTop = rig.hipY - 3.0;
+  const waistbandBottom = rig.hipY - 0.7;
+  const wbW = rig.torsoW * 0.76;
   const waistband = new Path2D();
   waistband.moveTo(-wbW * 0.48, waistbandTop + 0.8);
   waistband.quadraticCurveTo(0, waistbandTop - 0.35, wbW * 0.48, waistbandTop + 0.8);
@@ -614,37 +620,20 @@ function drawBadge(ctx, spec, rig) {
 }
 
 function drawHead(ctx, spec, rig) {
-  const head = new Path2D();
-  const left = -rig.headRX * 0.92;
-  const right = rig.headRX * 0.92;
-  const top = rig.headCenterY - rig.headRY * 0.84;
-  const bottom = rig.headCenterY + rig.headRY * 0.9;
-  const rx = rig.headRX * 0.32;
-  const ry = rig.headRY * 0.3;
-  head.moveTo(left + rx, top);
-  head.lineTo(right - rx, top);
-  head.quadraticCurveTo(right, top, right, top + ry);
-  head.lineTo(right, bottom - ry);
-  head.quadraticCurveTo(right, bottom, right - rx, bottom);
-  head.lineTo(left + rx, bottom);
-  head.quadraticCurveTo(left, bottom, left, bottom - ry);
-  head.lineTo(left, top + ry);
-  head.quadraticCurveTo(left, top, left + rx, top);
-  head.closePath();
-  fillAndStroke(ctx, head, spec.palette.skin, primaryOutline(), 1.55, darken(spec.palette.skin, 0.14));
-  paintLightPass(ctx, head, {
-    x: -rig.headRX,
-    y: rig.headCenterY - rig.headRY,
-    w: rig.headRX * 2,
-    h: rig.headRY * 2,
-  }, { highlight: 0.12, shade: 0.1, specular: 0.08 });
-
+  const head = ellipsePath(0, rig.headCenterY, rig.headRX * 0.95, rig.headRY * 0.92);
   const earW = 2.8 * (spec.body?.earSize || 1);
   const earH = 3.9 * (spec.body?.earSize || 1);
-  const earL = ellipsePath(-rig.headRX * 0.99, rig.headCenterY + 0.15, earW * 0.72, earH * 0.62);
-  const earR = ellipsePath(rig.headRX * 0.99, rig.headCenterY + 0.15, earW * 0.72, earH * 0.62);
-  fillAndStroke(ctx, earL, darken(spec.palette.skin, 0.02), primaryOutline(), 0.8);
-  fillAndStroke(ctx, earR, darken(spec.palette.skin, 0.02), primaryOutline(), 0.8);
+  const earL = ellipsePath(-rig.headRX * 0.96, rig.headCenterY + 0.2, earW * 0.72, earH * 0.62);
+  const earR = ellipsePath(rig.headRX * 0.96, rig.headCenterY + 0.2, earW * 0.72, earH * 0.62);
+  fillAndStroke(ctx, earL, darken(spec.palette.skin, 0.02), primaryOutline(), 1);
+  fillAndStroke(ctx, earR, darken(spec.palette.skin, 0.02), primaryOutline(), 1);
+  fillAndStroke(ctx, head, spec.palette.skin, primaryOutline(), 1.55, darken(spec.palette.skin, 0.14));
+  paintLightPass(ctx, head, {
+    x: -rig.headRX * 0.95,
+    y: rig.headCenterY - rig.headRY * 0.92,
+    w: rig.headRX * 1.9,
+    h: rig.headRY * 1.84,
+  }, { highlight: 0.12, shade: 0.1, specular: 0.08 });
 
   ctx.save();
   ctx.clip(head);
@@ -669,6 +658,15 @@ function drawHead(ctx, spec, rig) {
     ctx.beginPath();
     ctx.ellipse(-eyeDX, eyeY, rig.eyeR * 1.15, rig.eyeR * 0.82, 0, 0, Math.PI * 2);
     ctx.ellipse(eyeDX, eyeY, rig.eyeR * 1.15, rig.eyeR * 0.82, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#f8fafc';
+    ctx.fill();
+    ctx.strokeStyle = primaryOutline();
+    ctx.lineWidth = 0.65;
+    ctx.stroke();
+    ctx.fillStyle = primaryOutline();
+    ctx.beginPath();
+    ctx.arc(-eyeDX + 0.18, eyeY + 0.02, rig.eyeR * 0.52, 0, Math.PI * 2);
+    ctx.arc(eyeDX + 0.18, eyeY + 0.02, rig.eyeR * 0.52, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#ffffffc0';
     ctx.beginPath();
@@ -684,6 +682,66 @@ function drawHead(ctx, spec, rig) {
     ctx.moveTo(eyeDX - 1.1, eyeY + 0.6);
     ctx.lineTo(eyeDX + 1.1, eyeY + 0.4);
     ctx.stroke();
+  } else if (face.eyes === 'half_lid') {
+    const eyeW = Math.max(2, rig.eyeR * 2.3);
+    const eyeH = Math.max(0.9, rig.eyeR * 1.4);
+    const lidY = eyeY - eyeH * 0.2;
+    const left = roundedRectPath(-eyeDX - eyeW * 0.5, eyeY - eyeH * 0.45, eyeW, eyeH, eyeH * 0.48);
+    const right = roundedRectPath(eyeDX - eyeW * 0.5, eyeY - eyeH * 0.45, eyeW, eyeH, eyeH * 0.48);
+    fillAndStroke(ctx, left, '#f8fafc', darken(spec.palette.outline, 0.1), 0.55);
+    fillAndStroke(ctx, right, '#f8fafc', darken(spec.palette.outline, 0.1), 0.55);
+    ctx.strokeStyle = darken(spec.palette.outline, 0.02);
+    ctx.lineWidth = 1.05;
+    ctx.beginPath();
+    ctx.moveTo(-eyeDX - eyeW * 0.55, lidY);
+    ctx.quadraticCurveTo(-eyeDX, lidY + 0.22, -eyeDX + eyeW * 0.55, lidY);
+    ctx.moveTo(eyeDX - eyeW * 0.55, lidY);
+    ctx.quadraticCurveTo(eyeDX, lidY + 0.22, eyeDX + eyeW * 0.55, lidY);
+    ctx.stroke();
+    ctx.fillStyle = darken(spec.palette.outline, 0.06);
+    ctx.beginPath();
+    ctx.arc(-eyeDX, eyeY + 0.15, 0.5, 0, Math.PI * 2);
+    ctx.arc(eyeDX, eyeY + 0.15, 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (face.eyes === 'squint') {
+    ctx.strokeStyle = darken(spec.palette.outline, 0.03);
+    ctx.lineWidth = 1.25;
+    ctx.beginPath();
+    ctx.moveTo(-eyeDX - 1.2, eyeY);
+    ctx.quadraticCurveTo(-eyeDX, eyeY - 0.42, -eyeDX + 1.2, eyeY);
+    ctx.moveTo(eyeDX - 1.2, eyeY);
+    ctx.quadraticCurveTo(eyeDX, eyeY - 0.42, eyeDX + 1.2, eyeY);
+    ctx.stroke();
+  } else if (face.eyes === 'wink') {
+    ctx.beginPath();
+    ctx.arc(-eyeDX, eyeY, rig.eyeR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = darken(spec.palette.outline, 0.03);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(eyeDX - 1.2, eyeY + 0.2);
+    ctx.quadraticCurveTo(eyeDX, eyeY - 0.35, eyeDX + 1.2, eyeY + 0.2);
+    ctx.stroke();
+  } else if (face.eyes === 'tired') {
+    const eyeW = Math.max(2.2, rig.eyeR * 2.4);
+    const eyeH = Math.max(0.8, rig.eyeR * 1.15);
+    const left = roundedRectPath(-eyeDX - eyeW * 0.5, eyeY - eyeH * 0.26, eyeW, eyeH, eyeH * 0.44);
+    const right = roundedRectPath(eyeDX - eyeW * 0.5, eyeY - eyeH * 0.26, eyeW, eyeH, eyeH * 0.44);
+    fillAndStroke(ctx, left, '#f8fafc', darken(spec.palette.outline, 0.12), 0.45);
+    fillAndStroke(ctx, right, '#f8fafc', darken(spec.palette.outline, 0.12), 0.45);
+    ctx.fillStyle = darken(spec.palette.outline, 0.06);
+    ctx.beginPath();
+    ctx.ellipse(-eyeDX, eyeY + 0.06, 0.45, 0.34, 0, 0, Math.PI * 2);
+    ctx.ellipse(eyeDX, eyeY + 0.06, 0.45, 0.34, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = rgba(darken(spec.palette.outline, 0.08), 0.42);
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(-eyeDX - eyeW * 0.45, eyeY + eyeH * 0.65);
+    ctx.quadraticCurveTo(-eyeDX, eyeY + eyeH * 0.95, -eyeDX + eyeW * 0.45, eyeY + eyeH * 0.65);
+    ctx.moveTo(eyeDX - eyeW * 0.45, eyeY + eyeH * 0.65);
+    ctx.quadraticCurveTo(eyeDX, eyeY + eyeH * 0.95, eyeDX + eyeW * 0.45, eyeY + eyeH * 0.65);
+    ctx.stroke();
   } else if (face.eyes === 'happy') {
     ctx.strokeStyle = darken(spec.palette.outline, 0.02);
     ctx.lineWidth = 1.2;
@@ -692,9 +750,17 @@ function drawHead(ctx, spec, rig) {
     ctx.arc(eyeDX, eyeY, 1.2, 0.1, Math.PI - 0.1);
     ctx.stroke();
   } else {
+    // Default eye set now uses white sclera + pupil to match cleaner cartoon references.
+    const scleraW = rig.eyeR * 2.2;
+    const scleraH = rig.eyeR * 1.55;
+    const leftEye = ellipsePath(-eyeDX, eyeY, scleraW * 0.5, scleraH * 0.5);
+    const rightEye = ellipsePath(eyeDX, eyeY, scleraW * 0.5, scleraH * 0.5);
+    fillAndStroke(ctx, leftEye, '#f8fafc', primaryOutline(), 0.55);
+    fillAndStroke(ctx, rightEye, '#f8fafc', primaryOutline(), 0.55);
+    ctx.fillStyle = primaryOutline();
     ctx.beginPath();
-    ctx.arc(-eyeDX, eyeY, rig.eyeR, 0, Math.PI * 2);
-    ctx.arc(eyeDX, eyeY, rig.eyeR, 0, Math.PI * 2);
+    ctx.arc(-eyeDX + 0.22, eyeY + 0.05, rig.eyeR * 0.58, 0, Math.PI * 2);
+    ctx.arc(eyeDX + 0.22, eyeY + 0.05, rig.eyeR * 0.58, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -787,6 +853,8 @@ function drawHead(ctx, spec, rig) {
 }
 
 function drawHair(ctx, spec, rig, side) {
+  const headAccessory = spec.outfit.headAccessory || 'none';
+  if (headAccessory === 'cap' || headAccessory === 'beanie' || headAccessory === 'visor') return;
   if (spec.outfit.hairStyle === 'bald') return;
 
   ctx.fillStyle = spec.palette.hair;
@@ -944,19 +1012,149 @@ function drawHair(ctx, spec, rig, side) {
   }
 }
 
-function drawGlasses(ctx, spec, rig) {
+function drawHeadAccessory(ctx, spec, rig, side) {
+  const kind = spec.outfit.headAccessory || 'none';
+  if (kind === 'none') return;
+  const hrx = rig.headRX;
+  const hry = rig.headRY;
+  const topY = rig.headCenterY - hry * 0.8;
+  const near = (side?.near || 'R') === 'L' ? -1 : 1;
+
+  if (kind === 'headband') {
+    const band = new Path2D();
+    band.moveTo(-hrx * 0.83, rig.headCenterY - hry * 0.26);
+    band.quadraticCurveTo(0, rig.headCenterY - hry * 0.42, hrx * 0.83, rig.headCenterY - hry * 0.26);
+    band.lineTo(hrx * 0.78, rig.headCenterY - hry * 0.1);
+    band.quadraticCurveTo(0, rig.headCenterY - hry * 0.27, -hrx * 0.78, rig.headCenterY - hry * 0.1);
+    band.closePath();
+    fillAndStroke(ctx, band, lighten(spec.palette.accent, 0.05), primaryOutline(), 0.85, darken(spec.palette.accent, 0.06));
+    return;
+  }
+
+  if (kind === 'cap') {
+    const crown = new Path2D();
+    crown.moveTo(-hrx * 0.8, topY + 0.5);
+    crown.quadraticCurveTo(0, topY - hry * 0.45, hrx * 0.82, topY + 0.5);
+    crown.lineTo(hrx * 0.72, rig.headCenterY - hry * 0.1);
+    crown.lineTo(-hrx * 0.7, rig.headCenterY - hry * 0.1);
+    crown.closePath();
+    fillAndStroke(ctx, crown, darken(spec.palette.shirt, 0.18), primaryOutline(), 0.95, darken(spec.palette.shirt, 0.28));
+    const brim = ribbonPath(
+      [
+        { x: -hrx * 0.2, y: rig.headCenterY - hry * 0.12 },
+        { x: near * hrx * 0.58, y: rig.headCenterY - hry * 0.06 },
+      ],
+      [1.5, 2.1],
+    );
+    fillAndStroke(ctx, brim, darken(spec.palette.shirt, 0.25), primaryOutline(), 0.78);
+    return;
+  }
+
+  if (kind === 'beanie') {
+    const beanie = new Path2D();
+    beanie.moveTo(-hrx * 0.84, topY + 1.2);
+    beanie.quadraticCurveTo(0, topY - hry * 0.55, hrx * 0.84, topY + 1.2);
+    beanie.lineTo(hrx * 0.74, rig.headCenterY - hry * 0.2);
+    beanie.quadraticCurveTo(0, rig.headCenterY - hry * 0.3, -hrx * 0.74, rig.headCenterY - hry * 0.2);
+    beanie.closePath();
+    fillAndStroke(ctx, beanie, darken(spec.palette.accent, 0.2), primaryOutline(), 0.88, darken(spec.palette.accent, 0.3));
+    const knit = roundedRectPath(-hrx * 0.62, rig.headCenterY - hry * 0.28, hrx * 1.24, 2.2, 1.1);
+    fillAndStroke(ctx, knit, darken(spec.palette.accent, 0.1), darken(spec.palette.accent, 0.28), 0.55);
+    return;
+  }
+
+  if (kind === 'headset') {
+    const band = capsulePath(-hrx * 0.46, topY + 1.2, hrx * 0.46, topY + 1.2, 1.35);
+    fillAndStroke(ctx, band, darken(spec.palette.outline, 0.06), primaryOutline(), 0.55);
+    const padL = roundedRectPath(-hrx * 0.98, rig.eyeY - 0.7, 2.5, 4.3, 1.1);
+    const padR = roundedRectPath(hrx * 0.73, rig.eyeY - 0.7, 2.5, 4.3, 1.1);
+    fillAndStroke(ctx, padL, '#374151', primaryOutline(), 0.65);
+    fillAndStroke(ctx, padR, '#374151', primaryOutline(), 0.65);
+    const mic = capsulePath(hrx * 0.85, rig.eyeY + 1.5, hrx * 0.45, rig.mouthY + 0.9, 0.55);
+    fillAndStroke(ctx, mic, '#4b5563', primaryOutline(), 0.45);
+    return;
+  }
+
+  if (kind === 'bandana') {
+    const wrap = new Path2D();
+    wrap.moveTo(-hrx * 0.82, rig.headCenterY - hry * 0.34);
+    wrap.quadraticCurveTo(0, rig.headCenterY - hry * 0.78, hrx * 0.82, rig.headCenterY - hry * 0.34);
+    wrap.lineTo(hrx * 0.66, rig.headCenterY - hry * 0.04);
+    wrap.quadraticCurveTo(0, rig.headCenterY - hry * 0.28, -hrx * 0.66, rig.headCenterY - hry * 0.04);
+    wrap.closePath();
+    fillAndStroke(ctx, wrap, darken(spec.palette.accent, 0.08), primaryOutline(), 0.8, darken(spec.palette.accent, 0.16));
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-over';
+    const knot = roundedRectPath(near * hrx * 0.62, rig.headCenterY - hry * 0.06, 1.8, 1.5, 0.5);
+    fillAndStroke(ctx, knot, darken(spec.palette.accent, 0.13), primaryOutline(), 0.55);
+    const tail = ribbonPath(
+      [
+        { x: near * hrx * 0.74, y: rig.headCenterY + hry * 0.06 },
+        { x: near * hrx * 0.88, y: rig.headCenterY + hry * 0.45 },
+      ],
+      [0.65, 0.95],
+    );
+    fillAndStroke(ctx, tail, darken(spec.palette.accent, 0.18), primaryOutline(), 0.55);
+    ctx.restore();
+  }
+}
+
+function drawEyewear(ctx, spec, rig) {
+  const style = spec.outfit.eyewear || (spec.outfit.glasses ? 'round' : 'none');
+  if (style === 'none') return;
   ctx.strokeStyle = darken(spec.palette.outline, 0.05);
-  ctx.lineWidth = 1.1;
+  ctx.lineWidth = 1;
   const eyeDX = rig.eyeGap;
   const eyeY = rig.eyeY;
-  const lensR = Math.max(1.7, rig.eyeR * 2.4);
-  ctx.beginPath();
-  ctx.arc(-eyeDX, eyeY, lensR, 0, Math.PI * 2);
-  ctx.stroke();
+  const lensR = Math.max(1.6, rig.eyeR * 2.2);
 
-  ctx.beginPath();
-  ctx.arc(eyeDX, eyeY, lensR, 0, Math.PI * 2);
-  ctx.stroke();
+  if (style === 'square') {
+    const l = roundedRectPath(-eyeDX - lensR, eyeY - lensR * 0.7, lensR * 1.9, lensR * 1.45, 0.7);
+    const r = roundedRectPath(eyeDX - lensR * 0.9, eyeY - lensR * 0.7, lensR * 1.9, lensR * 1.45, 0.7);
+    fillAndStroke(ctx, l, rgba('#dbeafe', 0.1), primaryOutline(), 0.7);
+    fillAndStroke(ctx, r, rgba('#dbeafe', 0.1), primaryOutline(), 0.7);
+  } else if (style === 'shades') {
+    const left = roundedRectPath(-eyeDX - lensR * 0.95, eyeY - lensR * 0.72, lensR * 1.9, lensR * 1.35, 0.72);
+    const right = roundedRectPath(eyeDX - lensR * 0.95, eyeY - lensR * 0.72, lensR * 1.9, lensR * 1.35, 0.72);
+    fillAndStroke(ctx, left, rgba('#0b1220', 0.82), primaryOutline(), 0.65);
+    fillAndStroke(ctx, right, rgba('#0b1220', 0.82), primaryOutline(), 0.65);
+    ctx.strokeStyle = rgba('#ffffff', 0.22);
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(-eyeDX - lensR * 0.55, eyeY - lensR * 0.4);
+    ctx.lineTo(-eyeDX + lensR * 0.4, eyeY - lensR * 0.12);
+    ctx.moveTo(eyeDX - lensR * 0.55, eyeY - lensR * 0.4);
+    ctx.lineTo(eyeDX + lensR * 0.4, eyeY - lensR * 0.12);
+    ctx.stroke();
+  } else if (style === 'monocle') {
+    ctx.beginPath();
+    ctx.arc(-eyeDX, eyeY, lensR * 1.05, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = rgba('#94a3b8', 0.8);
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(-eyeDX + lensR * 0.82, eyeY + lensR * 0.82);
+    ctx.lineTo(-eyeDX + lensR * 1.65, rig.mouthY + 1.8);
+    ctx.stroke();
+    return;
+  } else if (style === 'visor') {
+    const visor = roundedRectPath(-rig.headRX * 0.72, eyeY - 2.1, rig.headRX * 1.44, 3.9, 1.2);
+    fillAndStroke(ctx, visor, rgba('#93c5fd', 0.28), primaryOutline(), 0.6);
+    ctx.strokeStyle = rgba('#ffffff', 0.24);
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(-rig.headRX * 0.55, eyeY - 1.25);
+    ctx.lineTo(rig.headRX * 0.3, eyeY - 0.7);
+    ctx.stroke();
+    return;
+  } else {
+    ctx.beginPath();
+    ctx.arc(-eyeDX, eyeY, lensR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(eyeDX, eyeY, lensR, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 
   ctx.beginPath();
   ctx.moveTo(-eyeDX + lensR, eyeY);

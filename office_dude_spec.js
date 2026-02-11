@@ -4,11 +4,13 @@ const HAIR = ['bald', 'side_part', 'short_round', 'curly_top', 'pony_tail', 'bob
 const SHIRT = ['tee', 'button_down', 'sweater', 'hoodie', 'vest'];
 const PANTS = ['slacks', 'jeans', 'chinos'];
 const SHOES = ['oxford', 'sneaker', 'loafer', 'heel'];
-const FACE_EYES = ['dot', 'wide', 'sleepy', 'happy'];
+const FACE_EYES = ['dot', 'wide', 'sleepy', 'happy', 'half_lid', 'squint', 'wink', 'tired'];
 const FACE_MOUTH = ['line', 'smile', 'smirk', 'open'];
 const FACE_BROWS = ['none', 'straight', 'arched', 'thick'];
 const FACE_NOSE = ['none', 'dot', 'line'];
 const FACIAL_HAIR = ['none', 'stache', 'goatee', 'beard'];
+const EYEWEAR = ['none', 'round', 'square', 'shades', 'monocle', 'visor'];
+const HEAD_ACCESSORY = ['none', 'headband', 'cap', 'beanie', 'headset', 'bandana'];
 const PATTERN = ['solid', 'pinstripe', 'color_block'];
 const JACKET_STYLE = ['none', 'blazer', 'cardigan'];
 
@@ -83,6 +85,7 @@ export function makeDudeSpec(seed, overrides = null) {
     },
     outfit: {
       glasses: rng.float() < 0.24,
+      eyewear: rng.float() < 0.62 ? 'none' : rng.pick(EYEWEAR.slice(1)),
       tie: rng.float() < 0.44,
       badge: rng.float() < 0.35,
       jacket: rng.float() < 0.28,
@@ -96,10 +99,15 @@ export function makeDudeSpec(seed, overrides = null) {
       shoeStyle: rng.pick(SHOES),
       shirtPattern: rng.pick(PATTERN),
       jacketStyle: rng.pick(JACKET_STYLE),
+      headAccessory: rng.float() < 0.58 ? 'none' : rng.pick(HEAD_ACCESSORY.slice(1)),
     },
   };
 
   const merged = deepMerge(base, overrides || {});
+  if (!merged.outfit.eyewear) {
+    merged.outfit.eyewear = merged.outfit.glasses ? 'round' : 'none';
+  }
+  merged.outfit.glasses = merged.outfit.eyewear !== 'none';
   if (!merged.outfit.jacket) {
     merged.outfit.jacketStyle = 'none';
   } else if (merged.outfit.jacketStyle === 'none') {
@@ -128,6 +136,8 @@ export const OFFICE_STYLES = {
   brows: FACE_BROWS,
   nose: FACE_NOSE,
   facialHair: FACIAL_HAIR,
+  eyewear: EYEWEAR,
+  headAccessory: HEAD_ACCESSORY,
   pattern: PATTERN,
   jacketStyle: JACKET_STYLE,
 };

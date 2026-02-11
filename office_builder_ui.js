@@ -32,7 +32,8 @@ export function initBuilderUI(options) {
     faceNose: root.getElementById('office-face-nose'),
     faceFacialHair: root.getElementById('office-face-facial-hair'),
     faceBlush: root.getElementById('office-face-blush'),
-    glasses: root.getElementById('office-glasses'),
+    eyewear: root.getElementById('office-eyewear'),
+    headAccessory: root.getElementById('office-head-accessory'),
     tie: root.getElementById('office-tie'),
     badge: root.getElementById('office-badge'),
     jacket: root.getElementById('office-jacket'),
@@ -53,6 +54,8 @@ export function initBuilderUI(options) {
   fillSelect(controls.faceBrows, OFFICE_STYLES.brows);
   fillSelect(controls.faceNose, OFFICE_STYLES.nose);
   fillSelect(controls.faceFacialHair, OFFICE_STYLES.facialHair);
+  fillSelect(controls.eyewear, OFFICE_STYLES.eyewear);
+  fillSelect(controls.headAccessory, OFFICE_STYLES.headAccessory);
 
   const read = () => ({
     seed: controls.seed.value,
@@ -69,7 +72,9 @@ export function initBuilderUI(options) {
         shirtStyle: controls.shirtStyle.value,
         pantsStyle: controls.pantsStyle.value,
         shoeStyle: controls.shoeStyle.value,
-        glasses: controls.glasses.checked,
+        eyewear: controls.eyewear.value,
+        glasses: controls.eyewear.value !== 'none',
+        headAccessory: controls.headAccessory.value,
         tie: controls.tie.checked,
         badge: controls.badge.checked,
         jacket: controls.jacket.checked,
@@ -99,7 +104,8 @@ export function initBuilderUI(options) {
     controls.faceNose.value = face.nose || OFFICE_STYLES.nose[0];
     controls.faceFacialHair.value = face.facialHair || OFFICE_STYLES.facialHair[0];
     controls.faceBlush.checked = !!face.blush;
-    controls.glasses.checked = !!spec.outfit.glasses;
+    controls.eyewear.value = spec.outfit.eyewear || (spec.outfit.glasses ? 'round' : OFFICE_STYLES.eyewear[0]);
+    controls.headAccessory.value = spec.outfit.headAccessory || OFFICE_STYLES.headAccessory[0];
     controls.tie.checked = !!spec.outfit.tie;
     controls.badge.checked = !!spec.outfit.badge;
     controls.jacket.checked = !!spec.outfit.jacket;
@@ -123,7 +129,8 @@ export function initBuilderUI(options) {
     controls.faceNose,
     controls.faceFacialHair,
     controls.faceBlush,
-    controls.glasses,
+    controls.eyewear,
+    controls.headAccessory,
     controls.tie,
     controls.badge,
     controls.jacket,
