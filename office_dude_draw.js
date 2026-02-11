@@ -55,6 +55,19 @@ function fillAndStroke(ctx, path, fill, outline, lw, shadowFill = null) {
   ctx.stroke(path);
 }
 
+function fillOnly(ctx, path, fill, shadowFill = null) {
+  if (shadowFill) {
+    ctx.save();
+    ctx.translate(0.8, 0.8);
+    ctx.globalAlpha = 0.32;
+    ctx.fillStyle = shadowFill;
+    ctx.fill(path);
+    ctx.restore();
+  }
+  ctx.fillStyle = fill;
+  ctx.fill(path);
+}
+
 function lighten(hex, amount = 0.2) {
   const t = Math.max(0, Math.min(1, amount));
   const c = hexToRgb(hex);
@@ -72,6 +85,10 @@ function rgba(hex, alpha = 1) {
 
 function clamp(v, min, max) {
   return Math.max(min, Math.min(max, v));
+}
+
+function primaryOutline() {
+  return '#091521';
 }
 
 const LAYER_Z = {
@@ -220,9 +237,9 @@ function computeArmPose(rig, which, depth, m) {
   const shoulderY = rig.shoulderY;
   const holdBias = m.carry && depth === 'near' ? -6 : 0;
   const elbowX = shoulderX + sway * 0.34 + holdBias * 0.2;
-  const elbowY = shoulderY + rig.armLen * 0.48;
+  const elbowY = shoulderY + rig.armLen * 0.38;
   const wristX = shoulderX + sway * 0.62 + holdBias;
-  const wristY = rig.handsY + Math.abs(sway) * 0.25 + (m.carry && depth === 'near' ? -6 : 0);
+  const wristY = shoulderY + rig.armLen * 0.7 + Math.abs(sway) * 0.2 + (m.carry && depth === 'near' ? -5.5 : 0);
   return {
     which,
     depth,
@@ -238,15 +255,15 @@ function computeArmPose(rig, which, depth, m) {
 function drawLeg(ctx, spec, rig, pose) {
   const { which, depth, hipX: x, hipY, kneeX, kneeY, footX, footY } = pose;
   const isLeft = which === 'L';
-  const thighT = rig.limbT * (spec.outfit.pantsStyle === 'slacks' ? 1.08 : 0.95);
-  const calfT = thighT * 0.86;
+  const thighT = rig.limbT * (spec.outfit.pantsStyle === 'slacks' ? 1.04 : 0.93);
+  const calfT = thighT * 0.84;
 
   // Backing silhouette prevents any see-through gaps between segmented leg parts.
-  const legBack = capsulePath(x, hipY - 0.25, footX, footY - 3.5, thighT * 0.92);
-  fillAndStroke(ctx, legBack, darken(spec.palette.pants, 0.02), spec.palette.outline, 1.05, darken(spec.palette.pants, 0.2));
+  const legBack = capsulePath(x, hipY - 0.75, footX, footY - 3.5, thighT * 0.88);
+  fillAndStroke(ctx, legBack, darken(spec.palette.pants, 0.02), primaryOutline(), 1.05, darken(spec.palette.pants, 0.2));
 
-  const thigh = capsulePath(x, hipY - 0.2, kneeX, kneeY, thighT);
-  fillAndStroke(ctx, thigh, spec.palette.pants, spec.palette.outline, 1.2, darken(spec.palette.pants, 0.18));
+  const thigh = capsulePath(x, hipY - 0.6, kneeX, kneeY, thighT);
+  fillOnly(ctx, thigh, spec.palette.pants, darken(spec.palette.pants, 0.14));
   paintLightPass(ctx, thigh, {
     x: Math.min(x, kneeX) - thighT - 1,
     y: hipY - thighT - 1,
@@ -255,7 +272,7 @@ function drawLeg(ctx, spec, rig, pose) {
   }, { highlight: 0.13, shade: 0.2, specular: 0.08 });
 
   const calf = capsulePath(kneeX, kneeY, footX, footY - 3.5, calfT);
-  fillAndStroke(ctx, calf, darken(spec.palette.pants, 0.03), spec.palette.outline, 1.2, darken(spec.palette.pants, 0.2));
+  fillOnly(ctx, calf, darken(spec.palette.pants, 0.03), darken(spec.palette.pants, 0.16));
   paintLightPass(ctx, calf, {
     x: Math.min(kneeX, footX) - calfT - 1,
     y: kneeY - calfT - 1,
@@ -263,13 +280,18 @@ function drawLeg(ctx, spec, rig, pose) {
     h: (footY - 3.5 - kneeY) + calfT * 2 + 2,
   }, { highlight: 0.14, shade: 0.22, specular: 0.1 });
 
-  const kneeCap = ellipsePath(kneeX, kneeY + 0.15, 1.4, 1.1);
-  fillAndStroke(ctx, kneeCap, darken(spec.palette.pants, 0.1), darken(spec.palette.pants, 0.28), 0.7);
+  // Segment seam for cleaner upper/lower leg separation.
+  ctx.strokeStyle = darken(spec.palette.pants, 0.26);
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(kneeX - 1.4, kneeY - 0.35);
+  ctx.lineTo(kneeX + 1.4, kneeY - 0.35);
+  ctx.stroke();
 
-  const shoeW = spec.outfit.shoeStyle === 'loafer' ? 8.2 : 9.2;
-  const shoeH = spec.outfit.shoeStyle === 'heel' ? 4.2 : 5;
+  const shoeW = spec.outfit.shoeStyle === 'loafer' ? 8.2 : 9.1;
+  const shoeH = spec.outfit.shoeStyle === 'heel' ? 4.2 : 5.2;
   const shoe = roundedRectPath(footX - shoeW * 0.5, footY - shoeH, shoeW, shoeH, 2.2);
-  fillAndStroke(ctx, shoe, spec.palette.shoes, spec.palette.outline, 1.3, darken(spec.palette.shoes, 0.22));
+  fillAndStroke(ctx, shoe, spec.palette.shoes, primaryOutline(), 1.05, darken(spec.palette.shoes, 0.2));
   paintLightPass(ctx, shoe, {
     x: footX - shoeW * 0.5,
     y: footY - shoeH,
@@ -293,7 +315,7 @@ function drawLeg(ctx, spec, rig, pose) {
     ctx.stroke();
   } else if (spec.outfit.shoeStyle === 'heel') {
     const heel = roundedRectPath(footX + 2.3, footY - 2.2, 1.5, 2.2, 0.5);
-    fillAndStroke(ctx, heel, darken(spec.palette.shoes, 0.1), spec.palette.outline, 0.8);
+    fillAndStroke(ctx, heel, darken(spec.palette.shoes, 0.1), primaryOutline(), 0.8);
   } else if (spec.outfit.shoeStyle === 'oxford') {
     ctx.fillStyle = darken(spec.palette.shoes, 0.4);
     ctx.beginPath();
@@ -325,16 +347,16 @@ function drawLeg(ctx, spec, rig, pose) {
 
 function drawArm(ctx, spec, rig, pose) {
   const { elbowX, elbowY, shoulderX, shoulderY, wristX, wristY } = pose;
-  const upperT = rig.limbT * 0.98;
-  const foreT = rig.limbT * 0.84;
+  const upperT = rig.limbT * 0.96;
+  const foreT = rig.limbT * 0.82;
 
   // Backing silhouette avoids small transparent seams around elbow/wrist joints.
-  const armBack = capsulePath(shoulderX, shoulderY, wristX, wristY, upperT * 0.88);
-  const armBackColor = spec.outfit.sleevesRolled ? darken(spec.palette.skin, 0.02) : darken(spec.palette.shirt, 0.02);
-  fillAndStroke(ctx, armBack, armBackColor, spec.palette.outline, 0.95, darken(armBackColor, 0.2));
+  const armBack = capsulePath(shoulderX, shoulderY, wristX, wristY, upperT * 0.84);
+  const armBackColor = darken(spec.palette.shirt, 0.02);
+  fillAndStroke(ctx, armBack, armBackColor, primaryOutline(), 0.95, darken(armBackColor, 0.2));
 
   const sleeve = capsulePath(shoulderX, shoulderY, elbowX, elbowY, upperT);
-  fillAndStroke(ctx, sleeve, darken(spec.palette.shirt, 0.01), spec.palette.outline, 1.15, darken(spec.palette.shirt, 0.16));
+  fillOnly(ctx, sleeve, darken(spec.palette.shirt, 0.01), darken(spec.palette.shirt, 0.12));
   paintLightPass(ctx, sleeve, {
     x: Math.min(shoulderX, elbowX) - upperT - 1,
     y: Math.min(shoulderY, elbowY) - upperT - 1,
@@ -343,7 +365,7 @@ function drawArm(ctx, spec, rig, pose) {
   }, { highlight: 0.16, shade: 0.2, specular: 0.1 });
 
   const forearm = capsulePath(elbowX, elbowY, wristX, wristY, foreT);
-  fillAndStroke(ctx, forearm, spec.palette.skin, spec.palette.outline, 1.1, darken(spec.palette.skin, 0.18));
+  fillOnly(ctx, forearm, darken(spec.palette.shirt, 0.03), darken(spec.palette.shirt, 0.12));
   paintLightPass(ctx, forearm, {
     x: Math.min(elbowX, wristX) - foreT - 1,
     y: Math.min(elbowY, wristY) - foreT - 1,
@@ -351,20 +373,25 @@ function drawArm(ctx, spec, rig, pose) {
     h: Math.abs(wristY - elbowY) + foreT * 2 + 2,
   }, { highlight: 0.16, shade: 0.2, specular: 0.1 });
 
-  if (!spec.outfit.sleevesRolled) {
-    const cuff = capsulePath(elbowX, elbowY, wristX, wristY, foreT * 0.66);
-    fillAndStroke(ctx, cuff, spec.palette.shirt, spec.palette.outline, 0.9, darken(spec.palette.shirt, 0.18));
-  } else {
+  if (spec.outfit.sleevesRolled) {
     const rolled = roundedRectPath(elbowX - 2.2, elbowY - 1.6, 4.4, 2.8, 1.1);
-    fillAndStroke(ctx, rolled, darken(spec.palette.shirt, 0.09), spec.palette.outline, 0.8);
+    fillOnly(ctx, rolled, darken(spec.palette.shirt, 0.09));
   }
-
-  const shoulderJoint = ellipsePath(shoulderX, shoulderY, 2.15, 1.95);
-  fillAndStroke(ctx, shoulderJoint, darken(spec.palette.shirt, 0.06), spec.palette.outline, 0.9);
-  const elbowJoint = ellipsePath(elbowX, elbowY, 1.65, 1.45);
-  fillAndStroke(ctx, elbowJoint, spec.outfit.sleevesRolled ? spec.palette.skin : darken(spec.palette.shirt, 0.03), spec.palette.outline, 0.75);
-  const hand = roundedRectPath(wristX - 2.5, wristY - 1.9, 5, 3.8, 1.4);
-  fillAndStroke(ctx, hand, spec.palette.skin, spec.palette.outline, 0.9);
+  // Segment seam line to emphasize articulation without chunky overlap.
+  ctx.strokeStyle = darken(spec.palette.shirt, 0.24);
+  ctx.lineWidth = 0.75;
+  ctx.beginPath();
+  ctx.moveTo(elbowX - 1.25, elbowY);
+  ctx.lineTo(elbowX + 1.25, elbowY);
+  ctx.stroke();
+  const cuff = roundedRectPath(wristX - 2.2, wristY - 2.05, 4.4, 1.9, 0.7);
+  fillOnly(ctx, cuff, darken(spec.palette.shirt, 0.08));
+  const hand = roundedRectPath(wristX - 2.3, wristY - 1.05, 4.6, 2.55, 0.95);
+  fillOnly(ctx, hand, spec.palette.skin);
+  const armContour = capsulePath(shoulderX, shoulderY, wristX, wristY, upperT * 0.82);
+  ctx.strokeStyle = primaryOutline();
+  ctx.lineWidth = 0.95;
+  ctx.stroke(armContour);
 
   return { x: wristX, y: wristY };
 }
@@ -402,31 +429,31 @@ function drawTorso(ctx, spec, rig) {
   const shirtBase = lighten(spec.palette.shirt, 0.03);
   const neckH = Math.max(1.6, rig.neckBottomY - rig.neckTopY);
   const neck = roundedRectPath(-rig.neckW * 0.5, rig.neckTopY, rig.neckW, neckH, 1.6);
-  fillAndStroke(ctx, neck, darken(spec.palette.skin, 0.03), spec.palette.outline, 1, darken(spec.palette.skin, 0.18));
+  fillAndStroke(ctx, neck, darken(spec.palette.skin, 0.03), primaryOutline(), 1, darken(spec.palette.skin, 0.14));
 
-  const shoulderW = rig.torsoW * 0.54;
-  const waistW = rig.torsoW * 0.42;
-  const hemW = rig.torsoW * 0.5;
+  const shoulderW = rig.torsoW * 0.6;
+  const waistW = rig.torsoW * 0.48;
+  const hemW = rig.torsoW * 0.56;
   const topY = rig.torsoTop + 0.7;
-  const midY = rig.torsoTop + rig.torsoH * 0.56;
   const botY = rig.hipY + 0.65;
   const body = new Path2D();
   body.moveTo(-shoulderW, topY);
-  body.quadraticCurveTo(0, rig.torsoTop - 0.8, shoulderW, topY);
-  body.lineTo(hemW, botY - 1.5);
-  body.quadraticCurveTo(waistW, botY + 0.8, 0, botY + 0.4);
-  body.quadraticCurveTo(-waistW, botY + 0.8, -hemW, botY - 1.5);
+  body.quadraticCurveTo(0, rig.torsoTop - 1.2, shoulderW, topY);
+  body.quadraticCurveTo(hemW, rig.torsoTop + rig.torsoH * 0.56, hemW, botY - 1.1);
+  body.quadraticCurveTo(waistW, botY + 1.3, 0, botY + 1.1);
+  body.quadraticCurveTo(-waistW, botY + 1.3, -hemW, botY - 1.1);
+  body.quadraticCurveTo(-hemW, rig.torsoTop + rig.torsoH * 0.56, -shoulderW, topY);
   body.closePath();
-  fillAndStroke(ctx, body, shirtBase, spec.palette.outline, 1.5, darken(spec.palette.shirt, 0.18));
+  fillAndStroke(ctx, body, shirtBase, primaryOutline(), 1.45, darken(spec.palette.shirt, 0.14));
   paintLightPass(ctx, body, {
     x: -shoulderW,
     y: rig.torsoTop - 1,
     w: rig.torsoW,
     h: rig.torsoH + 3,
-  }, { highlight: 0.24, shade: 0.24, specular: 0.16 });
+  }, { highlight: 0.14, shade: 0.12, specular: 0.08 });
 
-  const pelvis = roundedRectPath(-rig.torsoW * 0.33, rig.hipY - 2.9, rig.torsoW * 0.66, 4.8, 1.8);
-  fillAndStroke(ctx, pelvis, darken(spec.palette.pants, 0.04), spec.palette.outline, 1, darken(spec.palette.pants, 0.2));
+  const pelvis = roundedRectPath(-rig.torsoW * 0.37, rig.hipY - 3.1, rig.torsoW * 0.74, 5.1, 2);
+  fillOnly(ctx, pelvis, darken(spec.palette.pants, 0.04), darken(spec.palette.pants, 0.12));
   paintLightPass(ctx, pelvis, {
     x: -rig.torsoW * 0.33,
     y: rig.hipY - 2.9,
@@ -434,10 +461,10 @@ function drawTorso(ctx, spec, rig) {
     h: 4.8,
   }, { highlight: 0.12, shade: 0.22, specular: 0.06 });
 
-  const hipL = ellipsePath(-rig.hipDX, rig.hipY - 1, 1.8, 1.5);
-  const hipR = ellipsePath(rig.hipDX, rig.hipY - 1, 1.8, 1.5);
-  fillAndStroke(ctx, hipL, darken(spec.palette.pants, 0.08), spec.palette.outline, 0.8);
-  fillAndStroke(ctx, hipR, darken(spec.palette.pants, 0.08), spec.palette.outline, 0.8);
+  const hipL = ellipsePath(-rig.hipDX, rig.hipY - 1, 2.1, 1.7);
+  const hipR = ellipsePath(rig.hipDX, rig.hipY - 1, 2.1, 1.7);
+  fillOnly(ctx, hipL, darken(spec.palette.pants, 0.08));
+  fillOnly(ctx, hipR, darken(spec.palette.pants, 0.08));
 
   if (spec.outfit.shirtPattern === 'pinstripe') {
     ctx.save();
@@ -560,21 +587,21 @@ function drawBadge(ctx, spec, rig) {
 }
 
 function drawHead(ctx, spec, rig) {
-  const head = ellipsePath(0, rig.headCenterY, rig.headRX, rig.headRY);
-  fillAndStroke(ctx, head, spec.palette.skin, spec.palette.outline, 1.6, darken(spec.palette.skin, 0.16));
+  const head = roundedRectPath(-rig.headRX * 0.92, rig.headCenterY - rig.headRY * 0.88, rig.headRX * 1.84, rig.headRY * 1.76, rig.headRY * 0.56);
+  fillAndStroke(ctx, head, spec.palette.skin, primaryOutline(), 1.55, darken(spec.palette.skin, 0.14));
   paintLightPass(ctx, head, {
     x: -rig.headRX,
     y: rig.headCenterY - rig.headRY,
     w: rig.headRX * 2,
     h: rig.headRY * 2,
-  }, { highlight: 0.24, shade: 0.2, specular: 0.22 });
+  }, { highlight: 0.12, shade: 0.1, specular: 0.08 });
 
-  const earW = 3.1 * (spec.body?.earSize || 1);
-  const earH = 4.6 * (spec.body?.earSize || 1);
-  const earL = roundedRectPath(-rig.headRX - earW * 0.68, rig.headCenterY - earH * 0.42, earW, earH, 1.2);
-  const earR = roundedRectPath(rig.headRX - earW * 0.32, rig.headCenterY - earH * 0.42, earW, earH, 1.2);
-  fillAndStroke(ctx, earL, darken(spec.palette.skin, 0.02), spec.palette.outline, 0.8);
-  fillAndStroke(ctx, earR, darken(spec.palette.skin, 0.02), spec.palette.outline, 0.8);
+  const earW = 2.8 * (spec.body?.earSize || 1);
+  const earH = 3.9 * (spec.body?.earSize || 1);
+  const earL = ellipsePath(-rig.headRX * 0.99, rig.headCenterY + 0.15, earW * 0.72, earH * 0.62);
+  const earR = ellipsePath(rig.headRX * 0.99, rig.headCenterY + 0.15, earW * 0.72, earH * 0.62);
+  fillAndStroke(ctx, earL, darken(spec.palette.skin, 0.02), primaryOutline(), 0.8);
+  fillAndStroke(ctx, earR, darken(spec.palette.skin, 0.02), primaryOutline(), 0.8);
 
   ctx.save();
   ctx.clip(head);
