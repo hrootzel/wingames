@@ -391,3 +391,37 @@ test('chain follow-up output anchors where previous coin was created', () => {
   assert.equal(board[1][2], CELL_X);
   assert.equal(board[1][3], CELL_EMPTY);
 });
+
+test('gravity-moved coins can trigger next chain step in scoped resolve', () => {
+  const board = createBoard();
+  board[0][0] = CELL_V;
+  board[2][0] = CELL_V;
+  board[0][1] = CELL_X;
+  board[1][0] = CELL_I;
+  board[1][1] = CELL_I;
+  board[1][2] = CELL_I;
+  board[0][2] = CELL_I;
+  board[2][2] = CELL_I;
+
+  const out = resolveBoard(board, { applyGravity: true, activeCells: [[1, 2]] });
+
+  assert.equal(out.chain, 2);
+  assert.equal(countCell(board, CELL_X), 2);
+  assert.equal(countCell(board, CELL_V), 1);
+});
+
+test('minus clear can trigger gravity-driven chain in scoped resolve', () => {
+  const board = createBoard();
+  board[0][0] = CELL_V;
+  board[1][0] = CELL_I;
+  board[2][0] = CELL_MINUS;
+  board[3][0] = CELL_V;
+
+  const out = resolveBoard(board, { applyGravity: true, activeCells: [[2, 0]] });
+
+  assert.equal(out.specialsInResolve, 1);
+  assert.equal(out.chain, 1);
+  assert.equal(countCell(board, CELL_X), 1);
+  assert.equal(countCell(board, CELL_V), 0);
+  assert.equal(countCell(board, CELL_I), 0);
+});

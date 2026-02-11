@@ -111,12 +111,14 @@ export function applyGravity(board) {
 
 function applyGravityAndRemapActive(board, activeSet) {
   let nextActive = activeSet ? new Set() : null;
+  let movedSet = new Set();
   for (let c = 0; c < COLS; c++) {
     let write = 0;
     for (let r = 0; r < ROWS; r++) {
       const cell = board[r][c];
       if (cell !== CELL_EMPTY) {
         if (nextActive && activeSet.has(cellKey(r, c))) nextActive.add(cellKey(write, c));
+        if (write !== r) movedSet.add(cellKey(write, c));
         if (write !== r) {
           board[write][c] = cell;
           board[r][c] = CELL_EMPTY;
@@ -125,7 +127,7 @@ function applyGravityAndRemapActive(board, activeSet) {
       }
     }
   }
-  return nextActive;
+  return { nextActive, movedSet: movedSet.size > 0 ? movedSet : null };
 }
 
 function cellKey(r, c) {
@@ -283,8 +285,9 @@ export function applyScoreForStep(conversions, chainStep) {
 }
 
 export function resolveBoard(board, options = {}) {
+  const scoped = Array.isArray(options.activeCells);
   const useGravity = options.applyGravity !== false;
-  let activeSet = makeActiveSet(options.activeCells);
+  let activeSet = scoped ? makeActiveSet(options.activeCells) : null;
   let chain = 0;
   let guard = 0;
   let clearedInResolve = 0;
@@ -292,9 +295,22 @@ export function resolveBoard(board, options = {}) {
   let scoreDelta = 0;
 
   while (guard++ < 64) {
-    if (useGravity && activeSet) activeSet = applyGravityAndRemapActive(board, activeSet);
-    else if (useGravity) applyGravity(board);
-    const specialResult = activateSpecialsOnce(board, activeSet);
+    let movedSet = null;
+    if (useGravity) {
+      const grav = applyGravityAndRemapActive(board, scoped ? activeSet : null);
+      if (scoped) activeSet = grav.nextActive;
+      movedSet = grav.movedSet;
+    }
+    const triggerSet = scoped
+      ? (() => {
+          if (!activeSet && !movedSet) return null;
+          const s = new Set();
+          if (activeSet) for (const k of activeSet) s.add(k);
+          if (movedSet) for (const k of movedSet) s.add(k);
+          return s;
+        })()
+      : null;
+    const specialResult = activateSpecialsOnce(board, scoped ? triggerSet ?? new Set() : null);
     scoreDelta += specialResult.scoreDelta;
     clearedInResolve += specialResult.cleared;
     specialsInResolve += specialResult.specialActivations;
@@ -305,9 +321,24 @@ export function resolveBoard(board, options = {}) {
         ...g,
         setSize: REQUIRE[g.tier],
       }))
-      .filter((g) => g.cells.length >= g.setSize && groupTouchesActive(g, activeSet));
+      .filter((g) => g.cells.length >= g.setSize && (!scoped || (triggerSet && groupTouchesActive(g, triggerSet))));
     if (toConvert.length === 0) {
-      if (useGravity && specialResult.changed) applyGravity(board);
+      if (useGravity && specialResult.changed) {
+        if (scoped) {
+          const gravAfterSpecial = applyGravityAndRemapActive(board, activeSet);
+          activeSet = gravAfterSpecial.nextActive;
+          if (activeSet || gravAfterSpecial.movedSet) {
+            const seeded = new Set();
+            if (activeSet) for (const k of activeSet) seeded.add(k);
+            if (gravAfterSpecial.movedSet) for (const k of gravAfterSpecial.movedSet) seeded.add(k);
+            activeSet = seeded.size > 0 ? seeded : null;
+            continue;
+          }
+        } else {
+          applyGravity(board);
+          continue;
+        }
+      }
       break;
     }
     chain++;
@@ -321,9 +352,9 @@ export function resolveBoard(board, options = {}) {
         if (a[0] !== b[0]) return b[0] - a[0];
         return b[1] - a[1];
       });
-      const activeInGroup = activeSet
+      const activeInGroup = triggerSet
         ? group.cells
-            .filter(([r, c]) => activeSet.has(cellKey(r, c)))
+            .filter(([r, c]) => triggerSet.has(cellKey(r, c)))
             .sort((a, b) => (a[0] !== b[0] ? b[0] - a[0] : b[1] - a[1]))
         : [];
       const consumed = sorted;
@@ -354,9 +385,9 @@ export function resolveBoard(board, options = {}) {
       board[r][spawn.c] = spawn.cell;
       placedSpawns.push([r, spawn.c]);
     }
-    if (activeSet) {
+    if (scoped) {
       activeSet = new Set(placedSpawns.map(([r, c]) => cellKey(r, c)));
-      if (activeSet.size === 0) break;
+      if (activeSet.size === 0) activeSet = null;
     }
     scoreDelta += applyScoreForStep(conversions, chain);
   }

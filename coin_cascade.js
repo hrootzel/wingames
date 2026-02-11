@@ -238,19 +238,21 @@ function applyGravityWithMoves(activeSet = null) {
   const next = createBoard();
   const moves = [];
   const nextActive = activeSet ? new Set() : null;
+  const movedSet = new Set();
   for (let c = 0; c < COLS; c++) {
     let write = 0;
     for (let r = 0; r < ROWS; r++) {
       const cell = game.board[r][c];
       if (cell === CELL_EMPTY) continue;
       if (nextActive && activeSet.has(cellKey(r, c))) nextActive.add(cellKey(write, c));
+      if (write !== r) movedSet.add(cellKey(write, c));
       next[write][c] = cell;
       if (write !== r) moves.push({ cell, fromR: r, toR: write, c });
       write++;
     }
   }
   game.board = next;
-  return { moves, activeSet: nextActive };
+  return { moves, activeSet: nextActive, movedSet: movedSet.size > 0 ? movedSet : null };
 }
 
 function cellKey(r, c) {
@@ -413,16 +415,37 @@ function processResolveStep() {
   const resolve = game.resolve;
   if (!resolve) return;
   if (resolve.anim) return;
+  let usedPendingTrigger = false;
+  let triggerSet = null;
+  if (resolve.scoped) {
+    if (resolve.pendingTriggerSet) {
+      triggerSet = resolve.pendingTriggerSet;
+      resolve.pendingTriggerSet = null;
+      usedPendingTrigger = true;
+    } else {
+      triggerSet = resolve.activeSet;
+    }
+  }
   if (resolve.guard++ >= 64) {
     finalizeResolve();
     return;
   }
 
-  if (resolve.useGravity) {
+  if (resolve.useGravity && !usedPendingTrigger) {
     const grav = applyGravityWithMoves(resolve.activeSet);
     if (resolve.activeSet) resolve.activeSet = grav.activeSet;
+    if (resolve.scoped) {
+      if (resolve.activeSet || grav.movedSet) {
+        triggerSet = new Set();
+        if (resolve.activeSet) for (const k of resolve.activeSet) triggerSet.add(k);
+        if (grav.movedSet) for (const k of grav.movedSet) triggerSet.add(k);
+      } else {
+        triggerSet = null;
+      }
+    }
     const moves = grav.moves;
     if (moves.length > 0) {
+      if (resolve.scoped) resolve.pendingTriggerSet = triggerSet;
       resolve.anim = {
         kind: 'gravity',
         moves,
@@ -433,7 +456,7 @@ function processResolveStep() {
       return;
     }
   }
-  const specialResult = activateSpecialsOnce(resolve.activeSet);
+  const specialResult = activateSpecialsOnce(resolve.scoped ? triggerSet ?? new Set() : null);
   if (specialResult.scoreDelta > 0) {
     game.score += specialResult.scoreDelta;
     addScorePopup(`+${specialResult.scoreDelta}`, view.originX + view.fieldW * 0.5, view.originY + view.fieldH * 0.35);
@@ -447,9 +470,42 @@ function processResolveStep() {
       ...g,
       setSize: REQUIRE[g.tier],
     }))
-    .filter((g) => g.cells.length >= g.setSize && groupTouchesActive(g, resolve.activeSet));
+    .filter((g) => g.cells.length >= g.setSize && (!resolve.scoped || (triggerSet && groupTouchesActive(g, triggerSet))));
   if (toConvert.length === 0) {
-    if (resolve.useGravity && specialResult.changed) applyGravity();
+    if (resolve.useGravity && specialResult.changed) {
+      const gravAfterSpecial = applyGravityWithMoves(resolve.scoped ? resolve.activeSet : null);
+      if (resolve.scoped) {
+        resolve.activeSet = gravAfterSpecial.activeSet;
+        if (resolve.activeSet || gravAfterSpecial.movedSet) {
+          const seeded = new Set();
+          if (resolve.activeSet) for (const k of resolve.activeSet) seeded.add(k);
+          if (gravAfterSpecial.movedSet) for (const k of gravAfterSpecial.movedSet) seeded.add(k);
+          resolve.activeSet = seeded.size > 0 ? seeded : null;
+          if (gravAfterSpecial.moves.length > 0) {
+            resolve.pendingTriggerSet = resolve.activeSet;
+            resolve.anim = {
+              kind: 'gravity',
+              moves: gravAfterSpecial.moves,
+              elapsed: 0,
+              duration: RESOLVE_STEP_MS,
+              targetSet: new Set(gravAfterSpecial.moves.map((m) => cellKey(m.toR, m.c))),
+            };
+          }
+          return;
+        }
+      } else if (gravAfterSpecial.moves.length > 0) {
+        resolve.anim = {
+          kind: 'gravity',
+          moves: gravAfterSpecial.moves,
+          elapsed: 0,
+          duration: RESOLVE_STEP_MS,
+          targetSet: new Set(gravAfterSpecial.moves.map((m) => cellKey(m.toR, m.c))),
+        };
+        return;
+      } else {
+        return;
+      }
+    }
     finalizeResolve();
     return;
   }
@@ -466,9 +522,9 @@ function processResolveStep() {
       if (a[0] !== b[0]) return b[0] - a[0];
       return b[1] - a[1];
     });
-    const activeInGroup = resolve.activeSet
+    const activeInGroup = triggerSet
       ? group.cells
-          .filter(([r, c]) => resolve.activeSet.has(cellKey(r, c)))
+          .filter(([r, c]) => triggerSet.has(cellKey(r, c)))
           .sort((a, b) => (a[0] !== b[0] ? b[0] - a[0] : b[1] - a[1]))
       : [];
     const consumed = sorted;
@@ -504,12 +560,9 @@ function processResolveStep() {
     game.board[r][spawn.c] = spawn.cell;
     placedSpawns.push({ r, c: spawn.c, cell: spawn.cell, sources: spawn.sources ?? [] });
   }
-  if (resolve.activeSet) {
+  if (resolve.scoped) {
     resolve.activeSet = new Set(placedSpawns.map((s) => cellKey(s.r, s.c)));
-    if (resolve.activeSet.size === 0) {
-      finalizeResolve();
-      return;
-    }
+    if (resolve.activeSet.size === 0) resolve.activeSet = null;
   }
 
   const stepPoints = applyScoreForStep(conversions, resolve.chain);
@@ -565,7 +618,9 @@ function resolveBoard(options = {}) {
   if (game.resolving || game.gameOver) return;
   game.resolve = {
     useGravity: options.applyGravity !== false,
+    scoped: Array.isArray(options.activeCells),
     activeSet: makeActiveSet(options.activeCells),
+    pendingTriggerSet: null,
     chain: 0,
     guard: 0,
     delay: 0,
