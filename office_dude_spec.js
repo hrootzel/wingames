@@ -3,7 +3,7 @@ import { rngFromSeed } from './office_rng.js';
 const HAIR = ['bald', 'side_part', 'short_round', 'curly_top', 'pony_tail', 'bob_cut', 'spiky', 'afro'];
 const SHIRT = ['tee', 'button_down', 'sweater', 'hoodie', 'vest'];
 const PANTS = ['slacks', 'jeans', 'chinos'];
-const SHOES = ['oxford', 'sneaker', 'loafer', 'heel'];
+const SHOES = ['no_shoes', 'oxford', 'sneaker', 'loafer', 'heel'];
 const FACE_EYES = ['dot', 'wide', 'sleepy', 'happy', 'half_lid', 'squint', 'wink', 'tired'];
 const FACE_MOUTH = ['line', 'smile', 'smirk', 'open'];
 const FACE_BROWS = ['none', 'straight', 'arched', 'thick'];

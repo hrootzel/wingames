@@ -17,6 +17,24 @@ function roundedRectPath(x, y, w, h, r) {
   return p;
 }
 
+function roundedRectPathXY(x, y, w, h, rx, ry) {
+  const rrX = Math.min(Math.max(0, rx), w * 0.5);
+  const rrY = Math.min(Math.max(0, ry), h * 0.5);
+  const k = 0.5522847498307936;
+  const p = new Path2D();
+  p.moveTo(x + rrX, y);
+  p.lineTo(x + w - rrX, y);
+  p.bezierCurveTo(x + w - rrX + rrX * k, y, x + w, y + rrY - rrY * k, x + w, y + rrY);
+  p.lineTo(x + w, y + h - rrY);
+  p.bezierCurveTo(x + w, y + h - rrY + rrY * k, x + w - rrX + rrX * k, y + h, x + w - rrX, y + h);
+  p.lineTo(x + rrX, y + h);
+  p.bezierCurveTo(x + rrX - rrX * k, y + h, x, y + h - rrY + rrY * k, x, y + h - rrY);
+  p.lineTo(x, y + rrY);
+  p.bezierCurveTo(x, y + rrY - rrY * k, x + rrX - rrX * k, y, x + rrX, y);
+  p.closePath();
+  return p;
+}
+
 function capsulePath(x1, y1, x2, y2, r) {
   const dx = x2 - x1;
   const dy = y2 - y1;
@@ -142,7 +160,7 @@ function clamp(v, min, max) {
 }
 
 function primaryOutline() {
-  return '#091521';
+  return '#000000';
 }
 
 const LAYER_Z = {
@@ -159,6 +177,184 @@ const LAYER_Z = {
   nearArm: 70,
   heldItem: 80,
 };
+
+// SVG part library with explicit local anchors.
+const SVG_PARTS = {
+  head: {
+    d: 'M55 5 H85 A50 50 0 0 1 135 55 V105 A50 50 0 0 1 85 155 H55 A50 50 0 0 1 5 105 V55 A50 50 0 0 1 55 5 Z',
+    anchors: {
+      center: [70, 80],
+      neck: [70, 150],
+      eyeL: [48, 73],
+      eyeR: [92, 73],
+      mouth: [70, 108],
+      earL: [8, 84],
+      earR: [132, 84],
+    },
+  },
+  torso: {
+    d: 'M15 140 L105 140 L115 110 L105 40 Q105 20 85 10 L35 10 Q15 20 15 40 L5 110 Z',
+    anchors: {
+      neck: [60, 10],
+      shoulderL: [18, 40],
+      shoulderR: [102, 40],
+      hipL: [28, 136],
+      hipR: [92, 136],
+      waist: [60, 138],
+      chest: [60, 64],
+    },
+  },
+  arm: {
+    d: 'M10 10 C0 10 0 30 5 50 L15 100 Q20 115 35 110 Q45 105 40 90 L30 30 C25 10 20 10 10 10 Z',
+    anchors: {
+      shoulder: [15, 10],
+      elbow: [20, 62],
+      wrist: [25, 108],
+    },
+  },
+  leg: {
+    d: 'M10 10 C10 0 40 0 40 10 L40 70 Q40 85 25 85 L10 85 Q0 85 0 70 Z',
+    anchors: {
+      hip: [25, 10],
+      knee: [25, 54],
+      ankle: [25, 79],
+      foot: [25, 85],
+    },
+  },
+};
+
+const PART_BOUNDS = {
+  head: { x: 5, y: 5, w: 130, h: 150 },
+  torso: { x: 5, y: 10, w: 110, h: 130 },
+  arm: { x: 0, y: 10, w: 45, h: 105 },
+  leg: { x: 0, y: 0, w: 40, h: 85 },
+};
+
+const PART_PATHS = new Map();
+const SANITY_LOGGED = new Set();
+
+function getPartPath(partName) {
+  if (PART_PATHS.has(partName)) return PART_PATHS.get(partName);
+  const def = SVG_PARTS[partName];
+  const path = new Path2D(def?.d || '');
+  PART_PATHS.set(partName, path);
+  return path;
+}
+
+function partAnchor(partName, anchorName) {
+  const def = SVG_PARTS[partName];
+  if (!def) return [0, 0];
+  return def.anchors[anchorName] || [0, 0];
+}
+
+function mapPartAnchor(partName, fromAnchor, toAnchor, tx) {
+  const [fromX, fromY] = partAnchor(partName, fromAnchor);
+  const [toX, toY] = partAnchor(partName, toAnchor);
+  const dx = (toX - fromX) * tx.scaleX;
+  const dy = (toY - fromY) * tx.scaleY;
+  const cr = Math.cos(tx.rotate);
+  const sr = Math.sin(tx.rotate);
+  return {
+    x: tx.x + dx * cr - dy * sr,
+    y: tx.y + dx * sr + dy * cr,
+  };
+}
+
+function drawPartFromAnchor(ctx, partName, tx, paint) {
+  const [ax, ay] = partAnchor(partName, tx.anchor);
+  ctx.save();
+  ctx.translate(tx.x, tx.y);
+  ctx.rotate(tx.rotate || 0);
+  ctx.scale(tx.scaleX, tx.scaleY);
+  ctx.translate(-ax, -ay);
+  if (paint.shadowFill) {
+    ctx.save();
+    ctx.translate(0.9 / Math.max(0.001, Math.abs(tx.scaleX)), 0.9 / Math.max(0.001, Math.abs(tx.scaleY)));
+    ctx.globalAlpha = 0.42;
+    ctx.fillStyle = paint.shadowFill;
+    ctx.fill(getPartPath(partName));
+    ctx.restore();
+  }
+  ctx.fillStyle = paint.fill;
+  ctx.fill(getPartPath(partName));
+  ctx.strokeStyle = paint.stroke;
+  ctx.lineWidth = paint.lineWidth;
+  ctx.stroke(getPartPath(partName));
+  ctx.restore();
+}
+
+function buildHeadTx(rig) {
+  const headW = rig.headRX * 2.02;
+  const headH = rig.headRY * 1.94;
+  const scaleY = headH / PART_BOUNDS.head.h;
+  const neckToCenter = SVG_PARTS.head.anchors.neck[1] - SVG_PARTS.head.anchors.center[1];
+  const centerY = rig.neckTopY - neckToCenter * scaleY;
+  return {
+    x: 0,
+    y: centerY,
+    anchor: 'center',
+    scaleX: headW / PART_BOUNDS.head.w,
+    scaleY,
+    rotate: 0,
+  };
+}
+
+function buildTorsoTx(rig) {
+  const torsoW = rig.torsoW * 0.95;
+  const torsoH = rig.torsoH * 1.04;
+  return {
+    x: 0,
+    y: rig.neckBottomY,
+    anchor: 'neck',
+    scaleX: torsoW / PART_BOUNDS.torso.w,
+    scaleY: torsoH / PART_BOUNDS.torso.h,
+    rotate: 0,
+  };
+}
+
+function runRigSanity(spec, rig, pose) {
+  const headTx = buildHeadTx(rig);
+  const torsoTx = buildTorsoTx(rig);
+  const headNeck = mapPartAnchor('head', 'center', 'neck', headTx);
+  const torsoNeck = mapPartAnchor('torso', 'neck', 'neck', torsoTx);
+  const torsoShoulderL = mapPartAnchor('torso', 'neck', 'shoulderL', torsoTx);
+  const torsoShoulderR = mapPartAnchor('torso', 'neck', 'shoulderR', torsoTx);
+  const torsoHipL = mapPartAnchor('torso', 'neck', 'hipL', torsoTx);
+  const torsoHipR = mapPartAnchor('torso', 'neck', 'hipR', torsoTx);
+
+  const issues = [];
+  const neckGap = Math.abs(headNeck.y - torsoNeck.y);
+  const expectedNeckGap = Math.abs(rig.neckBottomY - rig.neckTopY);
+  if (Math.abs(neckGap - expectedNeckGap) > 2.2) {
+    issues.push(`neck gap ${neckGap.toFixed(2)} deviates from expected ${expectedNeckGap.toFixed(2)}`);
+  }
+
+  const headW = PART_BOUNDS.head.w * headTx.scaleX;
+  const torsoW = PART_BOUNDS.torso.w * torsoTx.scaleX;
+  const ratio = headW / Math.max(0.001, torsoW);
+  if (ratio < 0.8 || ratio > 1.45) issues.push(`head/torso ratio ${ratio.toFixed(2)} out of range`);
+
+  const shoulderSpan = Math.abs(torsoShoulderR.x - torsoShoulderL.x);
+  const armShoulderSpan = Math.abs(pose.armNear.shoulderX - pose.armFar.shoulderX);
+  if (Math.abs(shoulderSpan - armShoulderSpan) > 8.5) {
+    issues.push(`shoulder anchor drift ${(shoulderSpan - armShoulderSpan).toFixed(2)}`);
+  }
+
+  const hipsMid = (torsoHipL.x + torsoHipR.x) * 0.5;
+  const legsMid = (pose.legNear.hipX + pose.legFar.hipX) * 0.5;
+  if (Math.abs(hipsMid - legsMid) > 3.2) issues.push(`hip center drift ${(hipsMid - legsMid).toFixed(2)}`);
+
+  const torsoBottom = Math.max(torsoHipL.y, torsoHipR.y);
+  const legTop = Math.min(pose.legNear.hipY, pose.legFar.hipY);
+  if (torsoBottom > legTop + 6.5) issues.push('torso overlaps legs too deeply');
+
+  if (issues.length) {
+    const key = `${spec.seed}:${issues.join('|')}`;
+    if (SANITY_LOGGED.has(key)) return;
+    SANITY_LOGGED.add(key);
+    console.warn(`[office-dude sanity ${spec.seed}] ${issues.join(' | ')}`);
+  }
+}
 
 function paintLightPass(ctx, path, bounds, opts = {}) {
   const highlight = opts.highlight ?? 0.22;
@@ -310,68 +506,87 @@ function computeArmPose(rig, which, depth, m) {
 function drawLeg(ctx, spec, rig, pose) {
   const { which, depth, hipX: x, hipY, kneeX, kneeY, footX, footY } = pose;
   const isLeft = which === 'L';
-  const legTopY = hipY + 0.45;
-  const ankleY = footY - 3.65;
-  const legW = spec.outfit.pantsStyle === 'slacks' ? 4.35 : 3.95;
   const legX = x * 0.58 + footX * 0.42;
-  const bend = kneeX - x;
+  const legY = hipY + 0.25;
+  const bareLeg = spec.outfit.shoeStyle === 'no_shoes';
+  const legFill = bareLeg ? darken(spec.palette.skin, 0.03) : spec.palette.pants;
+  const legWidth = spec.outfit.pantsStyle === 'slacks' ? 5.05 : 4.7;
+  const legLen = Math.max(4.4, rig.legLen * 0.66);
+  const tx = {
+    x: legX,
+    y: legY,
+    anchor: 'hip',
+    scaleX: legWidth / PART_BOUNDS.leg.w,
+    scaleY: legLen / (SVG_PARTS.leg.anchors.foot[1] - SVG_PARTS.leg.anchors.hip[1]),
+    rotate: 0,
+  };
+  drawPartFromAnchor(ctx, 'leg', tx, {
+    fill: legFill,
+    stroke: primaryOutline(),
+    lineWidth: 1,
+    shadowFill: darken(legFill, 0.1),
+  });
 
-  // Chunkier but cleaner "column leg" silhouette that reads like the reference samples.
-  const leg = roundedRectPath(legX - legW * 0.5, legTopY, legW, Math.max(3.8, ankleY - legTopY), 1.2);
-  fillAndStroke(ctx, leg, spec.palette.pants, primaryOutline(), 1, darken(spec.palette.pants, 0.1));
+  const ankle = mapPartAnchor('leg', 'hip', 'ankle', tx);
+  const foot = mapPartAnchor('leg', 'hip', 'foot', tx);
+  const seamTop = mapPartAnchor('leg', 'hip', 'knee', tx);
 
-  ctx.strokeStyle = darken(spec.palette.pants, 0.22);
-  ctx.lineWidth = 0.55;
-  ctx.beginPath();
-  ctx.moveTo(legX - bend * 0.08, legTopY + 0.6);
-  ctx.lineTo(legX + bend * 0.18, ankleY - 0.5);
-  ctx.stroke();
-
-  const shoeW = spec.outfit.shoeStyle === 'loafer' ? 8.2 : 9.1;
-  const shoeH = spec.outfit.shoeStyle === 'heel' ? 4.2 : 5.2;
-  const shoe = ellipsePath(footX, footY - shoeH * 0.42, shoeW * 0.52, shoeH * 0.58);
-  fillAndStroke(ctx, shoe, spec.palette.shoes, primaryOutline(), 1.05, darken(spec.palette.shoes, 0.2));
-  paintLightPass(ctx, shoe, {
-    x: footX - shoeW * 0.52,
-    y: footY - shoeH,
-    w: shoeW * 1.04,
-    h: shoeH * 0.95,
-  }, { highlight: 0.2, shade: 0.28, specular: 0.2 });
-
-  ctx.strokeStyle = darken(spec.palette.shoes, 0.35);
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(footX - 3.5, footY - 1.2);
-  ctx.lineTo(footX + 4, footY - 1.2);
-  ctx.stroke();
-
-  if (spec.outfit.shoeStyle === 'sneaker') {
-    ctx.strokeStyle = lighten(spec.palette.shoes, 0.42);
-    ctx.lineWidth = 0.9;
+  if (!bareLeg) {
+    ctx.strokeStyle = darken(spec.palette.pants, 0.22);
+    ctx.lineWidth = 0.55;
     ctx.beginPath();
-    ctx.moveTo(footX - 2.8, footY - 2.8);
-    ctx.lineTo(footX + 2.9, footY - 2.8);
+    ctx.moveTo(seamTop.x - 0.15, seamTop.y - 1.1);
+    ctx.lineTo(ankle.x - 0.18, ankle.y - 0.35);
     ctx.stroke();
-  } else if (spec.outfit.shoeStyle === 'heel') {
-    const heel = roundedRectPath(footX + 2.3, footY - 2.2, 1.5, 2.2, 0.5);
-    fillAndStroke(ctx, heel, darken(spec.palette.shoes, 0.1), primaryOutline(), 0.8);
-  } else if (spec.outfit.shoeStyle === 'oxford') {
-    ctx.fillStyle = darken(spec.palette.shoes, 0.4);
-    ctx.beginPath();
-    ctx.arc(footX + 2.4, footY - 3.2, 0.8, 0, Math.PI * 2);
-    ctx.fill();
   }
 
-  if (spec.outfit.pantsStyle === 'jeans') {
+  if (spec.outfit.shoeStyle !== 'no_shoes') {
+    const shoeW = spec.outfit.shoeStyle === 'loafer' ? 8.2 : 9.1;
+    const shoeH = spec.outfit.shoeStyle === 'heel' ? 4.2 : 5.2;
+    const shoe = ellipsePath(foot.x, foot.y - shoeH * 0.42, shoeW * 0.52, shoeH * 0.58);
+    fillAndStroke(ctx, shoe, spec.palette.shoes, primaryOutline(), 1.05, darken(spec.palette.shoes, 0.2));
+    paintLightPass(ctx, shoe, {
+      x: foot.x - shoeW * 0.52,
+      y: foot.y - shoeH,
+      w: shoeW * 1.04,
+      h: shoeH * 0.95,
+    }, { highlight: 0.2, shade: 0.28, specular: 0.2 });
+
+    ctx.strokeStyle = darken(spec.palette.shoes, 0.35);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(foot.x - 3.5, foot.y - 1.2);
+    ctx.lineTo(foot.x + 4, foot.y - 1.2);
+    ctx.stroke();
+
+    if (spec.outfit.shoeStyle === 'sneaker') {
+      ctx.strokeStyle = lighten(spec.palette.shoes, 0.42);
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      ctx.moveTo(foot.x - 2.8, foot.y - 2.8);
+      ctx.lineTo(foot.x + 2.9, foot.y - 2.8);
+      ctx.stroke();
+    } else if (spec.outfit.shoeStyle === 'heel') {
+      const heel = roundedRectPath(foot.x + 2.3, foot.y - 2.2, 1.5, 2.2, 0.5);
+      fillAndStroke(ctx, heel, darken(spec.palette.shoes, 0.1), primaryOutline(), 0.8);
+    } else if (spec.outfit.shoeStyle === 'oxford') {
+      ctx.fillStyle = darken(spec.palette.shoes, 0.4);
+      ctx.beginPath();
+      ctx.arc(foot.x + 2.4, foot.y - 3.2, 0.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (!bareLeg && spec.outfit.pantsStyle === 'jeans') {
     ctx.strokeStyle = lighten(spec.palette.pants, 0.2);
     ctx.lineWidth = 0.55;
     ctx.beginPath();
-    ctx.moveTo(legX - 0.8, legTopY + 0.35);
-    ctx.lineTo(legX - 0.55, ankleY - 0.5);
+    ctx.moveTo(seamTop.x - 0.8, seamTop.y - 0.8);
+    ctx.lineTo(ankle.x - 0.6, ankle.y - 0.55);
     ctx.stroke();
   }
-  if (spec.outfit.pantsStyle === 'chinos') {
-    const cuff = roundedRectPath(footX - 2.4, footY - 5.2, 4.8, 1.8, 0.7);
+  if (!bareLeg && spec.outfit.pantsStyle === 'chinos') {
+    const cuff = roundedRectPath(foot.x - 2.4, foot.y - 5.2, 4.8, 1.8, 0.7);
     fillAndStroke(ctx, cuff, darken(spec.palette.pants, 0.12), spec.palette.outline, 0.75);
   }
 
@@ -390,26 +605,28 @@ function drawLeg(ctx, spec, rig, pose) {
 
 function drawArm(ctx, spec, rig, pose) {
   const { elbowX, elbowY, shoulderX, shoulderY, wristX, wristY, which } = pose;
-  const bend = which === 'L' ? -1 : 1;
-  const outerW = clamp(rig.limbT * 2.45, 7.8, 10.8);
-  const innerW = outerW - 2.3;
-
-  // Hint-inspired curved limb: thick outlined spline for a cleaner cartoon arm silhouette.
-  ctx.strokeStyle = primaryOutline();
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.lineWidth = outerW;
-  ctx.beginPath();
-  ctx.moveTo(shoulderX, shoulderY);
-  ctx.quadraticCurveTo(elbowX + bend * 1.05, elbowY + 0.75, wristX, wristY - 0.15);
-  ctx.stroke();
-
-  ctx.strokeStyle = darken(spec.palette.shirt, 0.01);
-  ctx.lineWidth = innerW;
-  ctx.beginPath();
-  ctx.moveTo(shoulderX, shoulderY);
-  ctx.quadraticCurveTo(elbowX + bend * 1.05, elbowY + 0.75, wristX, wristY - 0.15);
-  ctx.stroke();
+  const dir = which === 'L' ? -1 : 1;
+  const dx = wristX - shoulderX;
+  const dy = wristY - shoulderY;
+  const len = Math.max(4, Math.hypot(dx, dy));
+  // Arm path is authored with shoulder->wrist along +Y; rotate to target vector.
+  const angle = Math.atan2(dy, dx) - Math.PI * 0.5;
+  const armW = clamp(rig.limbT * 2.5, 8.2, 11.4);
+  const baseLen = SVG_PARTS.arm.anchors.wrist[1] - SVG_PARTS.arm.anchors.shoulder[1];
+  const tx = {
+    x: shoulderX,
+    y: shoulderY,
+    anchor: 'shoulder',
+    scaleX: (dir < 0 ? -1 : 1) * (armW / PART_BOUNDS.arm.w),
+    scaleY: len / baseLen,
+    rotate: angle,
+  };
+  drawPartFromAnchor(ctx, 'arm', tx, {
+    fill: darken(spec.palette.shirt, 0.01),
+    stroke: primaryOutline(),
+    lineWidth: 0.95,
+    shadowFill: darken(spec.palette.shirt, 0.12),
+  });
 
   if (spec.outfit.sleevesRolled) {
     const roll = roundedRectPath(wristX - 2.15, wristY - 3.4, 4.3, 1.65, 0.65);
@@ -465,39 +682,37 @@ function drawTorso(ctx, spec, rig) {
   neck.closePath();
   fillAndStroke(ctx, neck, darken(spec.palette.skin, 0.03), primaryOutline(), 1, darken(spec.palette.skin, 0.14));
 
-  const shoulderW = rig.torsoW * 0.53;
-  const waistW = rig.torsoW * 0.45;
-  const topY = rig.torsoTop + 0.55;
-  const botY = rig.hipY + 0.85;
-  const botInset = rig.torsoW * 0.1;
-  const body = new Path2D();
-  body.moveTo(-shoulderW, topY);
-  body.quadraticCurveTo(0, topY + 1.65, shoulderW, topY);
-  body.lineTo(waistW + 0.4, botY - 0.8);
-  body.quadraticCurveTo(waistW - 0.25, botY + 0.2, waistW - botInset, botY + 0.55);
-  body.quadraticCurveTo(0, botY + 1.35, -waistW + botInset, botY + 0.55);
-  body.quadraticCurveTo(-waistW + 0.25, botY + 0.2, -waistW - 0.4, botY - 0.8);
-  body.lineTo(-shoulderW, topY);
-  body.closePath();
-  fillAndStroke(ctx, body, shirtBase, primaryOutline(), 1.45, darken(spec.palette.shirt, 0.14));
+  const tx = buildTorsoTx(rig);
+  drawPartFromAnchor(ctx, 'torso', tx, {
+    fill: shirtBase,
+    stroke: primaryOutline(),
+    lineWidth: 1.45,
+    shadowFill: darken(spec.palette.shirt, 0.14),
+  });
+
+  const shoulderL = mapPartAnchor('torso', 'neck', 'shoulderL', tx);
+  const shoulderR = mapPartAnchor('torso', 'neck', 'shoulderR', tx);
+  const waist = mapPartAnchor('torso', 'neck', 'waist', tx);
+  const chest = mapPartAnchor('torso', 'neck', 'chest', tx);
+  const clipW = (shoulderR.x - shoulderL.x) + 14;
+  const clipH = (waist.y - rig.neckBottomY) + 14;
+  const body = roundedRectPath(shoulderL.x - 7, rig.neckBottomY - 2, clipW, clipH, 5);
   paintLightPass(ctx, body, {
-    x: -shoulderW,
-    y: rig.torsoTop - 1,
-    w: rig.torsoW,
-    h: rig.torsoH + 3,
+    x: shoulderL.x - 7,
+    y: rig.neckBottomY - 2,
+    w: clipW,
+    h: clipH,
   }, { highlight: 0.14, shade: 0.12, specular: 0.08 });
 
-  // Pants top inspired by the reference samples: curved waistband band.
-  const waistbandTop = rig.hipY - 3.0;
-  const waistbandBottom = rig.hipY - 0.7;
-  const wbW = rig.torsoW * 0.76;
-  const waistband = new Path2D();
-  waistband.moveTo(-wbW * 0.48, waistbandTop + 0.8);
-  waistband.quadraticCurveTo(0, waistbandTop - 0.35, wbW * 0.48, waistbandTop + 0.8);
-  waistband.lineTo(wbW * 0.43, waistbandBottom);
-  waistband.quadraticCurveTo(0, waistbandBottom + 0.75, -wbW * 0.43, waistbandBottom);
-  waistband.closePath();
-  fillAndStroke(ctx, waistband, darken(spec.palette.pants, 0.03), primaryOutline(), 1.05, darken(spec.palette.pants, 0.12));
+  // Neck opening.
+  const neckOuter = ellipsePath(0, rig.neckBottomY + 0.95, (shoulderR.x - shoulderL.x) * 0.24, 2.6);
+  const neckInner = ellipsePath(0, rig.neckBottomY + 0.95, (shoulderR.x - shoulderL.x) * 0.16, 1.55);
+  fillAndStroke(ctx, neckOuter, darken(shirtBase, 0.04), primaryOutline(), 1.05);
+  fillAndStroke(ctx, neckInner, darken(spec.palette.skin, 0.02), primaryOutline(), 0.75);
+
+  // Waist band for part separation.
+  const waistband = roundedRectPath(shoulderL.x + 4.5, waist.y - 1.3, (shoulderR.x - shoulderL.x) - 9, 2.9, 1.8);
+  fillAndStroke(ctx, waistband, darken(spec.palette.pants, 0.03), primaryOutline(), 0.95, darken(spec.palette.pants, 0.12));
 
   if (spec.outfit.shirtPattern === 'pinstripe') {
     ctx.save();
@@ -620,19 +835,37 @@ function drawBadge(ctx, spec, rig) {
 }
 
 function drawHead(ctx, spec, rig) {
-  const head = ellipsePath(0, rig.headCenterY, rig.headRX * 0.95, rig.headRY * 0.92);
+  const tx = buildHeadTx(rig);
+
+  // Build transformed head path for clip/light passes.
+  const [ax, ay] = partAnchor('head', 'center');
+  const headPath = getPartPath('head');
+  const toWorld = (px, py) => ({
+    x: tx.x + (px - ax) * tx.scaleX,
+    y: tx.y + (py - ay) * tx.scaleY,
+  });
+  const headTL = toWorld(PART_BOUNDS.head.x, PART_BOUNDS.head.y);
+  const headBR = toWorld(PART_BOUNDS.head.x + PART_BOUNDS.head.w, PART_BOUNDS.head.y + PART_BOUNDS.head.h);
+  const head = new Path2D();
+  head.addPath(headPath, new DOMMatrix([
+    tx.scaleX, 0,
+    0, tx.scaleY,
+    tx.x - ax * tx.scaleX, tx.y - ay * tx.scaleY,
+  ]));
   const earW = 2.8 * (spec.body?.earSize || 1);
   const earH = 3.9 * (spec.body?.earSize || 1);
-  const earL = ellipsePath(-rig.headRX * 0.96, rig.headCenterY + 0.2, earW * 0.72, earH * 0.62);
-  const earR = ellipsePath(rig.headRX * 0.96, rig.headCenterY + 0.2, earW * 0.72, earH * 0.62);
+  const earLAnchor = mapPartAnchor('head', 'center', 'earL', tx);
+  const earRAnchor = mapPartAnchor('head', 'center', 'earR', tx);
+  const earL = ellipsePath(earLAnchor.x, earLAnchor.y, earW * 0.72, earH * 0.62);
+  const earR = ellipsePath(earRAnchor.x, earRAnchor.y, earW * 0.72, earH * 0.62);
   fillAndStroke(ctx, earL, darken(spec.palette.skin, 0.02), primaryOutline(), 1);
   fillAndStroke(ctx, earR, darken(spec.palette.skin, 0.02), primaryOutline(), 1);
   fillAndStroke(ctx, head, spec.palette.skin, primaryOutline(), 1.55, darken(spec.palette.skin, 0.14));
   paintLightPass(ctx, head, {
-    x: -rig.headRX * 0.95,
-    y: rig.headCenterY - rig.headRY * 0.92,
-    w: rig.headRX * 1.9,
-    h: rig.headRY * 1.84,
+    x: headTL.x,
+    y: headTL.y,
+    w: headBR.x - headTL.x,
+    h: headBR.y - headTL.y,
   }, { highlight: 0.12, shade: 0.1, specular: 0.08 });
 
   ctx.save();
@@ -650,9 +883,12 @@ function drawHead(ctx, spec, rig) {
   ctx.fillStyle = warm;
   ctx.fillRect(-rig.headRX - 1, rig.headCenterY - rig.headRY - 1, rig.headRX * 2 + 2, rig.headRY * 2 + 2);
 
-  const eyeY = rig.eyeY;
+  const eyeLA = mapPartAnchor('head', 'center', 'eyeL', tx);
+  const eyeRA = mapPartAnchor('head', 'center', 'eyeR', tx);
+  const eyeY = (eyeLA.y + eyeRA.y) * 0.5;
   const face = spec.face || {};
-  const eyeDX = rig.eyeGap;
+  const eyeDX = (eyeRA.x - eyeLA.x) * 0.5;
+  const mouthY = mapPartAnchor('head', 'center', 'mouth', tx).y;
   ctx.fillStyle = spec.palette.outline;
   if (face.eyes === 'wide') {
     ctx.beginPath();
@@ -804,20 +1040,20 @@ function drawHead(ctx, spec, rig) {
   ctx.lineWidth = 1;
   if (face.mouth === 'smile') {
     ctx.beginPath();
-    ctx.arc(0, rig.mouthY, 2.4 * (spec.body?.mouthW || 1), 0.15, Math.PI - 0.15);
+    ctx.arc(0, mouthY, 2.4 * (spec.body?.mouthW || 1), 0.15, Math.PI - 0.15);
     ctx.stroke();
   } else if (face.mouth === 'smirk') {
     ctx.beginPath();
-    ctx.moveTo(-1.6, rig.mouthY + 0.2);
-    ctx.quadraticCurveTo(0.6, rig.mouthY - 0.9, 2.6, rig.mouthY + 0.15);
+    ctx.moveTo(-1.6, mouthY + 0.2);
+    ctx.quadraticCurveTo(0.6, mouthY - 0.9, 2.6, mouthY + 0.15);
     ctx.stroke();
   } else if (face.mouth === 'open') {
-    const mouth = roundedRectPath(-1.8 * (spec.body?.mouthW || 1), rig.mouthY - 0.8, 3.6 * (spec.body?.mouthW || 1), 1.9, 0.7);
+    const mouth = roundedRectPath(-1.8 * (spec.body?.mouthW || 1), mouthY - 0.8, 3.6 * (spec.body?.mouthW || 1), 1.9, 0.7);
     fillAndStroke(ctx, mouth, darken(spec.palette.skin, 0.52), darken(spec.palette.skin, 0.62), 0.45);
   } else {
     ctx.beginPath();
-    ctx.moveTo(-2.1 * (spec.body?.mouthW || 1), rig.mouthY);
-    ctx.lineTo(2.1 * (spec.body?.mouthW || 1), rig.mouthY);
+    ctx.moveTo(-2.1 * (spec.body?.mouthW || 1), mouthY);
+    ctx.lineTo(2.1 * (spec.body?.mouthW || 1), mouthY);
     ctx.stroke();
   }
 
@@ -833,12 +1069,10 @@ function drawHead(ctx, spec, rig) {
       st.closePath();
       fillAndStroke(ctx, st, hairShade, darken(hairShade, 0.2), 0.6);
     } else if (face.facialHair === 'goatee') {
-      const mouthY = rig.mouthY;
       const g = roundedRectPath(-1.55, mouthY + 1.35, 3.1, 2.7, 0.95);
       fillAndStroke(ctx, g, hairShade, darken(hairShade, 0.2), 0.6);
     } else if (face.facialHair === 'beard') {
       const b = new Path2D();
-      const mouthY = rig.mouthY;
       const topY = mouthY + 2.2;
       const chinY = rig.headCenterY + rig.headRY * 0.86;
       b.moveTo(-rig.headRX * 0.44, topY);
@@ -1203,6 +1437,8 @@ export function drawDudeFrame(ctx, spec, dir, anim, frame, frameCount) {
   };
   pose.handFar = { x: pose.armFar.wristX, y: pose.armFar.wristY };
   pose.handNear = { x: pose.armNear.wristX, y: pose.armNear.wristY };
+
+  if (frame === 0) runRigSanity(spec, rig, pose);
 
   // Phase 2: build a strict render-layer plan and execute sorted layers.
   const layers = buildLayerPlan(ctx, spec, rig, side, m, pose);
