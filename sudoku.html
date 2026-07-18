@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="dark light">
   <title>Sudoku</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="sudoku.css">
@@ -53,7 +53,7 @@
 
       <div class="hud">
         <div class="status-row">
-          <span id="status">Ready.</span>
+          <span id="status" role="status" aria-live="polite">Ready.</span>
         </div>
       </div>
 
@@ -70,7 +70,7 @@
       </div>
     </section>
 
-    <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-text">
       <div class="modal-card">
         <p id="modal-text"></p>
         <div class="modal-actions">

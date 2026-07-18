@@ -53,6 +53,7 @@ const undoStack = [];
 const UNDO_LIMIT = 200;
 const SAVE_THROTTLE_MS = 250;
 let saveTimer = null;
+let hintFlashTimer = null;
 
 function hasNote(mask, d) {
   return (mask & bit(d)) !== 0;
@@ -291,6 +292,25 @@ function flashInvalid(i) {
   const cell = cellEls[i];
   cell.classList.add('invalid');
   setTimeout(() => cell.classList.remove('invalid'), 350);
+}
+
+function flashHint(i) {
+  for (const cell of cellEls) cell.classList.remove('hint-flash');
+  if (hintFlashTimer !== null) {
+    clearTimeout(hintFlashTimer);
+    hintFlashTimer = null;
+  }
+
+  const cell = cellEls[i];
+  if (!cell) return;
+
+  // Restart the animation even when the same cell is hinted twice after undo.
+  void cell.offsetWidth;
+  cell.classList.add('hint-flash');
+  hintFlashTimer = window.setTimeout(() => {
+    cell.classList.remove('hint-flash');
+    hintFlashTimer = null;
+  }, 1900);
 }
 
 function isValidPlacement(board, i, d) {
@@ -566,18 +586,33 @@ function revealHint() {
     setStatus('No empty cells for a hint.');
     return;
   }
-  const pick = empty[randomInt(0, empty.length - 1)];
-  gameState.board[pick] = gameState.solution[pick];
+
+  // Prefer the selected empty cell so the action is predictable. Fall back to
+  // a random empty editable cell when there is no suitable selection.
+  const selected = gameState.selection?.i;
+  const pick = Number.isInteger(selected) && empty.includes(selected)
+    ? selected
+    : empty[randomInt(0, empty.length - 1)];
+  const digit = gameState.solution[pick];
+
+  pushUndo();
+  gameState.board[pick] = digit;
   gameState.notes[pick] = 0;
   gameState.revealed[pick] = true;
   gameState.errors[pick] = false;
+  gameState.selection = { i: pick };
+  for (const peer of PEERS[pick]) {
+    gameState.notes[peer] &= ~bit(digit);
+  }
+
   renderBoard();
   renderKeypad();
+  flashHint(pick);
   saveGame(gameState.diff);
   if (isSolved()) {
     onWin();
   } else {
-    setStatus('Hint revealed.');
+    setStatus(`Hint: row ${row(pick) + 1}, column ${col(pick) + 1} is ${digit}.`);
   }
 }
 
@@ -801,7 +836,7 @@ function backToTitle() {
   showScreen('title');
 }
 
-function openModal(text, onYes, onNo) {
+function openModal(text, onYes, onNo = () => {}) {
   modalTextEl.textContent = text;
   modalEl.classList.remove('hidden');
 
@@ -820,6 +855,8 @@ function openModal(text, onYes, onNo) {
     cleanup();
     onNo();
   };
+
+  window.requestAnimationFrame(() => modalYesBtn.focus());
 }
 
 function openInstructionsModal() {
@@ -924,7 +961,7 @@ function attachEvents() {
         return;
       }
       if (action === 'hint') {
-        openModal('Do you want a Hint?', () => {
+        openModal('Reveal the selected cell, or another empty cell?', () => {
           revealHint();
         }, () => {});
         return;
