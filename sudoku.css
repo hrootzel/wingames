@@ -20,6 +20,11 @@
   --sudoku-error: #f87171;
   --sudoku-modal-bg: #0f172a;
   --sudoku-modal-overlay: rgba(15, 23, 42, 0.55);
+  --sudoku-accent-text: #07111f;
+  --sudoku-secondary-text: #e2e8f0;
+  --sudoku-secondary-bg: rgba(255, 255, 255, 0.06);
+  --sudoku-hint-bg: rgba(96, 165, 250, 0.28);
+  --sudoku-hint-ring: rgba(191, 219, 254, 0.98);
   --sudoku-gap: 10px;
   --sudoku-board-size: min(70vmin, 540px);
 }
@@ -44,9 +49,11 @@
 body.sudoku {
   background: linear-gradient(135deg, var(--sudoku-bg-top), var(--sudoku-bg-bottom));
   color: var(--sudoku-text);
+  color-scheme: dark;
 }
 
 body.sudoku[data-theme="light"] {
+  color-scheme: light;
   --sudoku-bg-top: #f8fafc;
   --sudoku-bg-bottom: #dbeafe;
   --sudoku-text: #0f172a;
@@ -68,6 +75,11 @@ body.sudoku[data-theme="light"] {
   --sudoku-error: #dc2626;
   --sudoku-modal-bg: #ffffff;
   --sudoku-modal-overlay: rgba(148, 163, 184, 0.35);
+  --sudoku-accent-text: #ffffff;
+  --sudoku-secondary-text: #0f172a;
+  --sudoku-secondary-bg: rgba(15, 23, 42, 0.05);
+  --sudoku-hint-bg: rgba(37, 99, 235, 0.18);
+  --sudoku-hint-ring: rgba(29, 78, 216, 0.95);
 }
 
 .hidden {
@@ -172,9 +184,18 @@ body.sudoku[data-theme="light"] {
   font-weight: 700;
 }
 
+.cell.revealed {
+  background: var(--sudoku-hint-bg);
+}
+
 .cell.revealed .value {
   color: var(--sudoku-reveal);
-  font-weight: 700;
+  font-weight: 800;
+}
+
+.cell.hint-flash {
+  z-index: 2;
+  animation: sudoku-hint-pulse 620ms ease-in-out 3;
 }
 
 .cell.error .value {
@@ -355,6 +376,7 @@ body.sudoku[data-theme="light"] {
 
 .modal-card {
   background: var(--sudoku-modal-bg);
+  color: var(--sudoku-text);
   border-radius: 14px;
   border: 1px solid var(--sudoku-border);
   padding: 18px;
@@ -369,11 +391,23 @@ body.sudoku[data-theme="light"] {
   justify-content: flex-end;
 }
 
+.modal-actions button:not(.secondary) {
+  background: var(--sudoku-accent);
+  color: var(--sudoku-accent-text);
+}
+
 .modal-actions .secondary {
-  background: transparent;
-  color: #e2e8f0;
+  background: var(--sudoku-secondary-bg);
+  color: var(--sudoku-secondary-text);
   border: 1px solid var(--sudoku-border);
   box-shadow: none;
+}
+
+.modal-actions button:focus-visible,
+.settings-menu button:focus-visible,
+.icon-button:focus-visible {
+  outline: 3px solid var(--sudoku-accent-strong);
+  outline-offset: 2px;
 }
 
 .sudoku-win-card {
@@ -417,6 +451,17 @@ body.sudoku[data-theme="light"] {
 
 .instructions-body p {
   margin: 0;
+}
+
+@keyframes sudoku-hint-pulse {
+  0%, 100% {
+    box-shadow: inset 0 0 0 0 var(--sudoku-hint-ring);
+    background: var(--sudoku-hint-bg);
+  }
+  50% {
+    box-shadow: inset 0 0 0 5px var(--sudoku-hint-ring), 0 0 18px var(--sudoku-hint-ring);
+    background: var(--sudoku-key-active);
+  }
 }
 
 @keyframes shake {
