@@ -587,12 +587,9 @@ function revealHint() {
     return;
   }
 
-  // Prefer the selected empty cell so the action is predictable. Fall back to
-  // a random empty editable cell when there is no suitable selection.
-  const selected = gameState.selection?.i;
-  const pick = Number.isInteger(selected) && empty.includes(selected)
-    ? selected
-    : empty[randomInt(0, empty.length - 1)];
+  // Hints are intentionally independent of the current selection. Always
+  // reveal a uniformly random empty editable cell.
+  const pick = empty[Math.floor(Math.random() * empty.length)];
   const digit = gameState.solution[pick];
 
   pushUndo();
@@ -961,7 +958,7 @@ function attachEvents() {
         return;
       }
       if (action === 'hint') {
-        openModal('Reveal the selected cell, or another empty cell?', () => {
+        openModal('Reveal a random empty cell?', () => {
           revealHint();
         }, () => {});
         return;
