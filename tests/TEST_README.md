@@ -75,3 +75,19 @@ Access at:
 - 4 viewport sizes: 1400×900, 900×900, 700×900, 500×800
 - 7 real games + 2 generic test pages
 - ~50 test scenarios total
+
+## Sudoku Engine Tests
+
+The Sudoku solver/generator tests use Node's built-in test runner and do not require Playwright:
+
+```bash
+cd tests
+npm run test:sudoku
+```
+
+They verify:
+- unique solutions for all difficulty tiers
+- logical, no-guess certification and lower-tier solver rejection
+- retained candidate eliminations across later assignments
+- runtime generation and certified fallback behavior
+- invalid-grid rejection
